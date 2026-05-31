@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code — keep skills, ignore local-only state
+.claude/settings.local.json
+.claude/logs/
+.claude/cache/
+.claude/projects/

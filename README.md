@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DS Skill Extraction Workshop — Starter
 
-## Getting Started
+A hands-on workshop starter for extracting a "design-system literacy" skill
+from a real component library and using it to drive a multi-phase Claude
+Code session.
 
-First, run the development server:
+## 60-second brief
+
+You will spend three phases inside Claude Code:
+
+1. **Phase 1 — Discovery.** Run the `extract-ds-skill` meta-skill against
+   `ds/`. The agent reads the wrappers and `DESIGN.md`, surfaces a
+   discovery summary, and pauses at a gate with `[VERIFY]` markers. You
+   confirm or correct, then the agent writes the extracted skill into
+   `extracted-skill/`.
+2. **Phase 2 — Generation.** Use the prompt in `prompts/sign-in.md` to
+   ask Claude Code to build a sign-in form using the components in `ds/`.
+   The agent writes `app/sign-in.tsx`.
+3. **Phase 3 — Audit.** Use the prompt in `prompts/audit.md` to audit
+   `app/sign-in.tsx` against the extracted skill. The agent surfaces a
+   PASS/FAIL per rule with `file:line` citations. Look for the headline
+   `inactive` vs `disabled` violation.
+
+You leave with the extracted skill artefact, the generated form, and a
+PASS/FAIL audit — all reproducible on your own design system after the
+workshop.
+
+## IP disclaimer
+
+> Primer is GitHub's open-source design system used here for educational
+> purposes; this workshop is not affiliated with GitHub.
+
+## Setup
+
+You need:
+
+- **Node.js 20+** — `node --version` should print `v20.x` or higher.
+- **pnpm 10+** — install with `npm install -g pnpm` if you do not have it.
+- **Claude Code** — install from <https://claude.com/claude-code>. Verify
+  with `claude --version`.
+- **An Anthropic API key** — set `ANTHROPIC_API_KEY` in your shell, or
+  follow Claude Code's first-run flow.
+
+Setup steps (mirror the companion site's Setup page):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Clone the starter
+git clone https://github.com/vercel-labs/ds-skill-extraction-workshop.git
+cd ds-skill-extraction-workshop
+
+# 2. Install dependencies
+pnpm install
+
+# 3. Verify Claude Code is available inside the project
+claude --version
+
+# 4. Launch Claude Code
+claude
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If `pnpm install` finishes without errors and `claude --version` prints a
+version string, you are ready for Block 5.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What ships in this repo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `ds/` — the design system wrappers and `DESIGN.md` (populated in Slice
+  2 by the workshop author).
+- `app/` — empty until Phase 2 generates `app/sign-in.tsx`.
+- `extracted-skill/` — empty until Phase 1 writes the extracted skill.
+- `prompts/` — the Phase 2 and Phase 3 prompt fixtures (added in Slices 3
+  and 4).
+- `.claude/skills/extract-ds-skill/` — the pre-installed meta-skill that
+  powers Phase 1.
 
-## Learn More
+## Workshop links
 
-To learn more about Next.js, take a look at the following resources:
+- **Companion site:** the workshop companion site with Overview,
+  Hands-On, Reference, Resources, and Cultivate pages —
+  source at <https://github.com/vercel-labs/ship-2026-companion-site>
+  (the deployed URL will be added once the companion ships).
+- **Meta-skill:** the `extract-ds-skill` skill that powers Phase 1 lives
+  at [`.claude/skills/extract-ds-skill/`](./.claude/skills/extract-ds-skill/)
+  inside this repo. After the workshop it will be published standalone
+  for reuse.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [LICENSE](./LICENSE).
