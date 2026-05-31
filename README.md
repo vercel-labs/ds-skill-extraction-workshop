@@ -75,11 +75,13 @@ version string, you are ready for Block 5.
 ## Workshop links
 
 - **Companion site:** the workshop companion site with Overview,
-  Hands-On, Reference, Resources, and Cultivate pages
-  (link will be added when the companion ships).
+  Hands-On, Reference, Resources, and Cultivate pages —
+  source at <https://github.com/vercel-labs/ship-2026-companion-site>
+  (the deployed URL will be added once the companion ships).
 - **Meta-skill:** the `extract-ds-skill` skill that powers Phase 1 lives
-  at `.claude/skills/extract-ds-skill/` inside this repo. After the
-  workshop it will be published standalone for reuse.
+  at [`.claude/skills/extract-ds-skill/`](./.claude/skills/extract-ds-skill/)
+  inside this repo. After the workshop it will be published standalone
+  for reuse.
 
 ## License
 
