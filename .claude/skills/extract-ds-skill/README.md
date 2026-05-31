@@ -1,0 +1,29 @@
+# extract-ds-skill
+
+A Claude Code meta-skill that extracts a project-specific design-system
+skill from a wrappers + `DESIGN.md` corpus. The full mechanics live in
+[`SKILL.md`](./SKILL.md); this README exists so anyone landing on a
+standalone copy of the meta-skill can hop one click to the rest of the
+workshop materials.
+
+## Workshop links
+
+- **Starter repo** (this repo — the meta-skill is pre-installed under
+  `.claude/skills/extract-ds-skill/`):
+  <https://github.com/vercel-labs/ds-skill-extraction-workshop>
+- **Companion site** (Overview, Hands-On, Reference, Resources, and
+  Cultivate pages for the workshop):
+  <https://github.com/vercel-labs/ship-2026-companion-site>
+
+## How to use
+
+From the starter repo root:
+
+```bash
+claude /extract-ds-skill ./ds
+```
+
+Phase 1 surfaces a discovery summary; Phase 2 generates a sign-in form
+against the extracted skill; Phase 3 audits the generated code against
+the headline rule. See the companion site's Hands-On page for the full
+flow.
