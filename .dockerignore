@@ -1,0 +1,28 @@
+# dependencies (re-installed inside the sandbox if needed)
+node_modules
+
+# Next.js / Fumadocs build output
+.next
+.source
+out
+dist
+build
+*.tgz
+
+# Turborepo + tooling caches
+.turbo
+.cache
+.swc
+*.tsbuildinfo
+
+# Test coverage
+coverage
+*.lcov
+
+# Editor / OS noise
+.DS_Store
+.idea
+.vscode
+
+# Vercel local artifacts
+.vercel
