@@ -28,7 +28,7 @@ the clone command. All deltas in `mm:ss`.
 | Phase | Start | End | Δ |
 |---|---|---|---|
 | Clone → Phase 1 gate (discovery summary visible) | T0 | | |
-| Gate → extracted skill written to `extracted-skill/` | | | |
+| Gate → extracted skill written to `.claude/skills/ds/` | | | |
 | Extracted skill → generated `app/sign-in.tsx` | | | |
 | Generated form → audit PASS/FAIL output complete | | | |
 
@@ -52,7 +52,7 @@ the clone command. All deltas in `mm:ss`.
 - **`disabled` violation caught:** `<yes/no>`
 - **Time-to-catch (prompt paste → surfaced FAIL):** `<mm:ss>` (target: ≤60s)
 - **FAIL citation in `app/sign-in.tsx`:** `<file:line>`
-- **FAIL citation in `extracted-skill/` with rule slug:** `<slug @ file:line>`
+- **FAIL citation in `.claude/skills/ds/` with rule slug:** `<slug @ file:line>`
 - **Prompt iterated?** `<no | yes — paste new body and reason>`
 
 ## UX confusion observed

@@ -12,7 +12,7 @@ You will spend three phases inside Claude Code:
    `ds/`. The agent reads the wrappers and `DESIGN.md`, surfaces a
    discovery summary, and pauses at a gate with `[VERIFY]` markers. You
    confirm or correct, then the agent writes the extracted skill into
-   `extracted-skill/`.
+   `.claude/skills/ds/` (created at runtime by the meta-skill).
 2. **Phase 2 — Generation.** Use the prompt in `prompts/sign-in.md` to
    ask Claude Code to build a sign-in form using the components in `ds/`.
    The agent writes `app/sign-in.tsx`.
@@ -66,7 +66,7 @@ version string, you are ready for Block 5.
 - `ds/` — the design system wrappers and `DESIGN.md` (populated in Slice
   2 by the workshop author).
 - `app/` — empty until Phase 2 generates `app/sign-in.tsx`.
-- `extracted-skill/` — empty until Phase 1 writes the extracted skill.
+- `.claude/skills/ds/` — created by Phase 1 when the meta-skill persists the extracted skill.
 - `prompts/` — the Phase 2 and Phase 3 prompt fixtures (added in Slices 3
   and 4).
 - `.claude/skills/extract-ds-skill/` — the pre-installed meta-skill that
