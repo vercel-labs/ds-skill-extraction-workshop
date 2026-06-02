@@ -24,7 +24,8 @@ Extraction Workshop so Block 5 can still run if venue Wi-Fi fails.
 │   ├── .claude/               ← pre-installed meta-skill
 │   ├── ds/                    ← design-system content
 │   ├── prompts/               ← Phase 2 + Phase 3 prompt fixtures
-│   ├── app/, extracted-skill/ ← initially empty; you'll write into these
+│   ├── app/                   ← initially empty; Phase 2 writes `app/sign-in.tsx`
+│   │                            (Phase 1 creates `.claude/skills/ds/` at runtime)
 │   └── package.json, README.md, ...
 └── companion-site/            ← static HTML snapshot of the companion site
     └── index.html             ← open this in any browser
