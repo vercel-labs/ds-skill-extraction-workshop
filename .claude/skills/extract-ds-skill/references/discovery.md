@@ -42,7 +42,7 @@ Soft blocker. Log the source with `[private-blocker]` in the sources line. Proce
 
 ## Discovery summary budget
 
-Verbatim from Sahaj's onboarding instructions:
+Verbatim from the v0 onboarding instructions:
 
 > "One line per source is the budget. No tables, no per-source field breakdowns."
 > "Only mention blockers or open questions if they would actually stop Phase 2."

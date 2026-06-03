@@ -249,7 +249,7 @@ The reason the gate is here and not elsewhere:
 - Phase 2 produces a deterministic proof point ("N props verified, 0 hallucinations"). The user reviews this proof point against their own knowledge of the DS, then approves or sends the agent back to iterate.
 - Phase 3 writes to disk. Once it starts, there is no rollback inside the skill - the user rolls back with `git` if needed.
 
-Single gate is a Sahaj-inherited contract. It keeps the human in the loop where the cost of being wrong is high, and out of the loop where the cost of being wrong is cheap. Do not add a second gate "for safety"; redundant gates train the user to rubber-stamp them.
+Single gate is a v0-inherited contract. It keeps the human in the loop where the cost of being wrong is high, and out of the loop where the cost of being wrong is cheap. Do not add a second gate "for safety"; redundant gates train the user to rubber-stamp them.
 
 ## Common agent failure modes
 
@@ -270,7 +270,7 @@ Notes for the next agent that runs this skill. Failure modes observed during dry
 
 This skill inherits from four sources. The full ledger lives in `references/inheritance.md`; this is the SKILL.md summary for orientation.
 
-- **Sahaj v0 onboarding flow** (`onboarding-instructions.ts`) - the three-phase contract, the single human gate, the discovery-summary budget rules, the adapter-not-docs mission sentence, the slug-collision ASK rule, the anti-fabrication Do/Don't list, the closing-message contract. Phrasings marked verbatim above are character-for-character from this source.
+- **v0 DS-onboarding flow** (`onboarding-instructions.ts`) - the three-phase contract, the single human gate, the discovery-summary budget rules, the adapter-not-docs mission sentence, the slug-collision ASK rule, the anti-fabrication Do/Don't list, the closing-message contract. Phrasings marked verbatim above are character-for-character from this source.
 - **vercel/front product-copywriting skill** - the structural shape only: YAML frontmatter as dispatch contract, the "When to Load References" routing-table layout, the `**STOP.**` block grammar, per-domain reference-file granularity, Quick Triage layout, Agent Stance layout. None of the copywriting content is inherited; the scope guardrail explicitly routes copy out.
 - **Geist `<BestPractices>` .mdx pattern** - per-component file with frontmatter, `When to use / Behavior / Content / Accessibility` subsection vocabulary, six rule shapes, `Bad | Good | Why` columnar anti-pattern grammar, cross-component rule duplication, universal-coverage rule.
 - **Hallmark (Together AI)** - progressive-disclosure load map, pre-emit self-check discipline as reflexive audit. Stamp pattern dropped from v1 (logged in `references/coverage-gaps.md` as deferred).
@@ -295,7 +295,7 @@ Six architectural choices were locked on 2026-05-31. Recording them here so the 
 - **Skill files only (no runnable starter).** The hands-on deliverable is the skill files. A separate starter repo (built in Task #9) provides the runnable Next app the freshly extracted skill is exercised against. Splitting deliverables keeps the meta-skill's surface small and the demo's surface bounded.
 - **Auto-discover + prune component scope.** The meta-skill scans the package's public exports and proposes the full set; the user prunes. Hand-picking would have been faster on stage but would have read as rehearsed theatre. The "Components found (38), proposing (4)" line is the workshop-credibility primitive.
 - **Headline rules discovered independently.** The meta-skill does not hard-code "use `disabled` not `inactive`" for Primer. If dry-runs show the extraction misses the rule, the prompts in this file are tuned until it lands. Hard-coding is detectable; the audience can smell it.
-- **No Hallmark stamp pattern.** Sahaj does not stamp. John does not stamp (git blame is provenance). `check-skill-docs.sh` does not need stamps as a falsifiability check. Adding a stamp because Hallmark does would be cargo-cult. Deferred to `references/coverage-gaps.md` for a future re-extract verb that genuinely needs source provenance.
+- **No Hallmark stamp pattern.** The v0 onboarding flow does not stamp. The product-copywriting skill does not stamp (git blame is provenance). `check-skill-docs.sh` does not need stamps as a falsifiability check. Adding a stamp because Hallmark does would be cargo-cult. Deferred to `references/coverage-gaps.md` for a future re-extract verb that genuinely needs source provenance.
 
 ## Operating envelope (what good output looks like)
 

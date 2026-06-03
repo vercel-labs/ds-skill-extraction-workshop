@@ -2,7 +2,7 @@
 
 Why each pattern in `extract-ds-skill` is here, and what was consciously dropped. Future maintainers reading this file should be able to trace any decision back to its source, and see the fences that hold the scope.
 
-## Sahaj v0 design-system skill onboarding (vercel/v0 PR #24474)
+## v0 design-system skill onboarding (vercel/v0 PR #24474)
 
 ### Inherits
 
@@ -96,7 +96,7 @@ Why each pattern in `extract-ds-skill` is here, and what was consciously dropped
 
 ### Does not inherit
 
-- Stamp-in-artifact pattern — DROPPED from v1 per locked decision Q6. Git tracks provenance; `check-skill-docs.sh` does not use stamps as a falsifiability check; Sahaj does not stamp; John does not stamp. Adding it because Hallmark does is cargo-cult. Deferred to `coverage-gaps.md` for when a re-extract verb needs source provenance.
+- Stamp-in-artifact pattern — DROPPED from v1 per locked decision Q6. Git tracks provenance; `check-skill-docs.sh` does not use stamps as a falsifiability check; the v0 onboarding flow does not stamp; the product-copywriting skill does not stamp. Adding it because Hallmark does is cargo-cult. Deferred to `coverage-gaps.md` for when a re-extract verb needs source provenance.
 - All taste / aesthetic gate content
 - Six pre-emit axes (Philosophy / Hierarchy / Execution / Specificity / Restraint / Variety)
 - Macrostructure, theme, and genre dispatching

@@ -36,7 +36,7 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
 
 ## Per-component reference file contract
 
-Verbatim from Sahaj's onboarding-instructions.ts L111-113:
+Verbatim from v0's onboarding-instructions.ts L111-113:
 
 "Each file: public imports, when to use, key props and variants, accessibility, composition examples, source references, common mistakes, things to never invent."
 
@@ -65,7 +65,7 @@ Token name + value + family (color / space / type / motion) + use-when prose + a
 
 ## Pattern-example collapse rule
 
-Verbatim from Sahaj's onboarding-instructions.ts L116:
+Verbatim from v0's onboarding-instructions.ts L116:
 
 "Treat pattern guidance and example code as one thing: the annotated example IS the pattern."
 

@@ -25,7 +25,7 @@ Rules of the shape:
 - One trap per bullet. Compound traps split into separate bullets.
 - Lead with `Never` (or `Do not`). Negative imperative is the contract; positive guidance lives elsewhere in the file.
 - The clause after the em-dash is the WHY in plain language — one clause max, no full paragraphs.
-- Inline code-fence the literal prop, value, or API token (Sahaj convention).
+- Inline code-fence the literal prop, value, or API token (v0 convention).
 - Cite the source. If extraction cannot resolve a `file:line`, append ` [VERIFY]` instead of guessing.
 - A component file with no traps still ships a `## Best Practices` section containing `No special rules — use the API as documented.` (Geist universal-coverage rule).
 

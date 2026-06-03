@@ -15,7 +15,7 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 ## The 11 locked grill decisions
 
 - **B1**: 4 components (TextInput, Button, Checkbox, FormControl) — enough to surface a headline rule without exploding scope.
-- **α**: Sahaj-shaped meta-skill (three-phase discover/validate/persist) — proven runtime flow from v0 PR #24474.
+- **α**: v0-shaped meta-skill (three-phase discover/validate/persist) — proven runtime flow from v0 PR #24474.
 - **Claude Code locked Phase 1** — meta-skill ships as a Claude Code skill, not a different framework.
 - **R3 hybrid cluster output** — SKILL.md + `references/{components/*.md, composition.md, design-principles.md, anti-patterns.md}` so the agent loads only what each phase needs.
 - **S2 single human gate** at the Phase 2 → Phase 3 boundary — discovery, validation, and persistence each get one approval surface, not five.
@@ -35,11 +35,11 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 | Q3 | Hands-on deliverable | Skill files only | Starter repo (Task #9) is already a runnable Next app. Meta-skill produces SKILL files; the "see it work" moment is a second Claude Code session. |
 | Q4 | Component scope | Auto-discover + prune | Typing 4 names off a slide is rehearsed theatre. Meta-skill scans exports, lists "Components found (38), proposing (4)", attendee prunes. |
 | Q5 | Headline rule surfacing | Discover independently from source | Hard-coding `inactive` vs `disabled` is cheating; the audience can smell it. Mitigation: dry-runs until extraction lands the rule on its own. |
-| Q6 | Hallmark stamp | Dropped from v1 | Sahaj doesn't stamp, John doesn't stamp, git blame IS provenance. Deferred to `coverage-gaps.md` for when a re-extract verb needs source provenance. |
+| Q6 | Hallmark stamp | Dropped from v1 | The v0 onboarding flow doesn't stamp, the product-copywriting skill doesn't stamp, git blame IS provenance. Deferred to `coverage-gaps.md` for when a re-extract verb needs source provenance. |
 
 ## Source pattern inheritance
 
-**Sahaj v0 (PR #24474)** gives the meta-skill its runtime spine — the three labeled phases, the single human gate at the Phase 2 → Phase 3 boundary, the scratch workspace, the anti-fabrication Do/Don't list with `[VERIFY]` markers, the slug-collision ASK rule, and the closing-message contract that asks for screen-level not component-level example prompts. Consciously dropped: the v0Config payload, the `ApplyV0SkillConfig` host primitive, the blob/S3 attachments, the dialog UI, the `v0_memories/<team>/skills/<slug>/` path (rewritten to `.claude/skills/<slug>/` for the per-project Q1 decision), and the `/CLEAN_CWD/` VM scratch (rewritten to local `.extract-ds-skill-scratch/`).
+**The v0 DS-onboarding flow (PR #24474)** gives the meta-skill its runtime spine — the three labeled phases, the single human gate at the Phase 2 → Phase 3 boundary, the scratch workspace, the anti-fabrication Do/Don't list with `[VERIFY]` markers, the slug-collision ASK rule, and the closing-message contract that asks for screen-level not component-level example prompts. Consciously dropped: the v0Config payload, the `ApplyV0SkillConfig` host primitive, the blob/S3 attachments, the dialog UI, the `v0_memories/<team>/skills/<slug>/` path (rewritten to `.claude/skills/<slug>/` for the per-project Q1 decision), and the `/CLEAN_CWD/` VM scratch (rewritten to local `.extract-ds-skill-scratch/`).
 
 **vercel/front product-copywriting (post-PR #70332)** gives the skill its dispatch shape — YAML frontmatter as a trigger-rich contract, the `**STOP.** Reading SKILL.md alone is insufficient.` block verbatim, the "When to Load References" routing table, the `coverage-gaps.md` self-aware backlog with the ~150-200 instruction-budget caveat, AGENTS.md as a cross-agent stub. Consciously dropped: every voice/tone/banned-words rule, the Tier 3 conditional-allow words, the Period Rule, the two-metric eval split, the exemplars-as-PR-diffs lattice. Structural inspiration only — none of the copy content survives the scope guardrail.
 

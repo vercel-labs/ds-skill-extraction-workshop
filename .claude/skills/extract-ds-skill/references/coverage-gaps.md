@@ -36,6 +36,6 @@ Any gap tagged `defer-to-post-workshop` is explicitly out of scope for the 2026 
 Two gaps in the rubric carry this tag implicitly:
 
 - **Figma-as-source-of-truth (HIGH)** — the joint-read path treats code as canonical. A real Figma integration needs a separate inspection verb and a conflict-resolution rule that goes beyond "code wins on conflict." Defer.
-- **Hallmark-style stamp provenance (LOW)** — per locked Q6, stamps were dropped from v1 because Sahaj does not stamp, John does not stamp, and `check-skill-docs.sh` does not use stamps as a falsifiability check. Adding it because Hallmark does would be cargo-cult. Revisit when a re-extract verb lands and source provenance becomes load-bearing.
+- **Hallmark-style stamp provenance (LOW)** — per locked Q6, stamps were dropped from v1 because the v0 onboarding flow does not stamp, the product-copywriting skill does not stamp, and `check-skill-docs.sh` does not use stamps as a falsifiability check. Adding it because Hallmark does would be cargo-cult. Revisit when a re-extract verb lands and source provenance becomes load-bearing.
 
 The remaining MEDIUM and LOW rows are safe at workshop scope (4 components, single-package DS, no motion tokens). They become real when a user points the meta-skill at a larger or more fragmented DS — at which point this file is the entry point for the next pass.
