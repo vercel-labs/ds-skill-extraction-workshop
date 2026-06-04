@@ -18,15 +18,21 @@ SCRATCH=".extract-ds-skill-scratch"
 mkdir -p "$SCRATCH"
 [[ -f "$SCRATCH/.gitignore" ]] || echo "*" > "$SCRATCH/.gitignore"
 
-mapfile -t APIS < <(grep -vE '^\s*(#|$)' "$APIS_FILE" || true)
+APIS=()
+while IFS= read -r __line; do APIS+=("$__line"); done < <(grep -vE '^\s*(#|$)' "$APIS_FILE" || true)
 API_COUNT=${#APIS[@]}
 [[ $API_COUNT -eq 0 ]] && { echo "ERROR: no APIs listed in $APIS_FILE" >&2; exit 2; }
 
 # Unique top-level names (everything before the first dot).
-declare -A SEEN; TOPS=()
+# Portable (bash 3.2 compatible — macOS): colon-delimited "seen" string.
+TOPS=()
+SEEN=":"
 for api in "${APIS[@]}"; do
   top="${api%%.*}"
-  [[ -z "${SEEN[$top]:-}" ]] && { SEEN[$top]=1; TOPS+=("$top"); }
+  case "$SEEN" in
+    *":$top:"*) ;;
+    *) TOPS+=("$top"); SEEN="$SEEN$top:" ;;
+  esac
 done
 
 # ---------- Phase A: typecheck probe ----------
