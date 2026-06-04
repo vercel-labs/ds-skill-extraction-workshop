@@ -1,0 +1,15 @@
+# Anti-patterns — ds
+
+Cross-cutting trap list, one row per rule slug. Per-component duplicates of these rows also live in `references/components.md` (duplication is intentional — an agent loading one section must see the rule that affects it).
+
+| Bad | Good | Why |
+|---|---|---|
+| `<Button inactive={isSubmitting} type="submit">Save</Button>` | `<Button disabled={isSubmitting} type="submit">Save</Button>` | `inactive` only blocks the click; the button stays focusable and screen readers announce it as actionable, so a keyboard user can submit twice. (rule slug: `component/button-disabled-not-inactive`; `ds/DESIGN.md:12-14`) |
+| `<Button aria-label="Save changes">Save changes</Button>` | `<Button>Save changes</Button>` | Duplicate accessible name; the `aria-label` overrides the visible text and the two can silently drift apart. (rule slug: `component/button-no-redundant-aria-label`; `ds/components/Button.docs.tsx:1-7`) |
+| `<TextInput name="email" />` outside a `<FormControl>` | `<FormControl><FormControl.Label>Email</FormControl.Label><TextInput name="email" /></FormControl>` | Bare input has no programmatic label; fails axe and screen readers cannot announce a name. (rule slug: `component/form-control-wrap-inputs`; `ds/components/FormControl.docs.tsx:4-5`) |
+| `<Checkbox name="agree" />` outside a `<FormControl>` | `<FormControl><FormControl.Label>I agree</FormControl.Label><Checkbox name="agree" /></FormControl>` | Same as above — applies to every input, including `<Checkbox>`. (rule slug: `component/form-control-wrap-inputs`; `ds/components/FormControl.docs.tsx:4-5`) |
+| `<FormControl.Validation>Invalid email</FormControl.Validation>` | `<FormControl.Validation variant="error">Invalid email</FormControl.Validation>` | `variant` is required (`'error' \| 'success'`); types reject the bare form. (rule slug: `component/form-control-validation-required-variant`; `@primer/react/dist/FormControl/_FormControlValidation.d.ts:6`) |
+| `<TextInput icon={SearchIcon} />` | `<TextInput leadingVisual={SearchIcon} />` | `icon` is `@deprecated`; use `leadingVisual` / `trailingVisual`. (rule slug: `component/text-input-icon-deprecated`; `@primer/react/dist/TextInput/TextInput.d.ts:7-8`) |
+| `style={{ background: "#1f883d" }}` | `style={{ background: "var(--bgColor-success-emphasis)" }}` | Raw hex bypasses theming — the surface stays green in dark mode instead of switching. (rule slug: `token/never-raw-values`; `@primer/primitives/dist/css/functional/themes/light.css:3`) |
+| `gap: 8px` | `gap: var(--controlStack-medium-gap-auto)` | Raw px does not respond to coarse-pointer touch-target widening; users on touch devices get cramped layouts. (rule slug: `token/never-raw-values`; `@primer/primitives/dist/css/functional/size/size-coarse.css:1-7`) |
+| Trusting `ds/components/Button.tsx:12-13` JSDoc ("prefer `inactive` over `disabled`") | Trust `ds/DESIGN.md:12-14` and `ds/components/Button.docs.tsx` | The wrapper JSDoc is a documented counter-example. DESIGN.md wins on conflict. (rule slug: `component/button-disabled-not-inactive`) |
