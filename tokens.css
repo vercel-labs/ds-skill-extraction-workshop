@@ -1,0 +1,62 @@
+/* Hallmark · genre: editorial · macrostructure: Narrative Workflow · theme: Almanac
+ * axes: paper-band=light · display-style=roman-serif · accent-hue=warm
+ * portable token block — every colour, font, scale, and easing for this system.
+ */
+
+:root {
+  /* ── colour · OKLCH only, warm anchor (hue 25–75) ─────────────── */
+  --color-paper:     oklch(96.5% 0.012 75);   /* warm cream */
+  --color-paper-2:   oklch(93%   0.015 75);   /* tinted panel */
+  --color-rule:      oklch(82%   0.012 70);   /* hairline */
+  --color-neutral:   oklch(58%   0.010 65);   /* secondary text */
+  --color-muted:     oklch(42%   0.012 60);   /* tertiary text */
+  --color-ink:       oklch(22%   0.014 50);   /* primary text — warm dark */
+  --color-accent:    oklch(45%   0.16  25);   /* ink-red */
+  --color-focus:     oklch(50%   0.18  25);   /* focus ring */
+
+  /* ── type · 2+1 pairing — display + body + mono ─────────────── */
+  --font-display:  var(--font-fraunces), "Fraunces", ui-serif, Georgia, serif;
+  --font-body:     var(--font-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:     var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* ── scale · 1.25 ratio (major third), 16 px body ─────────────── */
+  --text-xs:        0.8rem;     /* 12.8 px */
+  --text-sm:        0.875rem;   /* 14 px   */
+  --text-base:      1rem;       /* 16 px   */
+  --text-md:        1.125rem;   /* 18 px   */
+  --text-lg:        1.375rem;   /* 22 px   */
+  --text-xl:        1.75rem;    /* 28 px   */
+  --text-2xl:       2.25rem;    /* 36 px   */
+  --text-3xl:       3rem;       /* 48 px   */
+  --text-display-s: clamp(2.5rem, 4vw + 1rem, 4rem);
+  --text-display:   clamp(3rem,  5.5vw + 1rem, 5.25rem);
+
+  /* ── spacing · 4-pt scale ─────────────────────────────────────── */
+  --space-2xs:      0.25rem;   /* 4 px   */
+  --space-xs:       0.5rem;    /* 8 px   */
+  --space-sm:       0.75rem;   /* 12 px  */
+  --space-md:       1rem;      /* 16 px  */
+  --space-lg:       1.5rem;    /* 24 px  */
+  --space-xl:       2.5rem;    /* 40 px  */
+  --space-2xl:      4rem;      /* 64 px  */
+  --space-3xl:      6.5rem;    /* 104 px — major section gap */
+  --space-4xl:      10rem;     /* 160 px — hero / closing breath */
+
+  --page-gutter:    clamp(1.25rem, 4vw, 3rem);
+  --measure:        65ch;
+  --measure-narrow: 48ch;
+
+  /* ── motion · three named easings; quiet editorial pacing ────── */
+  --dur-instant:    0ms;
+  --dur-short:      120ms;
+  --dur-base:       180ms;
+  --ease-out:       cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:        cubic-bezier(0.55, 0, 0.78, 0.2);
+  --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ── rule weights ─────────────────────────────────────────────── */
+  --rule-hair:      0.5px;
+  --rule-thin:      1px;
+  --rule-thick:     2px;
+  --rule-heavy:     4px;
+}

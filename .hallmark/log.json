@@ -1,0 +1,26 @@
+[
+  {
+    "date": "2026-06-05",
+    "macrostructure": "Marquee Hero",
+    "theme": "studied-DNA",
+    "theme_axes": "dark / grotesk-sans / neutral (reserved warm-red)",
+    "enrichment": "none",
+    "nav": "N1b",
+    "footer": "Ft3",
+    "studied": true,
+    "dna_source": "image",
+    "source": "nextjs.org (user-attached screenshots)",
+    "scope": "/nextjs route only (locked via design.md at project root)",
+    "brief": "Studied-DNA build from nextjs.org · self-referential showcase page at /nextjs · root Almanac theme preserved"
+  },
+  {
+    "date": "2026-06-05",
+    "macrostructure": "Narrative Workflow",
+    "theme": "Almanac",
+    "theme_axes": "light / roman-serif / warm",
+    "enrichment": "none",
+    "nav": "N9",
+    "footer": "Ft4",
+    "brief": "DS Extraction Workshop · landing page · product teams · drives a demo request · formal tone"
+  }
+]
