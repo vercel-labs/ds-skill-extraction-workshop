@@ -82,14 +82,14 @@ Requirements:
 - Each row ends with a kebab ActionMenu offering: Pin, Lock, Transfer,
   Delete (Delete is destructive).
 
-Wire the whole thing as a single `app/issues.tsx`. Use mock data inline.
-Do not introduce new dependencies. Follow whatever rules the
-extract-ds-skill output put in `extracted-skill/`.
+Wire the whole thing as a single `app/page.tsx`. Use mock data inline.
+Do not introduce new dependencies. Follow the rules in `.claude/skills/ds/`.
+Stay in the current worktree unless the user explicitly asks for a dry-run replay.
 ```
 
 ## Acceptance criteria (what Phase 3's audit should check)
 
-The reflexive audit should walk each rule from the extracted skill against `app/issues.tsx` and flag at least:
+The reflexive audit should walk each rule from the extracted skill against `app/page.tsx` and flag at least:
 
 - **PageHeader slot placement** — `LeadingVisual`/`TrailingVisual` nested *inside* `TitleArea`; `Actions` and `TrailingAction` *outside*. Models commonly swap these.
 - **Banner variant semantics** — the security advisory should be `critical` only if it blocks the user; otherwise `warning` or `info`. Models default to `critical` for anything red.

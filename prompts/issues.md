@@ -22,4 +22,4 @@ Requirements:
 - One `SelectPanel` above the table for filtering by label, with multi-select enabled and at least 4 labels (bug, enhancement, docs, good-first-issue).
 - Each row ends with a kebab `ActionMenu` offering: Pin, Lock, Transfer, Delete (Delete is destructive).
 
-Wire the whole thing as a single `app/issues.tsx`. Use mock data inline. Do not introduce new dependencies. Follow whatever rules the `extract-ds-skill` output put in `extracted-skill/`.
+Wire the whole thing as a single `app/page.tsx`. Use mock data inline. Do not introduce new dependencies. Follow the rules in `.claude/skills/ds/`. Stay in the current worktree unless the user explicitly asks for a dry-run replay.

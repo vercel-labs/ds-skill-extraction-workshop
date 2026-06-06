@@ -13,11 +13,12 @@ You will spend three phases inside Claude Code:
    discovery summary, and pauses at a gate with `[VERIFY]` markers. You
    confirm or correct, then the agent writes the extracted skill into
    `.claude/skills/ds/` (created at runtime by the meta-skill).
-2. **Phase 2 — Generation.** Use the prompt in `prompts/issues.md` to
-   ask Claude Code to build a GitHub-style issues page using the
-   components in `ds/`. The agent writes `app/issues.tsx`.
+2. **Phase 2 — Generation.** From the repo root, use the `/ds` skill with
+   the prompt in `prompts/issues.md` to ask Claude Code to build a
+   GitHub-style issues page using the components in `ds/`. The agent writes
+   `app/page.tsx`.
 3. **Phase 3 — Audit.** Use the prompt in `prompts/audit.md` to audit
-   `app/issues.tsx` against the extracted skill. The agent surfaces a
+   `app/page.tsx` against the extracted skill. The agent surfaces a
    PASS/FAIL per rule with `file:line` citations. Look for the headline
    `PageHeader` slot-composition violation.
 
@@ -61,11 +62,42 @@ claude
 If `pnpm install` finishes without errors and `claude --version` prints a
 version string, you are ready for Block 5.
 
+## Where to stand when running `/ds`
+
+Run `/ds` from the **repo root**, not from a dry-run worktree:
+
+```bash
+cd /path/to/ds-skill-extraction-workshop
+claude
+```
+
+Then run:
+
+```text
+/ds Build the GitHub-style issues page from prompts/issues.md. Edit app/page.tsx (root of the app folder). Stay in the current worktree; do not switch to dryrun/01.
+```
+
+Why this matters: dry-run worktrees under `.claude/worktrees/dryrun-NN/`
+are old snapshots used to preserve workshop runs. They may intentionally
+contain pre-pivot components. The live Phase 2 app generation should use the
+current repo root, where these source locations are authoritative:
+
+- `prompts/issues.md` — the Phase 2 generation prompt.
+- `.claude/skills/ds/` — the extracted `ds` skill that `/ds` loads.
+- `ds/components/` — the live component wrappers (`PageHeader`, `DataTable`,
+  `SelectPanel`, `Banner`, `ActionMenu`, `ActionList`).
+- `app/page.tsx` — the file generated in Phase 2.
+- `dry-runs/` — frozen review snapshots only; do not edit these during normal
+  `/ds` generation.
+
+If Claude offers to switch to `.claude/worktrees/dryrun-NN/`, decline unless
+you are intentionally replaying a historical dry-run.
+
 ## What ships in this repo
 
 - `ds/` — the design system wrappers and `DESIGN.md` (populated in Slice
   2 by the workshop author).
-- `app/` — empty until Phase 2 generates `app/issues.tsx`.
+- `app/` — contains the starter app; Phase 2 overwrites `app/page.tsx`.
 - `.claude/skills/ds/` — created by Phase 1 when the meta-skill persists the extracted skill.
 - `prompts/` — the Phase 2 and Phase 3 prompt fixtures (added in Slices 3
   and 4).
