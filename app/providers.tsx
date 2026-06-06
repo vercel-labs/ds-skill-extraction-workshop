@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider colorMode="day">
+    <ThemeProvider colorMode="night">
       <BaseStyles>{children}</BaseStyles>
     </ThemeProvider>
   );
