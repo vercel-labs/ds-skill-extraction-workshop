@@ -75,3 +75,67 @@ Mechanism:
 ## NO stamp in v1
 
 The Hallmark stamp-in-artifact pattern was considered and dropped from v1. Git tracks file provenance; `scaffold.sh` writes plain Markdown without per-file machine-readable claims. The decision is logged in `references/coverage-gaps.md` as a deferred feature — add stamps when a future `refresh` or `re-extract` verb needs source provenance to detect drift.
+
+## Optional: dry-run snapshot
+
+Fires AFTER the closing message and `[VERIFY]` tally land, only when `dry-runs/` exists at the project root. The snapshot freezes a copy of the persisted skill so future runs have something to diff against; it is project-specific convention (workshop authoring repos, evals-as-fixtures repos) and skipped silently otherwise.
+
+### When to fire
+
+- `dry-runs/` directory exists at the project root. Probe with `test -d dry-runs` from the working directory (NOT `find`, NOT a deep scan — the convention is always project-root, never nested).
+- The Phase 3 write completed successfully (`check-skill-docs.sh` exited 0). Do NOT offer the snapshot if persist failed; the partial skill is not snapshot-worthy.
+
+### The prompt
+
+One question. Single-question gate. The user can accept a default label, type a custom label, or decline. Do NOT escalate into a multi-question wizard; if the user is unsure the manual `cp -R` is one command away.
+
+```
+A `dry-runs/` directory exists in this project. Snapshot this run to
+`dry-runs/<YYYY-MM-DD>-<label>/`?
+
+Default label: `<slug>-<short-tag>` — pick from:
+  - `<slug>-baseline`     (first run for this DS)
+  - `<slug>-pivot-<n>`    (post-component-set or post-scope change)
+  - `<slug>-refresh-<n>`  (re-extracted after a DS version bump)
+  - or type your own label.
+
+Reply with a label, "yes" to accept the default, or "no" to skip.
+```
+
+Pick the default tag from the run's posture: if no prior `dry-runs/<date>-<slug>-*` exists, default to `<slug>-baseline`. If priors exist and the component set changed, default to `<slug>-pivot-<n+1>`. If priors exist and only the DS version moved, default to `<slug>-refresh-<n+1>`. The user can always override.
+
+### What the snapshot writes
+
+On accept, the agent writes three things to `dry-runs/<YYYY-MM-DD>-<label>/`:
+
+1. **`extracted-skill/`** — a full `cp -R` of `.claude/skills/<slug>/`. NOT a symlink (snapshots are frozen; symlinks would drift the moment the live skill changes).
+
+2. **`README.md`** — context for the snapshot. Mirror the shape of `dry-runs/2026-06-01-baseline/README.md` when present:
+   - One-paragraph header naming the run (`<label> dry-run — <YYYY-MM-DD>`), the scope (which components, which DS version), and the "instructor reference / not attendee starting point" disclaimer.
+   - `## What's here` — bullet list of every file copied, with a one-liner explaining what each mirrors.
+   - `## Diff against earlier runs` — a fenced bash block with `diff -r` commands pointing at the previous snapshot(s) under `dry-runs/`. Include this even when there is only one prior snapshot; readers expect it.
+   - `## Known limitations of this snapshot` — list everything the snapshot does NOT cover (Phase 4/5 not yet run, scripts that aborted, deferred tokens, etc.). Honest scope is more useful than implied completeness.
+
+3. **`RUBRIC.md`** — derived from `dry-runs/TEMPLATE.md`. Pre-fill the fields the agent run produced directly (components named in discovery, validation proof point, `check-skill-docs.sh` exit code, `[VERIFY]` tally, slug-collision outcome, any script aborts the agent worked around). Leave operator-observable fields (timings, machine details, UX confusion, Phase 4/5 outcomes) blank with `<fill in>` markers. Do NOT fabricate timings or operator notes — those are the operator's manual pass.
+
+### What the snapshot does NOT write
+
+- Generated app artefacts (`app/page.tsx` etc.). Those land in `dry-runs/<date>-<label>/` only after the generation prompt runs, which is a separate invocation. The snapshot README's "Known limitations" must call out that those artefacts are missing if the run stopped at Phase 3.
+- `SUMMARY.md` updates. The aggregate table at `dry-runs/SUMMARY.md` is operator-edited; the meta-skill does not append rows automatically (the operator decides which runs are SUMMARY-worthy).
+- Any modification to existing `dry-runs/<other-date>-<other-label>/` directories. Snapshots are write-once-per-directory.
+
+### Collision handling
+
+If `dry-runs/<YYYY-MM-DD>-<label>/` already exists, ASK before overwriting. Mirror the Phase 3 slug-collision posture: never silently suffix `-2`, never auto-rename. The user picks: overwrite, pick a different label, or abort the snapshot (the skill at `.claude/skills/<slug>/` is unaffected either way).
+
+### After the snapshot
+
+Print one confirmation line:
+
+```
+Snapshot written to `dry-runs/<YYYY-MM-DD>-<label>/`. RUBRIC.md fields filled
+where the agent could; operator-observable fields (timings, Phase 4/5) left
+blank.
+```
+
+Then the conversation is done. Do NOT offer further actions; the user owns the next move (run the generation prompt, fill the rubric, update `SUMMARY.md`).
