@@ -13,13 +13,13 @@ You will spend three phases inside Claude Code:
    discovery summary, and pauses at a gate with `[VERIFY]` markers. You
    confirm or correct, then the agent writes the extracted skill into
    `.claude/skills/ds/` (created at runtime by the meta-skill).
-2. **Phase 2 — Generation.** Use the prompt in `prompts/sign-in.md` to
-   ask Claude Code to build a sign-in form using the components in `ds/`.
-   The agent writes `app/sign-in.tsx`.
+2. **Phase 2 — Generation.** Use the prompt in `prompts/issues.md` to
+   ask Claude Code to build a GitHub-style issues page using the
+   components in `ds/`. The agent writes `app/issues.tsx`.
 3. **Phase 3 — Audit.** Use the prompt in `prompts/audit.md` to audit
-   `app/sign-in.tsx` against the extracted skill. The agent surfaces a
+   `app/issues.tsx` against the extracted skill. The agent surfaces a
    PASS/FAIL per rule with `file:line` citations. Look for the headline
-   `inactive` vs `disabled` violation.
+   `PageHeader` slot-composition violation.
 
 You leave with the extracted skill artefact, the generated form, and a
 PASS/FAIL audit — all reproducible on your own design system after the
@@ -65,7 +65,7 @@ version string, you are ready for Block 5.
 
 - `ds/` — the design system wrappers and `DESIGN.md` (populated in Slice
   2 by the workshop author).
-- `app/` — empty until Phase 2 generates `app/sign-in.tsx`.
+- `app/` — empty until Phase 2 generates `app/issues.tsx`.
 - `.claude/skills/ds/` — created by Phase 1 when the meta-skill persists the extracted skill.
 - `prompts/` — the Phase 2 and Phase 3 prompt fixtures (added in Slices 3
   and 4).
