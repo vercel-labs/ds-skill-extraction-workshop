@@ -139,6 +139,7 @@ Progressive disclosure is the contract. Load each reference file only at the gat
 | Framing Phase 1, classifying sources, rendering the discovery summary | `references/discovery.md` | Source-role taxonomy, auto-discover-and-prune, budget rules |
 | Running Phase 2 validation in `.extract-ds-skill-scratch/` | `references/validate.md` | Typecheck + grep-resolves protocol, `[VERIFY]` tally, wait-gate |
 | About to write the first file under `.claude/skills/<slug>/` in Phase 3 | `references/persist.md` + `references/skill-template.md` | Slug-collision check, file layout, SKILL.md contract |
+| After closing message, considering the optional `dry-runs/` snapshot prompt | `references/persist.md` (`## Optional: dry-run snapshot`) | Conditional on `dry-runs/` existing at project root; prompt shape, copy + RUBRIC stub |
 | Extracting a single component into `references/components/<name>.md` | `references/component-extraction.md` | 8-section component-file checklist, six rule shapes, Shape 3 routing |
 | Writing a `Bad \| Good \| Why` block, or any cross-cutting anti-pattern | `references/anti-patterns.md` | Column grammar, code-fence rule, cross-component duplication |
 | Asked "why did you inherit X from Y?" by a maintainer | `references/inheritance.md` | Source-by-source inherit / do-not-inherit ledger |
@@ -227,7 +228,23 @@ Then list every `[VERIFY]` marker as a numbered list with the file path and a on
 
 If any `check-skill-docs.sh` assertion failed, list the failures verbatim from the script's stdout and stop. Do not declare success. Do not print the example prompts. The skill on disk is partial; the user decides whether to fix in place (files are already live under `.claude/skills/<slug>/`) or roll back manually with `git`. The agent does not auto-rollback; the per-project persist target makes rollback the user's call, not the skill's.
 
-After the closing message is printed and acknowledged, the conversation is done. Further user requests for changes are handled by editing the live files in place and re-running `scripts/check-skill-docs.sh` after each edit that touches the routing table, the rule-slug registry, or the file layout.
+After the closing message lands, run the **optional snapshot step** (next section). After that step resolves (yes or no), the conversation is done. Further user requests for changes are handled by editing the live files in place and re-running `scripts/check-skill-docs.sh` after each edit that touches the routing table, the rule-slug registry, or the file layout.
+
+## Optional: snapshot to `dry-runs/`
+
+If a `dry-runs/` directory exists at the project root, after the closing message ask the user whether to snapshot this run into `dry-runs/<YYYY-MM-DD>-<label>/`. If `dry-runs/` does not exist, skip this step silently — the convention is project-specific and absent in most consumer repos.
+
+The prompt has exactly one question and offers a default label. Worked example:
+
+> A `dry-runs/` directory exists in this project. Snapshot this run to `dry-runs/<YYYY-MM-DD>-<label>/`?
+> Default label: `<slug>-<short-tag>` (e.g. `ds-pivot-1`, `primer-react-baseline`).
+> Reply with a label, "yes" to accept the default, or "no" to skip.
+
+If the user accepts, copy `.claude/skills/<slug>/` to `dry-runs/<date>-<label>/extracted-skill/`, write a `README.md` mirroring the existing baseline shape (one paragraph of context, "What's here" list, "Diff against earlier runs" snippet, "Known limitations" list), and write a stub `RUBRIC.md` by copying the body of `dry-runs/TEMPLATE.md` and pre-filling the fields the agent run itself produced (components, validation proof point, `check-skill-docs.sh` exit code, `[VERIFY]` tally). Leave the operator-observable fields (timings, UX confusion, Phase 4/5) blank.
+
+Detail and mechanics in `references/persist.md` (`## Optional: dry-run snapshot`). Do NOT pre-load that section — load it on this step's gate only.
+
+If the user replies "no" (or anything other than a label/yes), skip silently. This is a single-question gate, not a multi-step interaction; if the user is unsure, the snapshot can be created manually after the fact with `cp -R .claude/skills/<slug>/ dry-runs/<date>-<label>/extracted-skill/`.
 
 ## Slug-naming heuristics
 
