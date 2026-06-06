@@ -3,7 +3,7 @@ role: user
 phase: 2
 ---
 
-Build a GitHub-style issues page for a repository.
+Build a GitHub-style issues page for a repository. For this task, edit page.tsx on the root of the app folder.
 
 Use ONLY the components in `ds/components/`:
 
