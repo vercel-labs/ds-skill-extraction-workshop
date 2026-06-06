@@ -23,6 +23,14 @@ The meta-skill at this path is an extractor that builds Claude Code design-syste
 - `scripts/scaffold.sh` — Phase 3 writer; runs the slug-collision check FIRST and exits 75 (ASK) on conflict, never silently suffixes.
 - `scripts/check-skill-docs.sh` — Phase 3 post-emit consistency check; every routing-table row resolves to a real file, every rule slug resolves, every `[VERIFY]` marker is grep-counted and surfaced in the closing message.
 
+## Requirements (cross-platform)
+
+These scripts are POSIX shell harnesses: they need bash plus a Unix userland (`grep`, `sed`, `awk`, `find`, `git`, `node`, etc.). They are written to run on bash 3.2+ (macOS default), so no version upgrade is needed anywhere.
+
+- macOS / Linux — runs as-is.
+- Windows — run under Git Bash (ships with Git for Windows) or WSL. Native `cmd`/PowerShell will not work; there is no Unix userland and the `#!/usr/bin/env bash` shebang is ignored. There is no separate PowerShell port by design — one bash version is the contract.
+- Line endings — repo-root `.gitattributes` pins `*.sh` to `eol=lf`. Do not commit CRLF shell scripts; bash rejects them with `bad interpreter: /usr/bin/env bash^M`.
+
 ## Common Agent Failure Modes
 
 - "I extracted the Phase 1 discovery summary inline but skipped the joint-read of code — every rule landed `[VERIFY]`. Joint-read code AND docs in Phase 1; code wins on conflict."
