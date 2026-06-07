@@ -1,4 +1,4 @@
-# DESIGN.md — `extract-ds-skill`
+# RATIONALE.md — `extract-ds-skill`
 
 Diego-authored rationale. Not loaded by the agent at runtime. The human-readable record of WHY this skill is shaped the way it is.
 
@@ -23,7 +23,7 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 - **A2 reflexive audit** — the skill IS the rubric, no separate `audit/checklist.md`.
 - **C2 two-file coda** — `SKILL.md` + `references/anti-patterns.md` as the minimum viable skill if everything else gets cut.
 - **I3 joint read** — code AND docs, code wins on conflict.
-- **D3 curated subset** + Diego-authored DESIGN.md (this file) — the meta-skill ships a Diego-curated rationale, not a generated one.
+- **D3 curated subset** + Diego-authored RATIONALE.md (this file) — the meta-skill ships a Diego-curated rationale, not a generated one.
 - 11th decision logged in grill transcript, not load-bearing for build.
 
 ## The six v1-build decisions (ratified 2026-05-31)
@@ -58,7 +58,7 @@ The repetition is intentional. Single-point-of-truth scope is too brittle to loa
 5. `references/component-extraction.md` Shape 3 labelled `[OUT OF SCOPE - route to copy skill, do not extract]`.
 6. `references/inheritance.md` product-copywriting row under `does_not_inherit`.
 7. `references/inheritance.md` Hallmark row under `does_not_inherit`.
-8. `DESIGN.md` (this file) records Diego's 2026-05-31 scope lock as a dated decision.
+8. `RATIONALE.md` (this file) records Diego's 2026-05-31 scope lock as a dated decision.
 
 ## Open dry-run risks
 

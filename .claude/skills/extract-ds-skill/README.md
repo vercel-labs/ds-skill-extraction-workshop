@@ -1,7 +1,7 @@
 # extract-ds-skill
 
 A Claude Code meta-skill that extracts a project-specific design-system
-skill from a wrappers + `DESIGN.md` corpus. The full mechanics live in
+skill from a real DS source (component code, tokens, docs). The full mechanics live in
 [`SKILL.md`](./SKILL.md); this README exists so anyone landing on a
 standalone copy of the meta-skill can hop one click to the rest of the
 workshop materials.
