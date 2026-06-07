@@ -224,7 +224,7 @@ if [[ "$MODE" == "produced" ]]; then
       # Citation detection — scan the whole section, in or out of fence.
       # "Source:" followed by a file-path-like token (must contain "/" and
       # a recognizable extension).
-      if ($0 ~ /Source:.*\/[A-Za-z0-9._/-]+\.(tsx|jsx|ts|js|css|scss|sass|html|md|mjs|cjs)/) {
+      if ($0 ~ /Source:.*\/[-A-Za-z0-9._\/]+\.(tsx|jsx|ts|js|css|scss|sass|html|md|mjs|cjs)/) {
         cited = 1
       }
       if ($0 ~ /https?:\/\//) {
@@ -356,23 +356,23 @@ if [[ "$MODE" == "meta" ]]; then
         if (in_block) next
         leak = ""
         # Filesystem paths (any /Users/, /home/, ~/, workshop-repo).
-        if (match($0, /\/Users\/[-A-Za-z0-9._/]+/)) {
+        if (match($0, /\/Users\/[-A-Za-z0-9._\/]+/)) {
           leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /\/home\/[-A-Za-z0-9._/]+/)) {
+        } else if (match($0, /\/home\/[-A-Za-z0-9._\/]+/)) {
           leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /~\/[-A-Za-z0-9._/]+/)) {
+        } else if (match($0, /~\/[-A-Za-z0-9._\/]+/)) {
           # ~/.claude/skills/<slug>/ is allowed (canonical user-scope path
           # already documented in persist.md and SKILL.md). Anything else
           # under ~/ that names a host-specific dir is a leak.
           candidate = substr($0, RSTART, RLENGTH)
           if (candidate !~ /^~\/\.claude\/skills\//) leak = candidate
-        } else if (match($0, /ds-skill-extraction-workshop\/[-A-Za-z0-9._/]*/)) {
+        } else if (match($0, /ds-skill-extraction-workshop\/[-A-Za-z0-9._\/]*/)) {
           leak = substr($0, RSTART, RLENGTH)
         } else if (match($0, /github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/)) {
           leak = substr($0, RSTART, RLENGTH)
         } else if (match($0, /@(primer|shadcn|mui|geist|chakra-ui|radix-ui)\/[A-Za-z0-9._-]+/)) {
           leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /primer\.style\/[-A-Za-z0-9._/#?=&]*/)) {
+        } else if (match($0, /primer\.style\/[-A-Za-z0-9._\/#?=&]*/)) {
           leak = substr($0, RSTART, RLENGTH)
         }
         if (leak != "") printf "%s:%d:%s\n", FILENAME, NR, leak
