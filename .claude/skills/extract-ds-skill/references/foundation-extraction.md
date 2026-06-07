@@ -25,42 +25,42 @@ Every rule worth extracting from a foundations page maps to one of six shapes. C
 - **Looks like:** a rule that says "use background X with foreground Y", "pair `bgColor-accent-emphasis` with `fgColor-onEmphasis`", "any surface that uses `bgColor-emphasis` must use `fgColor-onEmphasis` for foreground content". The rule binds two named tokens that must travel together.
 - **Find in:** color-usage sections, surface guidelines, "on-" prefix conventions in functional token names.
 - **Extract:** one subsection in `references/tokens.md` under `### token/<surface>-<foreground>-pairing`. State the pair, the trap of mixing the wrong foreground onto the named surface (low contrast, fails axe), and a `Bad | Good | Why` row. Cite source as `<url>#<section-anchor>`.
-- **Worked example:** "Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. Default `--fgColor-default` against `--bgColor-emphasis` fails 3:1 contrast in dark mode. (https://primer.style/product/getting-started/foundations/color-usage/#emphasis-surfaces)" The pair, the trap, the contrast number, and the anchored citation all survive.
+- **Worked example:** "Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. Default `--fgColor-default` against `--bgColor-emphasis` fails 3:1 contrast in dark mode. (`<docs-url>#emphasis-surfaces`)" The pair, the trap, the contrast number, and the anchored citation all survive.
 
 ### Shape 2 — Mode-aware
 
 - **Looks like:** a rule whose behavior flips between light and dark mode. "The neutral scale inverts in dark mode — `gray-1` becomes the darkest, `gray-10` becomes the lightest." "Borders in dark mode use step 7-8 minimum; step 5-6 used in light mode disappears against `bgColor-muted`."
 - **Find in:** dark-mode sections, theming pages, color-scale documentation that shows both modes side-by-side.
 - **Extract:** subsection under `### token/<surface-or-scale>-<mode-behavior>`. State the behavior in light mode, the behavior in dark mode, and the rule that prevents the agent from hardcoding one. Include the wiring requirement (e.g. `data-color-mode="dark"` attribute or `prefers-color-scheme` media query) — wiring is half the rule.
-- **Worked example:** "Set `data-color-mode="dark"` on `<html>` for dark theme. Without it, semantic CSS vars resolve to their light defaults regardless of the imported stylesheet. Pair with importing `@primer/primitives/dist/css/functional/themes/dark.css`. (https://primer.style/product/getting-started/foundations/color-usage/#dark-mode)" Both the attribute and the import are part of the same rule; do not split them across two rules.
+- **Worked example:** "Set `data-color-mode="dark"` on `<html>` for dark theme. Without it, semantic CSS vars resolve to their light defaults regardless of the imported stylesheet. Pair with importing `<ds-package>/dist/css/functional/themes/dark.css`. (`<docs-url>#dark-mode`)" Both the attribute and the import are part of the same rule; do not split them across two rules.
 
 ### Shape 3 — Contrast-minimum
 
 - **Looks like:** a numeric threshold rule about visual contrast. "Borders need step 7 or 8 against muted backgrounds." "Body text against `bgColor-default` must use `fgColor-default` or darker." "Disabled text uses `fgColor-disabled` (4.5:1 minimum against `bgColor-default`)."
 - **Find in:** accessibility callouts on color-usage pages, contrast-ratio tables, WCAG citations alongside token names.
 - **Extract:** subsection under `### token/<role>-contrast-minimum`. State the minimum (token step or contrast ratio), the surfaces it applies against, and the failure mode if violated (axe failure, reads as washed-out, breaks dark mode). Cite the docs section anchor. If the docs cite a WCAG level, preserve the citation verbatim.
-- **Worked example:** "Borders use neutral step 7 or 8 against `bgColor-muted`. Step 5-6 (used for separators on `bgColor-default`) disappears against muted surfaces. (https://primer.style/product/getting-started/foundations/color-usage/#borders)" Threshold ("step 7 or 8"), the comparator ("muted"), and the failure mode ("disappears") all preserved.
+- **Worked example:** "Borders use neutral step 7 or 8 against `bgColor-muted`. Step 5-6 (used for separators on `bgColor-default`) disappears against muted surfaces. (`<docs-url>#borders`)" Threshold ("step 7 or 8"), the comparator ("muted"), and the failure mode ("disappears") all preserved.
 
 ### Shape 4 — Semantic-role
 
 - **Looks like:** a rule about which semantic foreground variant goes with which surface emphasis. "Use `fgColor-accent` only on `bgColor-default` or `bgColor-muted`; `fgColor-accent` on `bgColor-emphasis` fails contrast." "`fgColor-{role}` (success, attention, severe, danger) requires a muted or default surface; do not pair with emphasis surfaces."
 - **Find in:** semantic-color sections, role-based foreground tables, "when to use accent / success / danger" callouts.
 - **Extract:** subsection under `### token/<role>-foreground-surface`. List the valid surface(s), the invalid surface(s), and the on-emphasis fallback (e.g. "use `fgColor-onEmphasis` instead").
-- **Worked example:** "Use `--fgColor-accent` on `--bgColor-default` or `--bgColor-muted`. On `--bgColor-accent-emphasis` use `--fgColor-onEmphasis` — the accent foreground does not have enough contrast against its own emphasis surface. (https://primer.style/product/getting-started/foundations/color-usage/#functional-colors)"
+- **Worked example:** "Use `--fgColor-accent` on `--bgColor-default` or `--bgColor-muted`. On `--bgColor-accent-emphasis` use `--fgColor-onEmphasis` — the accent foreground does not have enough contrast against its own emphasis surface. (`<docs-url>#functional-colors`)"
 
 ### Shape 5 — Wiring-contract
 
-- **Looks like:** an HTML attribute, CSS import, or provider prop the docs say is required for the foundation to work at all. "Set `data-color-mode` on `<html>`." "Import `@primer/primitives/dist/css/functional/themes/light.css` at the entry point." "Wrap the app in `<ThemeProvider colorMode="auto">`."
+- **Looks like:** an HTML attribute, CSS import, or provider prop the docs say is required for the foundation to work at all. "Set `data-color-mode` on `<html>`." "Import `<ds-package>/dist/css/functional/themes/light.css` at the entry point." "Wrap the app in `<ThemeProvider colorMode="auto">`."
 - **Find in:** "Getting started" snippets, "Setup" subsections of foundation pages, theming integration docs.
 - **Extract:** Two writes. First, a subsection in `references/tokens.md` under `### token/<foundation>-wiring` documenting the requirement. Second, inject the wiring step into the produced `SKILL.md` Setup section (see `references/skill-template.md` for the Setup injection slot). The Setup injection is what makes the wiring discoverable at agent-load time; the tokens.md entry is what surfaces it during reflexive audit.
-- **Worked example:** "Set `color-scheme: dark` on `:root` and `background-color: var(--bgColor-default); color: var(--fgColor-default)` on `html, body`. Without these, the browser default surface (white) sits underneath the dark-theme tokens and the page renders dark text on a white page. (https://primer.style/product/getting-started/foundations/color-usage/#setup)" This is exactly the rule the screen-surface bug needed; extracting it into the wiring-contract shape prevents the same bug on the next regenerate.
+- **Worked example:** "Set `color-scheme: dark` on `:root` and `background-color: var(--bgColor-default); color: var(--fgColor-default)` on `html, body`. Without these, the browser default surface (white) sits underneath the dark-theme tokens and the page renders dark text on a white page. (`<docs-url>#setup`)" This is exactly the rule the screen-surface bug needed; extracting it into the wiring-contract shape prevents the same bug on the next regenerate.
 
 ### Shape 6 — Fallback-element
 
 - **Looks like:** a rule about how to style a native HTML element when no DS wrapper exists. "For `<a>` outside a Link component, set `color: var(--fgColor-link)` and `text-decoration: underline`." "For native `<table>`, set `border-color: var(--borderColor-default)` and apply `--bgColor-muted` to alternating rows."
 - **Find in:** "Native HTML" subsections, escape-hatch callouts, prose paragraphs that name a HTML tag in code-fence syntax.
 - **Extract:** subsection under `### token/<element>-fallback`. State the element, the minimal CSS contract, the tokens to use, and the consequence of leaving the element unstyled (mismatches the DS, reads as a regression).
-- **Worked example:** "Native `<table>` without a DataTable wrapper: set `border-collapse: collapse`, apply `border: 1px solid var(--borderColor-default)` on cells, and `background-color: var(--bgColor-muted)` on `<th>`. Without this the table reads as unstyled HTML against the rest of the DS. (https://primer.style/product/getting-started/foundations/color-usage/#native-elements)"
+- **Worked example:** "Native `<table>` without a DataTable wrapper: set `border-collapse: collapse`, apply `border: 1px solid var(--borderColor-default)` on cells, and `background-color: var(--bgColor-muted)` on `<th>`. Without this the table reads as unstyled HTML against the rest of the DS. (`<docs-url>#native-elements`)"
 
 ---
 
@@ -72,7 +72,7 @@ Foundation rules rarely live in types — they live in prose paragraphs, contras
 - **Mode pivots** — "in dark mode", "in light mode", "when `data-color-mode` is set". Almost always Shape 2.
 - **Numeric contrast thresholds** — "step 7", "4.5:1", "WCAG AA". Almost always Shape 3.
 - **"On-" prefix conventions** — `fgColor-onEmphasis`, `fgColor-onAccent`. Names a foreground variant tuned for a specific surface — the existence of the on-variant IS a Shape 1 pairing rule.
-- **HTML attributes or CSS imports in code-fence** — `data-color-mode`, `prefers-color-scheme`, `@import "@primer/primitives/..."`. Almost always Shape 5.
+- **HTML attributes or CSS imports in code-fence** — `data-color-mode`, `prefers-color-scheme`, `@import "<ds-package>/..."`. Almost always Shape 5.
 
 ---
 
@@ -145,7 +145,7 @@ Mark any foundation rule inline with `[VERIFY]` when one of the following is tru
 Place the marker at the end of the rule line, before the citation:
 
 ```
-- Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. [VERIFY: --fgColor-onEmphasis did not grep-resolve in node_modules/@primer/primitives/dist/css/functional/themes/light.css] (https://primer.style/product/getting-started/foundations/color-usage/#emphasis-surfaces)
+- Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. [VERIFY: --fgColor-onEmphasis did not grep-resolve in `node_modules/<ds-package>/dist/css/functional/themes/light.css`] (`<docs-url>#emphasis-surfaces`)
 ```
 
 `[VERIFY]` markers from foundation extraction count into the same tally as component extraction. The Phase 2 proof point reports both together: `F foundation-rules extracted (X cited, Y [VERIFY])` alongside the existing `N props verified`, `M tokens grep-resolved`, `K assets grep-resolved` lines.

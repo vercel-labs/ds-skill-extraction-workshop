@@ -25,7 +25,9 @@ The discovery summary covers: proposed skill name and target path, DS one-liner,
 
 Inspect-but-do-not-enumerate is the rule. Read enough to know what each source contains (package exports, top-level folders, docs index, example apps); do not list every component, token, or icon yet. The full enumeration happens in Phase 2, against the pruned set the user confirms.
 
-Worked example of a Phase 1 summary (illustrative; substitute real cites for the DS you are extracting):
+### Worked example — Phase 1 summary against a public-DS-shaped target (illustrative)
+
+The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same summary contract applies to whichever DS the user passes. Substitute real cites for the DS you are extracting.
 
 ```
 Proposed skill: `primer-react` -> .claude/skills/primer-react/
@@ -69,7 +71,9 @@ The proof point surfaced before the gate is a single line of the form: "N props 
 
 Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval before Phase 3.
 
-Worked example of the Phase 2 proof-point line (the agent prints this verbatim before the wait-gate):
+### Worked example — Phase 2 proof-point line (illustrative)
+
+The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same proof-point contract applies to whichever DS the user passes.
 
 ```
 Validation complete.
@@ -261,7 +265,7 @@ If the user replies "no" (or anything other than a label/yes), skip silently. Th
 The slug is the directory name under `.claude/skills/`. It is also the trigger word the user types when invoking the skill. Pick it carefully.
 
 - Kebab-case, short. `primer-react`, `geist`, `acme-ui`. Not `PrimerReact`, not `primer_react`, not `our-internal-design-system-v2-final`.
-- Match the package name when possible. If the DS publishes as `@primer/react`, slug is `primer-react`. If it publishes as `geist`, slug is `geist`.
+- Match the package name when possible. If the DS publishes as `<scope>/<pkg>` (e.g. `<scope>/react`), the slug is `<scope>-react`; if it publishes as a bare name (e.g. `geist`), the slug matches the bare name.
 - If the package name collides with a generic word (`ui`, `components`, `design`), prefix with the org or product (`acme-ui`, `vercel-design`).
 - If the user has multiple sibling skills (DS + copy + a11y), the slug should disambiguate: `primer-react` for the DS skill, `primer-copy` for the sibling.
 - Slug collisions are a hard ASK. Never silently suffix `-2`, `-new`, `-v2`, or a date.

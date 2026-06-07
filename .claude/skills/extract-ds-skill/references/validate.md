@@ -39,7 +39,7 @@ Sequence:
 1. **WebFetch the foundation URL once.** Cache the returned prose for the duration of Phase 2. Do not re-fetch per rule.
 2. **Load `references/foundation-extraction.md`.** This is the first time it loads in the run; progressive disclosure means it stays unloaded for no-URL extractions.
 3. **Classify candidate rules by shape.** Walk the prose top-to-bottom, tag each candidate as one of the six foundation rule shapes (token-pairing, mode-aware, contrast-minimum, semantic-role, wiring-contract, fallback-element), and drop anything that does not fit (brand-voice prose, history paragraphs, out-of-scope copy).
-4. **Grep-resolve every cited CSS variable.** For each extracted rule that names a CSS custom property, run `grep -r "<var-name>" node_modules/<ds-package>/dist/css/` (or the equivalent path for the DS in scope — Primer ships under `node_modules/@primer/primitives/dist/css/`). If the variable does not resolve, mark the rule `[VERIFY]` with the missing-grep reason inline. Do not silently drop the variable; the agent needs to see what the docs claim that the installed package does not yet ship.
+4. **Grep-resolve every cited CSS variable.** For each extracted rule that names a CSS custom property, run `grep -r "<var-name>" node_modules/<ds-package>/dist/css/` (or the equivalent path for the DS in scope — substitute the actual package and resolution path the DS publishes). If the variable does not resolve, mark the rule `[VERIFY]` with the missing-grep reason inline. Do not silently drop the variable; the agent needs to see what the docs claim that the installed package does not yet ship.
 5. **Resolve URL anchors.** If a citation uses `<url>#<section-anchor>`, the anchor must correspond to a heading in the fetched prose. If not, downgrade to the bare URL and mark `[VERIFY: anchor did not resolve in fetched page]`.
 6. **Stash extracted rules in the scratch workspace.** Write them to `.extract-ds-skill-scratch/tokens-extracted.md` for inspection. Phase 3 will materialize them into `references/tokens.md` per the per-rule subsection skeleton.
 
@@ -47,7 +47,11 @@ The step writes to scratch only; no foundation rule lands in `.claude/skills/<sl
 
 ## Proof point (updated for foundation extraction)
 
-The wait-gate proof point gains one line when a foundation URL is in scope. Without a URL, the proof point is unchanged from the SKILL.md worked example. With a URL, the line is added between the assets line and the hallucinations line:
+The wait-gate proof point gains one line when a foundation URL is in scope. Without a URL, the proof point is unchanged from the SKILL.md worked example. With a URL, the line is added between the assets line and the hallucinations line.
+
+### Worked example — Phase 2 proof-point with foundation URL in scope (illustrative)
+
+The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same proof-point contract applies to whichever DS the user passes.
 
 ```
 Validation complete.

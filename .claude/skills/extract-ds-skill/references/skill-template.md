@@ -46,9 +46,9 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   }
   ```
 
-  Without these, the browser default surface (white) renders underneath the dark-theme tokens. Source: https://primer.style/product/getting-started/foundations/color-usage/#dark-mode
+  Without these, the browser default surface (white) renders underneath the dark-theme tokens. Source: `<docs-url>#dark-mode`
   ```
-- **Import rules** — barrel vs deep, public vs internal. State the canonical import path (`@primer/react`, not `@primer/react/lib-esm/Button`). List any deep imports that ARE public (rare). Mark every other deep path as forbidden.
+- **Import rules** — barrel vs deep, public vs internal. State the canonical import path (`<ds-package>`, not `<ds-package>/lib-esm/Button` or any other internal subpath). List any deep imports that ARE public (rare). Mark every other deep path as forbidden.
 - **Source-of-truth rules** — which docs/repo paths are canonical. Code wins on conflict with docs. List the repo path (e.g. `packages/react/src/`), the docs URL, the Storybook URL if public. Mark private/inaccessible sources explicitly.
 - **Routing table** — 3-column dispatch: `Trigger | Files to load | Notes`. Every row resolves to a real file under `references/`. Triggers are user-intent phrases ("user asks for a button", "user wires a form"), not file names.
 - **Hard rules** — do-not-invent list + `[VERIFY]` convention. State plainly: any prop, variant, token, or asset the agent cannot ground in source gets a literal `[VERIFY]` marker inline. Mark unverifiable facts `[VERIFY]`. Report blockers instead of guessing.
@@ -89,7 +89,9 @@ Rules extracted from a `[docs:foundation]` URL land as `### token/<slug>` subsec
 
 Each subsection follows the per-rule skeleton documented in `references/foundation-extraction.md` (heading + one-sentence rule + `When it bites:` line + optional wiring fence for Shape 5 + `Bad | Good | Why` row + source citation). The skeleton is the contract enforced by `scripts/check-skill-docs.sh` SLUG_RESOLUTION check — every `token/*` slug grepped from the SKILL.md routing table or any reference file must have a matching `### token/<slug>` heading somewhere in the tokens family.
 
-Worked example of a single subsection (mirrors the hand-written `token/screen-surface-dark-theme` rule the workshop repo already ships):
+#### Worked example — single foundation-rule subsection against a public-DS-shaped target (illustrative)
+
+The block below uses a public-DS-shaped target to ground the skeleton. The skill makes no assumption that the user's DS is the one in the example; the same subsection contract applies to whichever DS the user passes.
 
 ```markdown
 ### token/screen-surface-dark-theme

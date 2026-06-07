@@ -8,6 +8,16 @@ workshop materials.
 
 ## Workshop links
 
+The starter repo and companion site that ship this meta-skill carry the
+hands-on materials. Their canonical URLs change between workshop runs
+and are listed inside the illustrative block below.
+
+### Worked example — workshop deployment links (illustrative)
+
+The URLs below were the canonical pair for the inaugural workshop run.
+Subsequent runs may re-host either side; treat the block as a snapshot,
+not as a contract this README enforces.
+
 - **Starter repo** (this repo — the meta-skill is pre-installed under
   `.claude/skills/extract-ds-skill/`):
   <https://github.com/vercel-labs/ds-skill-extraction-workshop>

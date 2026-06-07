@@ -7,7 +7,7 @@ Self-aware backlog. The meta-skill at v1 knows what it does not yet handle. Each
 | Gap | Impact | Est. line cost |
 |---|---|---|
 | Motion tokens (rarely first-class in mid-size DSs) | LOW | ~30 |
-| Multi-package monorepos with sub-DSs (Primer has `@primer/react` + `@primer/primitives`) | MEDIUM | ~80 |
+| Multi-package monorepos with sub-DSs (e.g. a DS that splits the component package from the primitives package) | MEDIUM | ~80 |
 | Figma-as-source-of-truth (no joint-read path yet, code is canonical) | HIGH | ~200 |
 | Per-component `.stories.tsx` parsing (currently lifts only from docs + types) | MEDIUM | ~60 |
 | Cross-skill back-reference seeding when sibling skill does not exist (deferred to second cultivation pass) | LOW | ~40 |
