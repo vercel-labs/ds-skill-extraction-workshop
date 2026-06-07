@@ -30,6 +30,19 @@ Only if the user has a local dev server running. Write a minimal page importing 
 
 If neither dev server nor typecheck is feasible (no TS in the consumer project, no buildable resolution path, DS package is private and not installed locally), log `validation skipped` and require the user to explicitly approve before Phase 3 with extra weight. Surface every `[VERIFY]` marker uncollapsed. The user is accepting that grounding was not mechanically checked.
 
+## Reference-project extraction step
+
+Runs only when the Phase 1 discovery summary contains a source line tagged `[example:project]`. Skip this entire section when no reference project is in scope — the produced `SKILL.md` Setup section falls back to the docs-snippet path (when a `[docs:foundation]` URL is in scope) or to an empty Setup section (when neither is in scope). See `references/skill-template.md` (Foundation-docs wiring fallback subsection) for the fallback contract.
+
+Sequence:
+
+1. **Resolve the root entry file via framework auto-detection.** Walk the order documented in `references/reference-project.md` (Vite `src/main.{jsx,tsx}` → Next.js App Router `app/layout.{tsx,jsx}` → Next.js Pages Router `pages/_app.{tsx,jsx}` → CRA `src/index.{jsx,tsx}`). First hit wins. If none resolve, mark the wiring `[VERIFY: reference project root entry not auto-detected — extracting from <best-guess-path>]` and continue with the best-guess file.
+2. **Lift the wiring snippet verbatim.** Per the recipe in `references/reference-project.md`: topmost provider element, direct CSS imports, root-element HTML attributes (Next App Router lifts from `<html>` in the layout; Vite lifts from `index.html`), and any bonus composition wrapped inside the provider. Copy character-for-character; do not paraphrase, re-indent, or "tidy" import order.
+3. **Grep-resolve any CSS variable named inside the wiring.** When the lifted snippet references a CSS custom property (e.g. `var(--bgColor-default)` inside a `<BaseStyles>` style prop), run `grep -r "<var-name>" node_modules/<ds-package>/dist/css/` symmetric to the foundation-extraction step. Unresolved variables get `[VERIFY: <var-name> did not grep-resolve in installed package]` inline.
+4. **Stash extracted wiring in the scratch workspace.** Write to `.extract-ds-skill-scratch/wiring-extracted.md` per the output contract in `references/reference-project.md`. Phase 3 will materialize it into the produced `SKILL.md` Setup section.
+
+The step writes to scratch only; no wiring lands in `.claude/skills/<slug>/` until Phase 3.
+
 ## Foundation-docs extraction step
 
 Runs only when the Phase 1 discovery summary contains a source line tagged `[docs:foundation]`. Skip this entire section when no foundation URL is in scope — the baseline typecheck + grep-resolves contract above is the full Phase 2.
@@ -45,11 +58,19 @@ Sequence:
 
 The step writes to scratch only; no foundation rule lands in `.claude/skills/<slug>/` until Phase 3.
 
-## Proof point (updated for foundation extraction)
+## Proof point (updated for foundation + reference-project extraction)
 
-The wait-gate proof point gains one line when a foundation URL is in scope. Without a URL, the proof point is unchanged from the SKILL.md worked example. With a URL, the line is added between the assets line and the hallucinations line.
+The wait-gate proof point gains one line when a foundation URL is in scope, and another line when a reference project is in scope. Without either, the proof point is unchanged from the SKILL.md worked example. With both, both lines are added between the assets line and the hallucinations line.
 
-### Worked example — Phase 2 proof-point with foundation URL in scope (illustrative)
+The reference-project line uses the format (placeholders):
+
+```
+Wiring extracted from <reference-project>@<root-entry-file> (<framework>, N lines, M CSS imports verified)
+```
+
+Where `<framework>` is one of `vite`, `next-app`, `next-pages`, `cra`, or `unknown` (when auto-detection failed). `N lines` is the lifted snippet length; `M CSS imports verified` is the count of grep-resolved CSS imports plus inline CSS variables in the snippet.
+
+### Worked example — Phase 2 proof-point with foundation URL and reference project in scope (illustrative)
 
 The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same proof-point contract applies to whichever DS the user passes.
 
@@ -59,6 +80,7 @@ Validation complete.
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
+- Wiring extracted from github.com/primer/react/examples/nextjs@src/app/layout.tsx (next-app, 22 lines, 1 CSS import verified)
 - 0 hallucinations
 - 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
@@ -68,7 +90,9 @@ Validation complete.
 Approve to persist? (Reply "go" to write to .claude/skills/primer-react/.)
 ```
 
-The new line is mandatory when a `[docs:foundation]` source was in scope, even if the extraction produced zero rules (empty foundation runs surface as `0 foundation-rules extracted (0 cited, 0 [VERIFY]) — URL may be wrong source`, which is a Phase 1 re-open signal not a Phase 2 approval signal). Without a foundation URL, omit the line entirely.
+The foundation line is mandatory when a `[docs:foundation]` source was in scope, even if the extraction produced zero rules (empty foundation runs surface as `0 foundation-rules extracted (0 cited, 0 [VERIFY]) — URL may be wrong source`, which is a Phase 1 re-open signal not a Phase 2 approval signal). Without a foundation URL, omit the line entirely.
+
+The wiring line is mandatory when an `[example:project]` source was in scope. Omit when no reference project was supplied; the produced Setup section then falls back to the docs snippet (when a foundation URL is in scope) or is empty (when neither is in scope) per `references/reference-project.md`. When auto-detection failed, surface `framework=unknown` and the `[VERIFY]` marker from step 1 of the reference-project extraction step above.
 
 ## What the user is confirming
 

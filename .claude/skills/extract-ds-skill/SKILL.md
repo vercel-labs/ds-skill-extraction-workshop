@@ -102,11 +102,12 @@ The persist target is `.claude/skills/<slug>/` in the attendee's project (per-pr
 
 ## Source-role taxonomy
 
-Every source the user points at falls into one of nine roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
+Every source the user points at falls into one of ten roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
 
 - **Design-system code** (`[code]`) - the package source, types file, and component implementations. Highest authority. Joint-read with docs; wins on conflict.
 - **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. octicons, geist-icons). Treat exports as the inventory; do not invent names.
 - **Product/example app** (`[code]`) - a real consumer of the DS. The single best source for wiring (provider mount, font setup, globals CSS, install scripts). Copy wiring verbatim from here when available.
+- **Reference project** (`[example:project]`) - a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Phase 2 auto-detects the framework (Vite / Next.js App / Next.js Pages / CRA), reads the root entry file, and lifts the provider mount + CSS imports + root-element attributes verbatim per `references/reference-project.md`. Opt-in. When omitted and a `[docs:foundation]` URL is in scope, the Setup section falls back to the verbatim docs setup snippet.
 - **Internal AGENTS/CLAUDE files** (`[code]`) - guidance the DS team has already written for agents. Inherit liberally; cite by `file:line`.
 - **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures. Cited, not extracted.
 - **Docs:foundation** (`[docs:foundation]`) - a single prose foundations page on the DS docs site that is EXTRACTED into `token/*` rules, not just cited. One URL per call, opt-in. Phase 2 fetches it via WebFetch, extracts five prose rule shapes per `references/foundation-extraction.md` (token-pairing, mode-aware, contrast-minimum, semantic-role, fallback-element), and materializes them as subsections inside `references/tokens.md`. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md`, or from the verbatim docs setup snippet as a fallback.
@@ -155,6 +156,7 @@ Progressive disclosure is the contract. Load each reference file only at the gat
 | After closing message, considering the optional `dry-runs/` snapshot prompt | `references/persist.md` (`## Optional: dry-run snapshot`) | Conditional on `dry-runs/` existing at project root; prompt shape, copy + RUBRIC stub |
 | Extracting a single component into `references/components/<name>.md` | `references/component-extraction.md` | 8-section component-file checklist, six rule shapes, Shape 3 routing |
 | Extracting rules from a `[docs:foundation]` URL into `references/tokens.md` and the produced SKILL.md Setup section | `references/foundation-extraction.md` | Six foundation rule shapes, per-rule subsection skeleton, CSS-variable grep-resolve, Setup-injection contract |
+| Lifting wiring from an `[example:project]` reference project into `.extract-ds-skill-scratch/wiring-extracted.md` | `references/reference-project.md` | Framework auto-detection (Vite / Next.js App / Next.js Pages / CRA), provider + CSS imports + root-attrs lift recipe, framework-adaptation note, fallback-to-docs path |
 | Writing a `Bad \| Good \| Why` block, or any cross-cutting anti-pattern | `references/anti-patterns.md` | Column grammar, code-fence rule, cross-component duplication |
 | Asked "why did you inherit X from Y?" by a maintainer | `references/inheritance.md` | Source-by-source inherit / do-not-inherit ledger |
 | Hitting a known gap (Hallmark progressive-disclosure tiers, stamp pattern, refresh verb) | `references/coverage-gaps.md` | ~150-200 instruction-budget caveat, deferred work |

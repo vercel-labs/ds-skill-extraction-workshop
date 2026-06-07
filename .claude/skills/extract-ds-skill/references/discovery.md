@@ -4,11 +4,12 @@ Deep guidance for the discovery phase. Read before producing the discovery summa
 
 ## Source-role classification
 
-Every source the user provides resolves to one of nine roles. Tag each one before inspecting.
+Every source the user provides resolves to one of ten roles. Tag each one before inspecting.
 
 - **design-system code** — the package that ships components, tokens, primitives. Authoritative for APIs, prop shapes, default behavior. Joint-read with docs; code wins on conflict.
 - **asset package** — icons, logos, fonts shipped as a separate module. Authoritative for asset names, sizes, sprite layout. Often versioned independently from the component package.
-- **product-or-example app** — a real consumer of the design system. Authoritative for wiring (provider mount, globals, font setup) and idiomatic composition. Copy wiring verbatim, do not reconstruct.
+- **product-or-example app** — a real consumer of the design system, named by URL or path at discovery time but inspected only shallowly here. Authoritative for idiomatic composition. Used as a candidate `[example:project]` (see below) when wiring extraction is in scope.
+- **`[example:project]`** — a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Authoritative for provider mount, globals CSS, font setup, and root-element HTML attributes. Phase 2 walks the framework auto-detection order (Vite `src/main.{jsx,tsx}` → Next.js App Router `app/layout.{tsx,jsx}` → Next.js Pages Router `pages/_app.{tsx,jsx}` → CRA `src/index.{jsx,tsx}`) and lifts the topmost provider + direct CSS imports + root-element attributes verbatim into the scratch file. See `references/reference-project.md` for the recipe, output contract, framework-adaptation note, and fallback rules. The skill carries no default reference project — the user chooses one because the choice signals which framework, which version, and which idioms the produced wiring should reflect.
 - **internal AGENTS/CLAUDE files** — instructions the DS team already wrote for agents. Treat as prior art. May contain rules to inherit, may contain rules that contradict current source — flag and verify.
 - **docs site** — narrative explanations, prose around examples. Authoritative for intent and headline rules. Pairs with code via joint-read. Cited, not extracted.
 - **docs:foundation** — a single prose foundations page on the DS docs site that gets EXTRACTED into `token/*` rules, not just cited. Distinct from generic `docs` in that its prose contracts (token-pairing, mode-aware behavior, contrast minimums, semantic-role rules, fallback-element styling) land as rule subsections in `references/tokens.md`. One URL per call (opt-in; omit entirely if the user did not point at a foundations page). Tagged `[docs:foundation]` in the sources line. See `references/foundation-extraction.md` for the five rule shapes and the per-rule subsection skeleton. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md` when one is in scope, or from the verbatim docs setup snippet as a fallback per `references/skill-template.md`.
@@ -62,18 +63,22 @@ Render inline, not as a file. Every summary contains:
 - Tokens detected — one line summary (count + families, e.g. color/space/type/motion)
 - Assets detected — one line summary (omit entirely if none)
 - Foundation docs URL — one line, tagged `[docs:foundation]`, with the URL and a one-phrase summary of the page's coverage (e.g. "color usage + dark mode wiring"). Omit this line entirely if the user did not provide a foundation URL. One URL per call — never crawl, never multi-URL.
+- Reference project — one line, tagged `[example:project]`, with the URL or local path, the auto-detected framework (`vite` / `next-app` / `next-pages` / `cra`), and the resolved root entry file (e.g. `<reference-project-url-or-path>` @ `<root-entry-file>` (`<framework>`)). Omit this line entirely if the user did not provide a reference project. See `references/reference-project.md` for the recipe Phase 2 will run against it.
 - Headline rule candidates (1-3) with `file:line` cites
-- Sources used — one line per input, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`
+- Sources used — one line per input, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[example:project]` / `[storybook]` / `[private-blocker]`
 - Open questions or blockers — only if they would stop Phase 2
+- Soft nudge — when `[example:project]` is missing AND a `[docs:foundation]` URL is in scope, surface a one-line informational nudge inside the discovery summary (not a blocker): *"No reference project provided; Phase 2 will fall back to the foundation-docs setup snippet. Strongly recommend a reference project for cleaner wiring extraction — see `references/reference-project.md`."* Omit when no foundation URL is in scope OR when a reference project IS provided.
 - Closing sentence asking the user to confirm or adjust
 
-Budget note: the foundation URL adds at most one line to the sources block and one line to the proposed summary. The 30-line ceiling holds.
+Budget note: the foundation URL adds at most one line to the sources block and one line to the proposed summary. The reference-project line adds at most one line to each. The 30-line ceiling holds even with all four optional lines present (foundation, reference project, soft nudge, out-of-scope routing) — the worst case lands at 28 lines, inside the target.
 
 ### Scope routing during discovery
 
 In scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting. When you encounter a copy/naming/casing rule during extraction (e.g. "Title Case the label", "placeholder is action-oriented"), recognize it, route it - mention it in the discovery summary as a candidate for a sibling copy skill - but do NOT extract it into this DS skill.
 
-## Worked example: Primer React
+## Worked example — extraction against a public-DS-shaped target (illustrative)
+
+The block below uses a public Primer-React setup to ground the shape. The skill makes no assumption that the user's DS is Primer; the same summary contract applies to whichever DS the user passes (shadcn, Material, Geist, Chakra, an internal DS, etc.). Substitute real cites for the DS you are extracting.
 
 <!-- example reference — verify against live extraction in dry-run -->
 
@@ -105,9 +110,9 @@ No blockers. Storybook is public but not cloned - will fall back to docs site fo
 Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 ```
 
-### Worked example variant: Primer React with a foundation URL
+### Worked example — same extraction with a foundation URL added (illustrative)
 
-Same Primer React extraction, with the user passing `https://primer.style/product/getting-started/foundations/color-usage/` as a foundation source. Only the diff from the example above is shown — the rest of the summary is unchanged.
+Same illustrative target, with the user passing a foundation URL as an additional source. Only the diff from the example above is shown — the rest of the summary is unchanged.
 
 ```
 Foundation docs: https://primer.style/product/getting-started/foundations/color-usage/ [docs:foundation] (color usage + dark-mode wiring + semantic-foreground roles)
@@ -120,3 +125,19 @@ Sources used:
 ```
 
 The foundation line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will WebFetch the URL and extract `token/*` rules per `references/foundation-extraction.md`; if no URL is provided, both lines are omitted entirely and Phase 2 behaves exactly as the baseline example above.
+
+### Worked example — same extraction with a reference project added (illustrative)
+
+Same illustrative target, with the user passing a reference project URL as an additional source. Only the diff from the baseline example is shown.
+
+```
+Reference project: https://github.com/primer/react/tree/main/examples/nextjs [example:project] (next-app — src/app/layout.tsx)
+
+Sources used:
+- github.com/primer/react @ v37.x [code, joint-read]
+- primer.style/react [docs]
+- github.com/primer/react/tree/main/examples/nextjs [example:project]
+- packages/react/CHANGELOG.md [code]
+```
+
+The reference-project line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will read the auto-detected root entry file and lift the wiring per `references/reference-project.md`; if no project is provided, both lines are omitted and Phase 2 falls back to the foundation-docs setup snippet (or empties the Setup section entirely if no foundation URL is in scope either). When a reference project is supplied AND a foundation URL is in scope, the soft-nudge line is omitted because the reference project IS the cleaner source.
