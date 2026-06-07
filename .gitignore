@@ -49,3 +49,5 @@ next-env.d.ts
 
 # meta-skill phase-2 scratch (gitignored by design, see SKILL.md)
 .extract-ds-skill-scratch/
+
+.pnpm-store
