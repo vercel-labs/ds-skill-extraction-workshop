@@ -75,3 +75,8 @@ of closing:
 ```
 gh issue comment <N> --body "<what was done, what remains>"
 ```
+
+**Override:** if the prompt or issue body explicitly says the issue
+is a shared spec (workshop, template, recurring fixture), do NOT
+close or comment — stop after the commit. The issue stays open for
+the next runner.
