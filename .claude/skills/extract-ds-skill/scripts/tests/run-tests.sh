@@ -156,6 +156,62 @@ else
   PASS=$((PASS + 1))
 fi
 
+# Test 8: WIRING_NOT_SYNTHESIZED pass-fixture — Setup section cites a
+# reference-project file path. Tally must PASS, script must exit 0.
+assert "pass-wiring-file-citation exits 0 with PASS tally" \
+  "$FIXTURES/pass-wiring-file-citation/produced-skill" \
+  0 "WIRING_NOT_SYNTHESIZED=PASS"
+
+# Test 9: WIRING_NOT_SYNTHESIZED pass-fixture — Setup section cites a docs
+# URL instead. Tally must PASS, script must exit 0.
+assert "pass-wiring-url-citation exits 0 with PASS tally" \
+  "$FIXTURES/pass-wiring-url-citation/produced-skill" \
+  0 "WIRING_NOT_SYNTHESIZED=PASS"
+
+# Test 10: WIRING_NOT_SYNTHESIZED no-op — Setup section has no JSX wrapper
+# or CSS-root snippet at all. Tally must PASS, script must exit 0.
+assert "pass-wiring-no-wrapper exits 0 with PASS tally" \
+  "$FIXTURES/pass-wiring-no-wrapper/produced-skill" \
+  0 "WIRING_NOT_SYNTHESIZED=PASS"
+
+# Test 11: WIRING_NOT_SYNTHESIZED fail-fixture — Setup section embeds a
+# JSX wrapper with no citation. Tally must FAIL, script must exit non-zero,
+# and the failure message must name the SKILL.md line of the first wrapper.
+assert "fail-wiring-uncited exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-wiring-uncited/produced-skill" \
+  1 "WIRING_NOT_SYNTHESIZED=FAIL" \
+  "fail-wiring-uncited/produced-skill/SKILL.md:17"
+
+# Test 12: meta-mode skips WIRING_NOT_SYNTHESIZED entirely. Running the
+# script against the meta-skill itself must NOT emit the tally line — the
+# check is produced-skill-mode only because the meta-skill's worked examples
+# ARE the synthesis source (checking them would be circular).
+out_meta_self="$(bash "$CHECK" "$SKILL_DIR" 2>&1)" || true
+if grep -qE '^WIRING_NOT_SYNTHESIZED=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit WIRING_NOT_SYNTHESIZED tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips WIRING_NOT_SYNTHESIZED"
+  PASS=$((PASS + 1))
+fi
+
+# Test 13: produced-mode DOES emit WIRING_NOT_SYNTHESIZED. Re-use the
+# on-the-fly produced fixture from Test 4 — its SKILL.md has no Setup
+# section so the check is a no-op (PASS), but the tally line MUST appear.
+if grep -qE '^WIRING_NOT_SYNTHESIZED=' <<<"$out_produced"; then
+  echo "PASS  produced-mode emits WIRING_NOT_SYNTHESIZED tally"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must emit WIRING_NOT_SYNTHESIZED tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]

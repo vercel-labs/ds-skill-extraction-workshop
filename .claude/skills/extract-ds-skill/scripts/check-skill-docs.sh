@@ -117,7 +117,10 @@ if [[ "$MODE" == "produced" ]]; then
   else echo "SLUG_RESOLUTION=FAIL unresolved=${UNRESOLVED[*]}"; FAILED=1; fi
 
   # 5. [VERIFY] markers — informational only; never fails the check.
-  VERIFY_COUNT=$(grep -rcE '\[VERIFY\]' "$SKILL_PATH" 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
+  #    `grep -rcE` exits 1 when no file in the tree matches; under `set -o
+  #    pipefail` that aborts the whole script. Suppress with `|| true` so the
+  #    informational check never silently kills the post-emit run.
+  VERIFY_COUNT=$( (grep -rcE '\[VERIFY\]' "$SKILL_PATH" 2>/dev/null || true) | awk -F: '{s+=$2} END {print s+0}')
   echo "VERIFY_MARKERS=$VERIFY_COUNT"
   echo "VERIFY_LOCATIONS="
   grep -rnE '\[VERIFY\]' "$SKILL_PATH" 2>/dev/null \
@@ -152,6 +155,134 @@ if [[ "$MODE" == "produced" ]]; then
   else
     echo "SCOPE_GUARDRAIL=FAIL"; FAILED=1
   fi
+
+  # 8. WIRING_NOT_SYNTHESIZED (produced-skill mode only). The produced SKILL.md
+  #    Setup section MUST cite the source of any JSX wrapper or CSS-root snippet
+  #    it embeds — a reference-project file path OR a docs URL. Uncited wrappers
+  #    indicate the wiring was synthesized from memory rather than lifted, which
+  #    is the failure mode references/reference-project.md is designed to
+  #    prevent. The meta-skill itself is exempt (its worked examples ARE the
+  #    synthesis source).
+  #
+  #    Detection. Walk the Setup section (heading whose title is exactly
+  #    "Setup", at any depth, until the next sibling-or-higher heading). Inside
+  #    the section, code-fence content is scanned for:
+  #      - JSX wrappers: `<XxxProvider`, `<BaseStyles`, `<CssBaseline`,
+  #        `<MantineProvider`, `<AppRouterCacheProvider`, `<InitColorSchemeScript`,
+  #        `<ThemeProvider`, `<ChakraProvider`, `<RadixProvider`, `<Toaster`.
+  #      - CSS-root snippets: `:root`, `color-scheme:`, `data-color-mode`,
+  #        `html, body`, `html,body`.
+  #    A citation is satisfied by ANY of these lines anywhere in the section:
+  #      - `Source:` followed by `path/with/.ext` (the reference-project file-
+  #        path form documented in references/reference-project.md), OR
+  #      - an http(s) URL (`https?://...`) — the docs-URL fallback.
+  #    Missing citation → FAIL with `<file>:<line>` of the first detected
+  #    wrapper/snippet line, pointing at the citation requirement.
+  WIRING_RESULT="$(awk -v skill_md="$SKILL_MD" '
+    BEGIN {
+      in_setup = 0
+      setup_depth = 0
+      in_fence = 0
+      wrapper_file = ""
+      wrapper_line = 0
+      wrapper_text = ""
+      cited = 0
+    }
+    function heading_depth(line,    n) {
+      n = 0
+      while (substr(line, n+1, 1) == "#") n++
+      return n
+    }
+    function is_setup_heading(line,    title) {
+      if (line !~ /^#+[[:space:]]+/) return 0
+      title = line
+      sub(/^#+[[:space:]]+/, "", title)
+      sub(/[[:space:]]+$/, "", title)
+      return (title == "Setup")
+    }
+    # Toggle fence state regardless of section — but only the in_setup
+    # transitions matter for detection.
+    /^```/ {
+      in_fence = !in_fence
+      next
+    }
+    # Heading handling — only outside fences.
+    !in_fence && /^#+[[:space:]]+/ {
+      depth = heading_depth($0)
+      if (in_setup && depth <= setup_depth) {
+        in_setup = 0
+        setup_depth = 0
+      }
+      if (!in_setup && is_setup_heading($0)) {
+        in_setup = 1
+        setup_depth = depth
+      }
+      next
+    }
+    # Only scan inside the Setup section.
+    in_setup {
+      # Citation detection — scan the whole section, in or out of fence.
+      # "Source:" followed by a file-path-like token (must contain "/" and
+      # a recognizable extension).
+      if ($0 ~ /Source:.*\/[A-Za-z0-9._/-]+\.(tsx|jsx|ts|js|css|scss|sass|html|md|mjs|cjs)/) {
+        cited = 1
+      }
+      if ($0 ~ /https?:\/\//) {
+        cited = 1
+      }
+      # Wrapper/snippet detection — only first occurrence wins (for FAIL message).
+      # POSIX awk has no `\b`; use an explicit boundary character class instead.
+      if (wrapper_file == "") {
+        leak = ""
+        if (match($0, /<(ThemeProvider|BaseStyles|CssBaseline|MantineProvider|AppRouterCacheProvider|InitColorSchemeScript|ChakraProvider|RadixProvider|Toaster)([^A-Za-z0-9]|$)/)) {
+          # Trim the trailing boundary char so the FAIL message names the wrapper, not the punctuation.
+          leak = substr($0, RSTART, RLENGTH)
+          sub(/[^A-Za-z0-9]$/, "", leak)
+        } else if (match($0, /<[A-Z][A-Za-z0-9]*Provider([^A-Za-z0-9]|$)/)) {
+          leak = substr($0, RSTART, RLENGTH)
+          sub(/[^A-Za-z0-9]$/, "", leak)
+        } else if ($0 ~ /:root[[:space:]]*\{/) {
+          leak = ":root"
+        } else if ($0 ~ /color-scheme[[:space:]]*:/) {
+          leak = "color-scheme"
+        } else if ($0 ~ /data-color-mode/) {
+          leak = "data-color-mode"
+        } else if ($0 ~ /^[[:space:]]*html[[:space:]]*,[[:space:]]*body[[:space:]]*\{/) {
+          leak = "html, body"
+        }
+        if (leak != "") {
+          wrapper_file = skill_md
+          wrapper_line = NR
+          wrapper_text = leak
+        }
+      }
+    }
+    END {
+      if (wrapper_file == "") {
+        print "NOOP"
+      } else if (cited) {
+        print "PASS"
+      } else {
+        printf "FAIL %s:%d:%s\n", wrapper_file, wrapper_line, wrapper_text
+      }
+    }
+  ' "$SKILL_MD")"
+
+  case "$WIRING_RESULT" in
+    NOOP|PASS)
+      echo "WIRING_NOT_SYNTHESIZED=PASS"
+      ;;
+    FAIL*)
+      payload="${WIRING_RESULT#FAIL }"
+      file_part="${payload%%:*}"
+      rest="${payload#*:}"
+      line_part="${rest%%:*}"
+      text_part="${rest#*:}"
+      echo "WIRING_NOT_SYNTHESIZED=FAIL"
+      echo "  uncited wiring in Setup section at $file_part:$line_part — '$text_part' — JSX wrappers and CSS-root snippets MUST cite either a reference-project file path (Source: <reference-project> @ <file>:line) OR a docs URL; see references/reference-project.md (Output contract + Fallback)"
+      FAILED=1
+      ;;
+  esac
 
 fi  # end produced-mode checks
 
