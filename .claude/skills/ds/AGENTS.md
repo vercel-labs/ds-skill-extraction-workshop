@@ -1,38 +1,38 @@
 # AGENTS — ds
 
-Cross-agent contract for the `ds` design-system skill. Any agent touching this skill reads `SKILL.md` first, then the per-domain files in `references/`.
-
 ## Letter to future agents
 
-This DS is a thin Primer React wrapper. The wrappers exist precisely because Primer ships loose on a few things — slot composition (`PageHeader`), variant semantics (`Banner`), a11y wiring (`DataTable`), controlled-state coordination (`SelectPanel`, `ActionMenu`). The TypeScript types do NOT enforce most of the rules in this skill. They render. They render wrong, and the failure mode is visual, not a compiler error.
+The `ds` design system is **not** a fork of Primer — it is a thin per-project wrapper. Every file under `ds/components/<Name>.tsx` is a `export const <Name> = Primer<Name>;` re-export (plus a `ComponentProps<typeof Primer<Name>>` type alias). The wrappers exist for two reasons: a stable per-project import path (`@/ds/components/<Name>`) and a per-project `.docs.tsx` file capturing the headline rule.
 
-The first instinct when generating UI is to reach for what Primer's types accept. Don't stop there. Open `ds/components/<Name>.docs.tsx` and read the JSDoc — that's where the project floor lives. Every cited rule in `references/components/*.md` traces back to one of those files plus a corresponding type-file or wrapper line.
+What this means in practice:
 
-When in doubt: open the wrapper (`ds/components/<Name>.tsx`), open the docs file (`ds/components/<Name>.docs.tsx`), then open `node_modules/@primer/react/dist/<Name>/<Name>.d.ts`. The three together are the contract.
+- The Primer types are the source of truth for prop shapes, subcomponents, and variants. The wrappers add nothing. If a prop is not on `@primer/react`'s `<Name>`, it is not on the wrapper.
+- The `.docs.tsx` files are the source of truth for *project-specific judgment calls* about how the component is used. They are not exhaustive; they capture the project's headline rule (variant semantics for Banner, controlled-state pairing for ActionMenu, slot placement for PageHeader, etc.).
+- `DataTable` lives at `@primer/react/experimental`, not `@primer/react`. The `/experimental` subpath is part of Primer's public API, and the wrapper preserves the distinction by importing from that subpath.
+
+## Source-by-source ledger (what was inherited from where)
+
+| Source | Inherited | Authority |
+|---|---|---|
+| `ds/components/<Name>.tsx` | Named export, type alias | Definitive — sets the surface of the local DS |
+| `ds/components/<Name>.docs.tsx` | Headline rule per component (variant semantics, slot rules, snapshot pattern, controlled-state pairing) | Definitive for project judgment |
+| `node_modules/@primer/react/dist/index.d.ts` | Top-level types (Banner, ActionMenu, ActionList, PageHeader, SelectPanel) | Definitive for prop shapes |
+| `node_modules/@primer/react/experimental/index.d.ts` | DataTable types | Definitive for prop shapes |
+| `node_modules/@primer/primitives/dist/css/functional/themes/light.css` | Functional CSS variable inventory (`--bgColor-*`, `--fgColor-*`, `--borderColor-*`, control / focus tokens) | Definitive for token availability |
+| https://primer.style/product/getting-started/foundations/color-usage/ | Six foundation rules (token-pairing, mode-aware, contrast-minimum, semantic-role) | Authoritative for prose rules; cite anchors |
+| https://github.com/primer/react-template @ `src/index.jsx` | Provider tree (`<StrictMode><ThemeProvider colorMode="auto"><BaseStyles>...</BaseStyles></ThemeProvider></StrictMode>`), CSS imports (`./reset.css`, `./globals.css`), root-element attrs (`lang="en"`) | Authoritative for wiring; lift verbatim |
+| Primer Storybook | (not used this run) | Reference only — wrapper + types + docs.tsx already cover the surface |
+| Figma | (not used this run) | Out of scope |
 
 ## Common agent failure modes
 
-Specific to `ds`. Notes for the next agent that generates an issues page or a settings screen against this skill.
-
-- **Dropping `PageHeader.Actions` inside `PageHeader.TitleArea`.** The words "header" and "title" feel synonymous; they are not. `TitleArea` is the inline cluster around the title text only. `Actions`, `TrailingAction`, `ContextArea`, and `Navigation` are chrome-level and go OUTSIDE `TitleArea`. TypeScript accepts the wrong shape; the layout grid silently breaks. See `references/components/page-header.md`.
-
-- **Using `<Banner variant="critical">` for any red-coloured message.** `critical` is reserved for blocking failures the user must resolve before continuing (payment failed; deploy blocked; data loss imminent). A "two-factor required next month" message is `warning`, not `critical`. The variant is semantic — it maps to an `alert`-style landmark and stronger SR urgency, not a colour swap.
-
-- **Forgetting to pre-sort `DataTable` data.** Setting `initialSortColumn` + `initialSortDirection` does NOT sort on mount — it only labels the column header arrow. If `data` is not already in that order, the rendered table looks unsorted and silently disagrees with its own header.
-
-- **Zero or multiple `rowHeader: true` columns on `DataTable`.** Exactly one column must be the row header (typically the title). Zero loses the SR announcement; multiple fight each other.
-
-- **Omitting `onCancel` snapshot/restore on multi-select `SelectPanel`.** Cancel that does not restore the pre-open selection is not a cancel; it is "close and keep my half-edited state", which the user did not ask for. Snapshot in `onOpenChange(true)`, restore in `onCancel`.
-
-- **Passing `open` to `ActionMenu` without `onOpenChange`.** TypeScript does not catch the orphan controlled prop. The menu opens, the user clicks outside, nothing happens — because nothing is wired to set `open` back to `false`. The two props are a pair.
-
-- **Reaching for `ActionMenu.Anchor` when `ActionMenu.Button` suffices.** `ActionMenu.Button` is the default trigger and handles the ARIA wiring out of the box. `ActionMenu.Anchor` is for wrapping a custom trigger element (an icon-only button, a submenu); use only when the default does not fit.
-
-- **Styling a destructive item with a className instead of `variant="danger"`.** `ActionList.Item` ships `variant="danger"` for destructive actions. A red `className` paints the item but skips the destructive role wiring.
-
-## What this skill does NOT cover
-
-- **Copy** — button labels, placeholder strings, empty-state messaging, banner titles/descriptions as prose. If a copy rule surfaces, log it; do not extract it here.
-- **Tokens** — `@primer/primitives` is a peer dep but no token rules are extracted in v1. `references/tokens.md` is intentionally a stub. When a token rule becomes necessary, extract it into the tokens file with a `Bad | Good | Why` row.
-- **Assets** — octicons ship in `@primer/octicons-react`, a separate package. If the user requests icons, fetch that package and treat asset names as a separate skill surface.
-- **Cross-component composition patterns** beyond what the routing-table cross-load already covers. If a recurring screen pattern emerges (e.g. "issues page composition"), promote it into `references/patterns.md` at that point.
+- **Inventing props that Primer does not ship.** The wrapper preserves the Primer type via `ComponentProps<typeof Primer<Name>>`. Any prop the agent reaches for that does not appear in `node_modules/@primer/react/dist/index.d.ts` (or `experimental/index.d.ts` for `DataTable`) is fabrication. Run `pnpm typecheck` before claiming the API is correct.
+- **Deep-importing `@primer/react/lib-esm/...` or `@primer/react/components/...`.** Internal subpaths are not part of the public API. Go through `@/ds/components/<Name>`. The `/experimental` subpath IS public (used by `DataTable`); no other deep subpath is.
+- **Reaching for `--color-scale-*` base-scale tokens.** They appear in the Primer foundation docs as illustrative examples ("don't do this"), but they are NOT exported as CSS by `@primer/primitives@11.9.0`. A `var(--color-scale-pink-5)` reference 404s at runtime. Use functional tokens (`--bgColor-*`, `--fgColor-*`, `--borderColor-*`) exclusively — `references/tokens.md` lists every one that grep-resolves in `light.css`.
+- **Putting `PageHeader.Actions` inside `PageHeader.TitleArea`.** The model wants to do this because the actions "belong with the title." They do not — `Actions`, `ContextArea`, `TrailingAction`, and `Navigation` are direct children of `<PageHeader>`, NOT of `<PageHeader.TitleArea>`. Only `LeadingVisual`, `Title`, and `TrailingVisual` go inside `TitleArea`. See `ds/components/PageHeader.docs.tsx`.
+- **Picking `Banner variant="critical"` for any red-looking design.** `critical` carries `role="alert"` semantics and stronger screen-reader urgency. It is for blocking failures only. Non-blocking-but-red is `warning`; informational-red-tinted is `info`. See `ds/components/Banner.docs.tsx`.
+- **Omitting `onCancel` on a multi-select SelectPanel.** Without it, the snapshot-and-restore pattern cannot run, and the user's mid-flight toggles persist after they press Cancel — exactly what "Cancel" implies should not happen. The `onCancel` prop is required by Primer's type only for `variant="modal"`, but supplying it in the default `variant="anchored"` is what enables the pattern. See `ds/components/SelectPanel.docs.tsx`.
+- **Passing `open` to `ActionMenu` without `onOpenChange`.** TypeScript does not enforce the pairing. Missing the handler leaves the menu unable to close (the user clicks outside and nothing happens). Always wire both, or pass neither (uncontrolled). See `ds/components/ActionMenu.docs.tsx`.
+- **Forgetting `rowHeader: true` on a `DataTable` column.** Exactly one column must set it. Zero loses the screen-reader row-name announcement; more than one fights itself. `Title` is the conventional pick.
+- **Skipping the foundation-token pairing rules.** `--fgColor-default` on `--bgColor-accent-emphasis` collapses to a low-contrast pairing in dark mode. The on-emphasis foreground (`--fgColor-onEmphasis`) is the only correct choice on any `--bgColor-*-emphasis` surface. See the token/emphasis-onemphasis-pairing rule in `references/tokens.md`.
+- **Reconstructing wiring from memory instead of lifting it.** The `ThemeProvider` + `BaseStyles` order, the CSS-import location, and the `colorMode="auto"` default all live in https://github.com/primer/react-template @ `src/index.jsx`. Lift verbatim; do not paraphrase, reorder, or "tidy."
