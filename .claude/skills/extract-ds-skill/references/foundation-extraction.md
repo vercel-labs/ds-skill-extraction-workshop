@@ -28,11 +28,11 @@ Every rule worth extracting from a foundations page maps to one of five shapes. 
 - **Find in:** color-usage sections, surface guidelines, "on-" prefix conventions in functional token names.
 - **Extract:** one subsection in `references/tokens.md` under `### token/<surface>-<foreground>-pairing`. State the pair, the trap of mixing the wrong foreground onto the named surface (low contrast, fails axe), and a `Bad | Good | Why` row. Cite source as `<docs-url>#<section-anchor>`.
 
-### Example output — extraction against a Primer-shaped target (illustrative)
+### Example output — extraction against a Mantine-shaped target (illustrative)
 
-The block below uses a public Primer-React-shaped color-usage page to ground the shape. The skill makes no assumption that the user's DS is Primer; the same pattern applies to whichever DS the user passes (shadcn, Material, Geist, Chakra, an internal DS, etc.).
+The block below uses a public Mantine color-usage page to ground the shape. The skill makes no assumption that the user's DS is Mantine; the same pattern applies to whichever DS the user passes (shadcn, Material, Geist, Chakra, Radix, an internal DS, etc.).
 
-"Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. Default `--fgColor-default` against `--bgColor-emphasis` fails 3:1 contrast in dark mode. (`https://primer.style/product/getting-started/foundations/color-usage/#emphasis`)" The pair, the trap, the contrast number, and the anchored citation all survive.
+"Pair `--mantine-color-blue-filled` (filled-color surface) with `--mantine-color-white` (the on-filled foreground). Default `--mantine-color-text` against `--mantine-color-blue-filled` is the body-surface foreground, not the filled-surface foreground — pairing them fails 3:1 contrast in dark mode. (`https://mantine.dev/styles/colors/#colors-in-mantine`)" The pair, the trap, the contrast number, and the anchored citation all survive.
 
 ### Shape 2 — Mode-aware
 
@@ -52,11 +52,11 @@ The block below uses a public shadcn theming page to ground the shape. The skill
 - **Find in:** accessibility callouts on color-usage pages, contrast-ratio tables, WCAG citations alongside token names.
 - **Extract:** subsection under `### token/<role>-contrast-minimum`. State the minimum (token step or contrast ratio), the surfaces it applies against, and the failure mode if violated (axe failure, reads as washed-out, breaks dark mode). Cite the docs section anchor. If the docs cite a WCAG level, preserve the citation verbatim.
 
-### Example output — extraction against a Primer-shaped target (illustrative)
+### Example output — extraction against a Radix-shaped target (illustrative)
 
-The block below uses a public Primer-React-shaped color-usage page to ground the shape. The skill makes no assumption that the user's DS is Primer.
+The block below uses a public Radix Colors palette-composition page to ground the shape. The skill makes no assumption that the user's DS is Radix.
 
-"Borders use neutral step 7 or 8 against `--bgColor-muted`. Step 5-6 (used for separators on `--bgColor-default`) disappears against muted surfaces. (`https://primer.style/product/getting-started/foundations/color-usage/#borders-and-dividers`)" Threshold ("step 7 or 8"), the comparator ("muted"), and the failure mode ("disappears") all preserved.
+"Borders use neutral step 7 against `--gray-2` (subtle component surfaces). Step 6 (used for separators on `--gray-1`, the app surface) disappears against subtle component surfaces. (`https://www.radix-ui.com/colors/docs/palette-composition/scales#understanding-the-scale`)" Threshold ("step 7"), the comparator ("subtle component surface"), and the failure mode ("disappears") all preserved.
 
 ### Shape 4 — Semantic-role
 
@@ -158,7 +158,7 @@ Mark any foundation rule inline with `[VERIFY]` when one of the following is tru
 Place the marker at the end of the rule line, before the citation:
 
 ```
-- Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. [VERIFY: --fgColor-onEmphasis did not grep-resolve in `node_modules/<ds-package>/dist/css/functional/themes/light.css`] (`<docs-url>#emphasis-surfaces`)
+- Pair `--ds-bg-emphasis` with `--ds-fg-on-emphasis`. [VERIFY: --ds-fg-on-emphasis did not grep-resolve in `node_modules/<ds-package>/dist/css/functional/themes/light.css`] (`<docs-url>#emphasis-surfaces`)
 ```
 
 `[VERIFY]` markers from foundation extraction count into the same tally as component extraction. The Phase 2 proof point reports both together: `F foundation-rules extracted (X cited, Y [VERIFY])` alongside the existing `N props verified`, `M tokens grep-resolved`, `K assets grep-resolved` lines.

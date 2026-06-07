@@ -1,6 +1,6 @@
 ---
 name: extract-ds-skill
-description: Extract a Claude Code design-system skill from a real DS source. Use when the user wants to turn a design system (component library, token set, asset package) into an installable skill at .claude/skills/<slug>/ in their project. Triggers: 'make a skill from <DS>', 'extract a DS skill', 'turn primer/geist/material/<DS> into a skill'. Scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting - route copy rules to a separate copy skill, do not extract them here. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient for any phase past initial discovery framing.
+description: Extract a Claude Code design-system skill from a real DS source. Use when the user wants to turn a design system (component library, token set, asset package) into an installable skill at .claude/skills/<slug>/ in their project. Triggers: 'make a skill from <DS>', 'extract a DS skill', 'turn mantine/geist/material/<DS> into a skill'. Scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting - route copy rules to a separate copy skill, do not extract them here. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient for any phase past initial discovery framing.
 ---
 
 ## Mission (what a DS skill IS)
@@ -30,29 +30,29 @@ Inspect-but-do-not-enumerate is the rule. Read enough to know what each source c
 The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same summary contract applies to whichever DS the user passes. Substitute real cites for the DS you are extracting.
 
 ```
-Proposed skill: `primer-react` -> .claude/skills/primer-react/
-DS: Primer React - GitHub's component library for building consistent, accessible UI.
+Proposed skill: `mantine` -> .claude/skills/mantine/
+DS: Mantine - React component library with 100+ customizable components and accessible defaults.
 
-Components found (38), proposing (4):
-- TextInput - single-line text entry with built-in validation slots
-- Button - primary/invisible/danger action trigger with icon + loading states
-- Checkbox - controlled boolean input, pairs with FormControl for label/caption
-- FormControl - wraps an input + label + caption + validation; required-for-a11y composition
+Components found (147), proposing (4):
+- TextInput - single-line text entry with label, description, and error slots
+- Button - filled/outline/subtle action trigger with loading state and left/right section slots
+- Checkbox - controlled boolean input, accepts label and description inline
+- InputWrapper - wraps an input + label + description + error; pairs with custom inputs that need a11y labeling
 
-Tokens detected: ~180 across color (primer/primitives), space (4px grid), type (functional scale).
-Assets detected: 0 icons in this package (octicons ship separately, out of scope for v1).
+Tokens detected: ~150 across color (theme colors 0-9 + functional), space (xs/sm/md/lg/xl), type (h1-h6 + functional).
+Assets detected: 0 icons in this package (@tabler/icons-react ships separately, out of scope for v1).
 
-Foundation docs: https://primer.style/product/getting-started/foundations/color-usage/ [docs:foundation] (color usage + dark-mode wiring + semantic-foreground roles)
+Foundation docs: https://mantine.dev/styles/colors/ [docs:foundation] (color scales + dark-mode behavior + functional color tokens)
 
 Headline rule candidates:
-- "Use `disabled={isLoading}` on submit buttons, not `inactive` - `inactive` is a non-interactive visual state, screen readers still announce it as actionable" (Button.docs.tsx:142)
-- "Wrap every TextInput / Checkbox in `<FormControl>`; bare inputs lose label association and fail axe" (FormControl.docs.tsx:31)
+- "Use `loading` prop on Button for loading states, not a custom spinner inside `children` - the loading prop handles disabled coordination and ARIA announcements" (Button.tsx:88)
+- "Wrap custom inputs in `<InputWrapper>`; bare inputs without a wrapper lose label association and fail axe" (InputWrapper.tsx:31)
 - "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204)
 
 Sources used:
-- github.com/primer/react @ v37.x [code, joint-read]
-- primer.style/react [docs]
-- primer.style/product/getting-started/foundations/color-usage/ [docs:foundation]
+- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- mantine.dev/styles/colors/ [docs:foundation]
 
 Out-of-scope rules surfaced (route to sibling copy skill): "button labels are Title Case", "placeholder text is action-oriented".
 
@@ -77,17 +77,17 @@ The block below uses a public-DS-shaped target to ground the shape. The skill ma
 
 ```
 Validation complete.
-- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, FormControl: 2)
+- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, InputWrapper: 2)
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
 - 0 hallucinations
 - 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
-  2. FormControl.md:18 - validation slot signature absent from public types; inferred from docs
-  3. tokens.md:74 - `--fgColor-onMuted` cited by foundation URL but no grep-resolve in @primer/primitives@11.9.0
+  2. InputWrapper.md:18 - validation slot signature absent from public types; inferred from docs
+  3. tokens.md:74 - `--mantine-color-blue-6` cited by foundation URL but no grep-resolve in @mantine/core@7.x
 
-Approve to persist? (Reply "go" to write to .claude/skills/primer-react/.)
+Approve to persist? (Reply "go" to write to .claude/skills/mantine/.)
 ```
 
 ## Phase 3: Persist the skill
@@ -255,7 +255,7 @@ If a `dry-runs/` directory exists at the project root, after the closing message
 The prompt has exactly one question and offers a default label. Worked example:
 
 > A `dry-runs/` directory exists in this project. Snapshot this run to `dry-runs/<YYYY-MM-DD>-<label>/`?
-> Default label: `<slug>-<short-tag>` (e.g. `ds-pivot-1`, `primer-react-baseline`).
+> Default label: `<slug>-<short-tag>` (e.g. `ds-pivot-1`, `acme-ui-baseline`).
 > Reply with a label, "yes" to accept the default, or "no" to skip.
 
 If the user accepts, copy `.claude/skills/<slug>/` to `dry-runs/<date>-<label>/extracted-skill/`, write a `README.md` mirroring the existing baseline shape (one paragraph of context, "What's here" list, "Diff against earlier runs" snippet, "Known limitations" list), and write a stub `RUBRIC.md` by copying the body of `dry-runs/TEMPLATE.md` and pre-filling the fields the agent run itself produced (components, validation proof point, `check-skill-docs.sh` exit code, `[VERIFY]` tally). Leave the operator-observable fields (timings, UX confusion, Phase 4/5) blank.
@@ -268,10 +268,10 @@ If the user replies "no" (or anything other than a label/yes), skip silently. Th
 
 The slug is the directory name under `.claude/skills/`. It is also the trigger word the user types when invoking the skill. Pick it carefully.
 
-- Kebab-case, short. `primer-react`, `geist`, `acme-ui`. Not `PrimerReact`, not `primer_react`, not `our-internal-design-system-v2-final`.
+- Kebab-case, short. `mantine`, `geist`, `acme-ui`. Not `AcmeUI`, not `acme_ui`, not `our-internal-design-system-v2-final`.
 - Match the package name when possible. If the DS publishes as `<scope>/<pkg>` (e.g. `<scope>/react`), the slug is `<scope>-react`; if it publishes as a bare name (e.g. `geist`), the slug matches the bare name.
 - If the package name collides with a generic word (`ui`, `components`, `design`), prefix with the org or product (`acme-ui`, `vercel-design`).
-- If the user has multiple sibling skills (DS + copy + a11y), the slug should disambiguate: `primer-react` for the DS skill, `primer-copy` for the sibling.
+- If the user has multiple sibling skills (DS + copy + a11y), the slug should disambiguate: `acme-ui` for the DS skill, `acme-copy` for the sibling.
 - Slug collisions are a hard ASK. Never silently suffix `-2`, `-new`, `-v2`, or a date.
 
 ## The single human gate (clarification)
@@ -329,7 +329,7 @@ Six architectural choices were locked on 2026-05-31. Recording them here so the 
 - **Deterministic validation (typecheck + grep-resolves), no visual probe.** Catches what the model cannot catch about its own output. The proof point is "N props verified, 0 hallucinations" - a number the user can audit at a glance. A visual probe would catch render bugs the typecheck misses, but at the cost of time, flakiness, and a runtime dependency. Deferred to coverage-gaps.md.
 - **Skill files only (no runnable starter).** The hands-on deliverable is the skill files. A separate starter repo (built in Task #9) provides the runnable Next app the freshly extracted skill is exercised against. Splitting deliverables keeps the meta-skill's surface small and the demo's surface bounded.
 - **Auto-discover + prune component scope.** The meta-skill scans the package's public exports and proposes the full set; the user prunes. Hand-picking would have been faster on stage but would have read as rehearsed theatre. The "Components found (38), proposing (4)" line is the workshop-credibility primitive.
-- **Headline rules discovered independently.** The meta-skill does not hard-code "use `disabled` not `inactive`" for Primer. If dry-runs show the extraction misses the rule, the prompts in this file are tuned until it lands. Hard-coding is detectable; the audience can smell it.
+- **Headline rules discovered independently.** The meta-skill does not hard-code DS-specific rules (e.g. "use `disabled` not `inactive`" for one DS, "use `loading` prop not custom spinner" for another). If dry-runs show the extraction misses the rule, the prompts in this file are tuned until it lands. Hard-coding is detectable; the audience can smell it.
 - **No Hallmark stamp pattern.** The v0 onboarding flow does not stamp. The product-copywriting skill does not stamp (git blame is provenance). `check-skill-docs.sh` does not need stamps as a falsifiability check. Adding a stamp because Hallmark does would be cargo-cult. Deferred to `references/coverage-gaps.md` for a future re-extract verb that genuinely needs source provenance.
 
 ## Operating envelope (what good output looks like)

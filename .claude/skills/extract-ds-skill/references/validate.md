@@ -76,18 +76,18 @@ The block below uses a public-DS-shaped target to ground the shape. The skill ma
 
 ```
 Validation complete.
-- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, FormControl: 2)
+- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, InputWrapper: 2)
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
-- Wiring extracted from github.com/primer/react/examples/nextjs@src/app/layout.tsx (next-app, 22 lines, 1 CSS import verified)
+- Wiring extracted from github.com/mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS import verified)
 - 0 hallucinations
 - 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
-  2. FormControl.md:18 - validation slot signature absent from public types; inferred from docs
-  3. tokens.md:74 - `--fgColor-onMuted` cited by docs but no grep-resolve in @primer/primitives@11.9.0
+  2. InputWrapper.md:18 - validation slot signature absent from public types; inferred from docs
+  3. tokens.md:74 - `--mantine-color-blue-6` cited by docs but no grep-resolve in @mantine/core@7.x
 
-Approve to persist? (Reply "go" to write to .claude/skills/primer-react/.)
+Approve to persist? (Reply "go" to write to .claude/skills/acme-ui/.)
 ```
 
 The foundation line is mandatory when a `[docs:foundation]` source was in scope, even if the extraction produced zero rules (empty foundation runs surface as `0 foundation-rules extracted (0 cited, 0 [VERIFY]) — URL may be wrong source`, which is a Phase 1 re-open signal not a Phase 2 approval signal). Without a foundation URL, omit the line entirely.

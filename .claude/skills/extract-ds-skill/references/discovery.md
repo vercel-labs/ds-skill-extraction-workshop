@@ -78,32 +78,33 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 
 ## Worked example — extraction against a public-DS-shaped target (illustrative)
 
-The block below uses a public Primer-React setup to ground the shape. The skill makes no assumption that the user's DS is Primer; the same summary contract applies to whichever DS the user passes (shadcn, Material, Geist, Chakra, an internal DS, etc.). Substitute real cites for the DS you are extracting.
+The block below uses a public Mantine setup to ground the shape. The skill makes no assumption that the user's DS is Mantine; the same summary contract applies to whichever DS the user passes (shadcn, Material, Geist, Chakra, Radix, an internal DS, etc.). Substitute real cites for the DS you are extracting.
 
 <!-- example reference — verify against live extraction in dry-run -->
 
 ```
-Proposed skill: `primer-react` -> .claude/skills/primer-react/
-DS: Primer React - GitHub's component library for building consistent, accessible UI.
+Proposed skill: `mantine` -> .claude/skills/mantine/
 
-Components found (47), proposing (4):
-- TextInput - single-line text entry with built-in validation slots
-- Button - primary/invisible/danger action trigger with icon + loading states
-- Checkbox - controlled boolean input, pairs with FormControl for label/caption
-- FormControl - wraps an input + label + caption + validation; required-for-a11y composition
+DS: Mantine - React component library with 100+ customizable components and accessible defaults.
 
-Tokens detected: ~180 across color (primer/primitives), space (4px grid), type (functional scale). Skipping motion - none found in package.
-Assets detected: 0 icons in this package (octicons ship separately, out of scope for v1).
+Components found (147), proposing (4):
+- TextInput - single-line text entry with label, description, and error slots
+- Button - filled/outline/subtle action trigger with loading state and left/right section slots
+- Checkbox - controlled boolean input, accepts label and description inline
+- InputWrapper - wraps an input + label + description + error; pairs with custom inputs that need a11y labeling
+
+Tokens detected: ~150 across color (theme colors 0-9 + functional), space (xs/sm/md/lg/xl), type (h1-h6 + functional). Skipping motion - Mantine uses transition tokens but no motion scale.
+Assets detected: 0 icons in this package (@tabler/icons-react is the recommended pair, out of scope for v1).
 
 Headline rule candidates:
-- "Use `disabled={isLoading}` on submit buttons, not the `inactive` prop - `inactive` is a non-interactive *visual* state and screen readers will still announce the button as actionable" (Button.docs.tsx:142, README L88)
-- "Wrap every TextInput / Checkbox in a `<FormControl>`; bare inputs lose the label association and fail axe" (FormControl.docs.tsx:31)
+- "Use `loading` prop on Button for loading states, not a custom spinner inside `children` - the loading prop handles disabled coordination and ARIA announcements" (Button.tsx:88, docs page)
+- "Wrap custom inputs in `<InputWrapper>`; bare inputs without a wrapper lose label association and fail axe" (InputWrapper.tsx:31)
 - "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204 prop comment)
 
 Sources used:
-- github.com/primer/react @ v37.x [code, joint-read]
-- primer.style/react [docs]
-- packages/react/CHANGELOG.md [code]
+- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- CHANGELOG.md [code]
 
 No blockers. Storybook is public but not cloned - will fall back to docs site for variant examples.
 
@@ -115,13 +116,13 @@ Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 Same illustrative target, with the user passing a foundation URL as an additional source. Only the diff from the example above is shown — the rest of the summary is unchanged.
 
 ```
-Foundation docs: https://primer.style/product/getting-started/foundations/color-usage/ [docs:foundation] (color usage + dark-mode wiring + semantic-foreground roles)
+Foundation docs: https://mantine.dev/styles/colors/ [docs:foundation] (color scales + dark-mode behavior + functional color tokens)
 
 Sources used:
-- github.com/primer/react @ v37.x [code, joint-read]
-- primer.style/react [docs]
-- primer.style/product/getting-started/foundations/color-usage/ [docs:foundation]
-- packages/react/CHANGELOG.md [code]
+- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- mantine.dev/styles/colors/ [docs:foundation]
+- CHANGELOG.md [code]
 ```
 
 The foundation line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will WebFetch the URL and extract `token/*` rules per `references/foundation-extraction.md`; if no URL is provided, both lines are omitted entirely and Phase 2 behaves exactly as the baseline example above.
@@ -131,13 +132,13 @@ The foundation line is its own bullet in the proposed summary AND its own line i
 Same illustrative target, with the user passing a reference project URL as an additional source. Only the diff from the baseline example is shown.
 
 ```
-Reference project: https://github.com/primer/react/tree/main/examples/nextjs [example:project] (next-app — src/app/layout.tsx)
+Reference project: https://github.com/mantinedev/next-app-template [example:project] (next-app — app/layout.tsx)
 
 Sources used:
-- github.com/primer/react @ v37.x [code, joint-read]
-- primer.style/react [docs]
-- github.com/primer/react/tree/main/examples/nextjs [example:project]
-- packages/react/CHANGELOG.md [code]
+- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- github.com/mantinedev/next-app-template [example:project]
+- CHANGELOG.md [code]
 ```
 
 The reference-project line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will read the auto-detected root entry file and lift the wiring per `references/reference-project.md`; if no project is provided, both lines are omitted and Phase 2 falls back to the foundation-docs setup snippet (or empties the Setup section entirely if no foundation URL is in scope either). When a reference project is supplied AND a foundation URL is in scope, the soft-nudge line is omitted because the reference project IS the cleaner source.

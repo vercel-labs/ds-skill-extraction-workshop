@@ -10,14 +10,14 @@ The SHAPE lives here. Real instances live inside each component file at `referen
 
 Format: a `- Never X, Y, or Z.` bullet, one trap per line, present-tense imperative, ends in a one-clause WHY. Cite the source `file:line` as a parenthetical or as a `[VERIFY]` marker when the cite cannot be resolved.
 
-Example shape (Primer-flavored — actual rules come from extraction):
+Example shape (illustrative — actual rules come from extraction):
 
 ```markdown
 ## Best Practices
 
 - Never pass `aria-label` to a Button that already renders visible text — duplicate announcement.
-- Never wrap a TextInput without a FormControl — label association breaks, axe fails.
-- Never use the `inactive` prop to communicate a loading state — `inactive` is a non-interactive visual state and screen readers still announce the button as actionable. Use `disabled={isLoading}` instead.
+- Never render a TextInput outside an InputWrapper — label association breaks, axe fails.
+- Never use a non-interactive visual prop to communicate a loading state — non-interactive variants still announce as actionable to screen readers. Use `disabled={isLoading}` instead.
 ```
 
 Rules of the shape:
@@ -44,7 +44,7 @@ Column headers verbatim: `Bad | Good | Why`. Code-fence the Bad and Good cells (
 ```markdown
 | Bad | Good | Why |
 |---|---|---|
-| `color: #5C5CFF` | `color: var(--primer-blue-500)` | Hex literal bypasses theming; switches break in dark mode. |
+| `color: #5C5CFF` | `color: var(--ds-color-accent)` | Hex literal bypasses theming; switches break in dark mode. |
 | `padding: 13px` | `padding: var(--space-3)` | Off-grid spacing breaks vertical rhythm. |
 | `font-size: 15px` | `font-size: var(--text-body-md)` | Ad-hoc size escapes the type scale. |
 ```
@@ -57,16 +57,16 @@ Table discipline:
 - Rows are sorted by axis: color first, space second, type third, motion fourth, elevation/shadow last. Consistent order makes the table scannable across DS skills.
 - No "examples" column, no "severity" column, no "owner" column. Three columns, end of contract. Width inflation is the table's first failure mode.
 
-A populated table for a Primer-flavored extraction would look like:
+A populated table for an illustrative extraction (substitute the user's DS token names) would look like:
 
 ```markdown
 | Bad | Good | Why |
 |---|---|---|
-| `color: #1F2328` | `color: var(--fgColor-default)` | Hex literal bypasses theming; switches break in dark mode. |
-| `background: #FFFFFF` | `background: var(--bgColor-default)` | Hex literal bypasses theming; switches break in dark mode. |
-| `padding: 13px` | `padding: var(--base-size-12)` | Off-grid spacing breaks vertical rhythm. |
-| `margin: 7px` | `margin: var(--base-size-8)` | Off-grid spacing breaks vertical rhythm. |
-| `font-size: 15px` | `font-size: var(--text-body-size-medium)` | Ad-hoc size escapes the type scale. |
+| `color: #1F2328` | `color: var(--mantine-color-text)` | Hex literal bypasses theming; switches break in dark mode. |
+| `background: #FFFFFF` | `background: var(--mantine-color-body)` | Hex literal bypasses theming; switches break in dark mode. |
+| `padding: 13px` | `padding: var(--mantine-spacing-md)` | Off-grid spacing breaks vertical rhythm. |
+| `margin: 7px` | `margin: var(--mantine-spacing-xs)` | Off-grid spacing breaks vertical rhythm. |
+| `font-size: 15px` | `font-size: var(--mantine-font-size-md)` | Ad-hoc size escapes the type scale. |
 ```
 
 Repeating the same WHY clause across rows in the same axis is correct — the failure mode is genuinely the same. Do not paraphrase for variety.
@@ -95,7 +95,7 @@ The meta-skill routes extracted rules into Layer A or Layer B (or both) using th
 
 - Any extracted rule referencing a literal value vs a named token → Layer B row. Example: a `Bad: color: #fff` / `Good: color: var(--surface)` rule belongs in the table, not inside a component file.
 - Any component-local "never X" → Layer A inline inside the component file. Example: `Never pass aria-label to a Button that already renders visible text` belongs in `references/components/button.md`, not in the table.
-- Rules can appear in BOTH places when the trap fires at the component level AND as a token-discipline issue. Example: a rule saying `Never set Button's background to a hex literal — use --primer-button-bg` is a `component/button-no-hex-bg` Layer A bullet inside `button.md` AND a `token/hex-literal` Layer B row in this file. Duplication is correctness — see `component-extraction.md` cross-component-rule-duplication.
+- Rules can appear in BOTH places when the trap fires at the component level AND as a token-discipline issue. Example: a rule saying `Never set Button's background to a hex literal — use --ds-color-button-bg` is a `component/button-no-hex-bg` Layer A bullet inside `button.md` AND a `token/hex-literal` Layer B row in this file. Duplication is correctness — see `component-extraction.md` cross-component-rule-duplication.
 - Naming/copy/casing rules (Geist Shape 3) are recognized for routing and surfaced in the discovery summary as candidates for a sibling copy skill. They are NOT written into Layer A or Layer B. The discovery summary line reads `Copy/naming rules detected (N) — routed to candidate sibling copy skill, not extracted here.`
 - Rules with no source citation are written with a `[VERIFY]` marker rather than dropped. `check-skill-docs.sh` counts the markers and surfaces the count in the closing message; the user decides whether to verify or strip.
 

@@ -8,15 +8,15 @@ Scope reminder — applies to everything below: In scope: tokens, assets, compon
 
 Two required fields: `name` and `description`. No `peek`, no `tags`, no `version` — keep the frontmatter minimal so the dispatcher can parse it without YAML edge cases.
 
-- `name` — trigger-rich, kebab-case slug. Matches the directory name. Example: `primer-react`, `geist`, `acme-ui`. No spaces, no scope prefix, no version suffix.
+- `name` — trigger-rich, kebab-case slug. Matches the directory name. Example: `mantine`, `geist`, `acme-ui`. No spaces, no scope prefix, no version suffix.
 - `description` — one sentence that contains, in order: (1) the DS name, (2) the component types the skill covers, (3) trigger keywords a user would actually type, (4) a scope guardrail, (5) the verbatim closing line `IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient.`
 
-Worked example — Primer React extraction:
+Worked example — frontmatter for a Mantine-shaped extraction (illustrative; substitute the DS in scope):
 
 ```yaml
 ---
-name: primer-react
-description: Build accessible UI with GitHub's Primer React design system (TextInput, Button, Checkbox, FormControl). Use when the user asks for a Primer-styled page, a GitHub-styled form, or wraps inputs in FormControl. Triggers: 'primer', 'primer-react', 'github ui', 'octicons form'. Scope: components, tokens, assets. Out of scope: tone of voice and marketing copy — route copy rules to a sibling skill. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient.
+name: mantine
+description: Build accessible UI with the Mantine React design system (TextInput, Button, Checkbox, InputWrapper). Use when the user asks for a Mantine-styled page, a Mantine form, or wraps inputs in InputWrapper. Triggers: 'mantine', 'mantine ui', 'mantine form'. Scope: components, tokens, assets. Out of scope: tone of voice and marketing copy — route copy rules to a sibling skill. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient.
 ---
 ```
 
@@ -31,18 +31,18 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
 
   **Foundation-docs wiring fallback.** When the run includes a `[docs:foundation]` source but no `[example:project]` reference project, the foundation page's own setup snippet is the wiring source — lift it verbatim (HTML attribute on `<html>`, CSS `@import`, a global CSS rule on `:root` / `html, body`, a `ThemeProvider` prop the docs declare required) and append it to the Setup section immediately after the consumer-app wiring, under a `### Foundation wiring` subheading. Each step gets a verbatim code fence and the citation `(<docs-url>#<section-anchor>)`. If the foundation page carries no setup snippet, omit the subheading entirely — do not write an empty `### Foundation wiring` block. Note: this is fallback wiring; wiring is NOT a prose rule shape and is not extracted via `references/foundation-extraction.md`.
 
-  Worked example of the injected subsection (the screen-surface dark-mode wiring the post-mortem hand-fixed):
+  Worked example of the injected subsection (illustrative — substitute the DS-specific mode attribute and token names from the user's DS):
 
   ```markdown
   ### Foundation wiring
 
-  Dark-theme surface contract — required when `data-color-mode="dark"` is set on `<html>`:
+  Dark-theme surface contract — required when the DS's color-scheme attribute is set on `<html>` (e.g. `data-mantine-color-scheme="dark"` for Mantine, `data-theme="dark"` for shadcn, `class="dark"` for MUI mode-boot):
 
   ```css
   :root { color-scheme: dark; }
   html, body {
-    background-color: var(--bgColor-default);
-    color: var(--fgColor-default);
+    background-color: var(--ds-surface-default);
+    color: var(--ds-text-default);
   }
   ```
 
@@ -121,24 +121,24 @@ The block below uses a public-DS-shaped target to ground the skeleton. The skill
 ```markdown
 ### token/screen-surface-dark-theme
 
-When the app sets `data-color-mode="dark"` on `<html>`, the root surface and default text colors must be wired through Primer's semantic tokens — otherwise the browser default white surface sits underneath the dark theme and the page renders dark text on a white page.
+When the app sets `data-mantine-color-scheme="dark"` on `<html>`, the root surface and default text colors must be wired through the DS's semantic tokens — otherwise the browser default white surface sits underneath the dark theme and the page renders dark text on a white page.
 
-**When it bites:** any page that imports `@primer/primitives/dist/css/functional/themes/dark.css` without also setting `color-scheme` and the body surface — the issues page in the post-mortem rendered dark text on white because of exactly this gap.
+**When it bites:** any page that imports `@mantine/core/styles.css` and sets the dark scheme without also setting `color-scheme` and the body surface — the page renders dark text on white because of exactly this gap.
 
 **Wiring:**
 ```css
 :root { color-scheme: dark; }
 html, body {
-  background-color: var(--bgColor-default);
-  color: var(--fgColor-default);
+  background-color: var(--mantine-color-body);
+  color: var(--mantine-color-text);
 }
 ```
 
 | Bad | Good | Why |
 |---|---|---|
-| `@import "tailwindcss";` alone in `globals.css` | `@import "tailwindcss";` + the wiring block above | Tailwind reset paints the browser default surface white; semantic Primer tokens never reach the root |
+| `@import "tailwindcss";` alone in `globals.css` | `@import "tailwindcss";` + the wiring block above | Tailwind reset paints the browser default surface white; semantic DS tokens never reach the root |
 
-Source: https://primer.style/product/getting-started/foundations/color-usage/#dark-mode
+Source: https://mantine.dev/styles/colors/#dark-mode
 ```
 
 ## Pattern-example collapse rule

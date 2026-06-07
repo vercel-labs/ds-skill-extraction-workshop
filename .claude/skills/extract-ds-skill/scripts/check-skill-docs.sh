@@ -379,7 +379,7 @@ if [[ "$MODE" == "meta" ]]; then
         # leak scan, but we never re-evaluate headings inside a fence.
         if (in_block) next
         # Outside an illustrative block, fenced content is still scanned
-        # (so e.g. a ``` block in prescription text that names @primer/foo
+        # (so e.g. a ``` block in prescription text that names @mui/foo
         # leaks the same way bare prose does).
         next
       }
