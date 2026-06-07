@@ -263,6 +263,52 @@ if [[ "$MODE" == "meta" ]]; then
     done
     FAILED=1
   fi
+
+  # 9. WORKED_EXAMPLE_DS_BIAS (meta-skill self-mode only). Worked examples in
+  #    references/foundation-extraction.md (and references/reference-project.md
+  #    when present) must span ≥2 distinct DSs — distinct hostnames in the
+  #    cited URLs are the proxy. Single-DS bias trips the check because the
+  #    meta-skill is DS-agnostic; if the only examples come from one DS, a
+  #    reader infers the skill is hardwired to that DS. The fail message links
+  #    to the inherited claim note.
+  BIAS_FILES=()
+  [[ -f "$SKILL_PATH/references/foundation-extraction.md" ]] \
+    && BIAS_FILES+=("$SKILL_PATH/references/foundation-extraction.md")
+  [[ -f "$SKILL_PATH/references/reference-project.md" ]] \
+    && BIAS_FILES+=("$SKILL_PATH/references/reference-project.md")
+
+  BIAS_FAILS=()
+  for f in "${BIAS_FILES[@]+"${BIAS_FILES[@]}"}"; do
+    [[ -z "$f" ]] && continue
+    # Extract hostnames from every http(s) URL in the file. Strip protocol,
+    # then everything after the first `/` or whitespace, then any `www.` prefix.
+    HOSTS_RAW=$(grep -oE 'https?://[A-Za-z0-9._-]+' "$f" 2>/dev/null \
+      | sed -E 's#^https?://##; s#^www\.##' \
+      | sort -u)
+    if [[ -z "$HOSTS_RAW" ]]; then
+      # No URLs in this file — nothing to assess. A file with no worked-
+      # example URLs cannot trip single-DS bias.
+      continue
+    fi
+    HOST_COUNT=$(printf '%s\n' "$HOSTS_RAW" | grep -c .)
+    if [[ "$HOST_COUNT" -lt 2 ]]; then
+      BIAS_FAILS+=("$f:$HOST_COUNT:$(printf '%s' "$HOSTS_RAW" | tr '\n' ',' | sed 's/,$//')")
+    fi
+  done
+
+  if [[ ${#BIAS_FAILS[@]} -eq 0 ]]; then
+    echo "WORKED_EXAMPLE_DS_BIAS=PASS"
+  else
+    echo "WORKED_EXAMPLE_DS_BIAS=FAIL"
+    for entry in "${BIAS_FAILS[@]}"; do
+      file_part="${entry%%:*}"
+      rest="${entry#*:}"
+      count_part="${rest%%:*}"
+      hosts_part="${rest#*:}"
+      echo "  single-DS bias in $file_part — only $count_part distinct hostname(s) cited ($hosts_part) — see [[Meta-Skill Must Be DS-Agnostic — No Embedded Primer Examples]]; worked examples must span ≥2 distinct DSs (≥2 distinct hostnames)"
+    done
+    FAILED=1
+  fi
 fi
 
 if [[ $FAILED -eq 0 ]]; then echo "CHECK_RESULT=PASS"; exit 0

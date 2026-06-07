@@ -127,6 +127,35 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# Test 5: pass-fixture — foundation-extraction worked examples span ≥2
+# distinct DS hostnames. WORKED_EXAMPLE_DS_BIAS must report PASS and the
+# script must exit 0.
+assert "pass-worked-example-ds-bias exits 0 with PASS tally" \
+  "$FIXTURES/pass-worked-example-ds-bias/extract-ds-skill" \
+  0 "WORKED_EXAMPLE_DS_BIAS=PASS"
+
+# Test 6: fail-fixture — foundation-extraction worked examples only cite
+# one DS hostname. WORKED_EXAMPLE_DS_BIAS must report FAIL, the script
+# must exit non-zero, and the failure message must name the offending file.
+assert "fail-worked-example-ds-bias exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-worked-example-ds-bias/extract-ds-skill" \
+  1 "WORKED_EXAMPLE_DS_BIAS=FAIL" \
+  "fail-worked-example-ds-bias/extract-ds-skill/references/foundation-extraction.md"
+
+# Test 7: produced-mode skips WORKED_EXAMPLE_DS_BIAS entirely. The on-the-fly
+# produced fixture from Test 4 has no references/foundation-extraction.md,
+# and even if it did, produced-mode must NOT emit the tally line at all.
+if grep -qE '^WORKED_EXAMPLE_DS_BIAS=' <<<"$out_produced"; then
+  echo "FAIL  produced-mode must NOT emit WORKED_EXAMPLE_DS_BIAS tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  produced-mode skips WORKED_EXAMPLE_DS_BIAS"
+  PASS=$((PASS + 1))
+fi
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]
