@@ -30,6 +30,42 @@ Only if the user has a local dev server running. Write a minimal page importing 
 
 If neither dev server nor typecheck is feasible (no TS in the consumer project, no buildable resolution path, DS package is private and not installed locally), log `validation skipped` and require the user to explicitly approve before Phase 3 with extra weight. Surface every `[VERIFY]` marker uncollapsed. The user is accepting that grounding was not mechanically checked.
 
+## Foundation-docs extraction step
+
+Runs only when the Phase 1 discovery summary contains a source line tagged `[docs:foundation]`. Skip this entire section when no foundation URL is in scope — the baseline typecheck + grep-resolves contract above is the full Phase 2.
+
+Sequence:
+
+1. **WebFetch the foundation URL once.** Cache the returned prose for the duration of Phase 2. Do not re-fetch per rule.
+2. **Load `references/foundation-extraction.md`.** This is the first time it loads in the run; progressive disclosure means it stays unloaded for no-URL extractions.
+3. **Classify candidate rules by shape.** Walk the prose top-to-bottom, tag each candidate as one of the six foundation rule shapes (token-pairing, mode-aware, contrast-minimum, semantic-role, wiring-contract, fallback-element), and drop anything that does not fit (brand-voice prose, history paragraphs, out-of-scope copy).
+4. **Grep-resolve every cited CSS variable.** For each extracted rule that names a CSS custom property, run `grep -r "<var-name>" node_modules/<ds-package>/dist/css/` (or the equivalent path for the DS in scope — Primer ships under `node_modules/@primer/primitives/dist/css/`). If the variable does not resolve, mark the rule `[VERIFY]` with the missing-grep reason inline. Do not silently drop the variable; the agent needs to see what the docs claim that the installed package does not yet ship.
+5. **Resolve URL anchors.** If a citation uses `<url>#<section-anchor>`, the anchor must correspond to a heading in the fetched prose. If not, downgrade to the bare URL and mark `[VERIFY: anchor did not resolve in fetched page]`.
+6. **Stash extracted rules in the scratch workspace.** Write them to `.extract-ds-skill-scratch/tokens-extracted.md` for inspection. Phase 3 will materialize them into `references/tokens.md` per the per-rule subsection skeleton.
+
+The step writes to scratch only; no foundation rule lands in `.claude/skills/<slug>/` until Phase 3.
+
+## Proof point (updated for foundation extraction)
+
+The wait-gate proof point gains one line when a foundation URL is in scope. Without a URL, the proof point is unchanged from the SKILL.md worked example. With a URL, the line is added between the assets line and the hallucinations line:
+
+```
+Validation complete.
+- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, FormControl: 2)
+- 47 tokens grep-resolved (color: 28, space: 12, type: 7)
+- 0 assets in scope this run
+- 6 foundation-rules extracted (5 cited, 1 [VERIFY])
+- 0 hallucinations
+- 3 open [VERIFY] markers:
+  1. Button.md:42 - loading-state prop name not confirmed in types file
+  2. FormControl.md:18 - validation slot signature absent from public types; inferred from docs
+  3. tokens.md:74 - `--fgColor-onMuted` cited by docs but no grep-resolve in @primer/primitives@11.9.0
+
+Approve to persist? (Reply "go" to write to .claude/skills/primer-react/.)
+```
+
+The new line is mandatory when a `[docs:foundation]` source was in scope, even if the extraction produced zero rules (empty foundation runs surface as `0 foundation-rules extracted (0 cited, 0 [VERIFY]) — URL may be wrong source`, which is a Phase 1 re-open signal not a Phase 2 approval signal). Without a foundation URL, omit the line entirely.
+
 ## What the user is confirming
 
 The user is confirming the EXTRACTION is sound, not the visuals.

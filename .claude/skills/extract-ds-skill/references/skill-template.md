@@ -28,6 +28,26 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
 
 - **Mission** — one paragraph, adapter-not-docs framing adapted to the DS by name. Template: "A `<ds-name>` skill is an adapter that teaches an agent how to build high-fidelity apps with `<ds-name>`. It is not a copy of the documentation. It tells the agent what to read, what APIs are public, what sources are authoritative, and how to verify that generated UI uses the system correctly."
 - **Setup** — install command + provider wiring. Copy wiring verbatim from a real consumer app; if none exists, lift from setup docs. Do not reconstruct from memory. Include the `import` line for the provider/theme component and the JSX wrap-the-tree example. Cite source as `repo-relative-path:line`.
+
+  **Foundation-docs wiring injection.** When the run includes a `[docs:foundation]` source and the foundation extraction surfaced any Shape 5 (wiring-contract) rules — e.g. an HTML attribute on `<html>`, a CSS `@import`, a global CSS rule on `:root` / `html, body`, a `ThemeProvider` prop the docs declare required — append those wiring steps to the Setup section immediately after the consumer-app wiring, under a `### Foundation wiring` subheading. Each step gets a verbatim code fence lifted from the foundation page, plus the citation `(<url>#<section-anchor>)`. If no Shape 5 rules were extracted, omit the subheading entirely — do not write an empty `### Foundation wiring` block.
+
+  Worked example of the injected subsection (the screen-surface dark-mode wiring the post-mortem hand-fixed):
+
+  ```markdown
+  ### Foundation wiring
+
+  Dark-theme surface contract — required when `data-color-mode="dark"` is set on `<html>`:
+
+  ```css
+  :root { color-scheme: dark; }
+  html, body {
+    background-color: var(--bgColor-default);
+    color: var(--fgColor-default);
+  }
+  ```
+
+  Without these, the browser default surface (white) renders underneath the dark-theme tokens. Source: https://primer.style/product/getting-started/foundations/color-usage/#dark-mode
+  ```
 - **Import rules** — barrel vs deep, public vs internal. State the canonical import path (`@primer/react`, not `@primer/react/lib-esm/Button`). List any deep imports that ARE public (rare). Mark every other deep path as forbidden.
 - **Source-of-truth rules** — which docs/repo paths are canonical. Code wins on conflict with docs. List the repo path (e.g. `packages/react/src/`), the docs URL, the Storybook URL if public. Mark private/inaccessible sources explicitly.
 - **Routing table** — 3-column dispatch: `Trigger | Files to load | Notes`. Every row resolves to a real file under `references/`. Triggers are user-intent phrases ("user asks for a button", "user wires a form"), not file names.
@@ -62,6 +82,37 @@ Token name + value + family (color / space / type / motion) + use-when prose + a
 - Token value is the resolved primitive value at the documented breakpoint (e.g. `#0969da`, `8px`, `400 14px/20px`). Cite to the token source file.
 - `use-when` is one sentence: "for primary interactive surfaces", "for stacking same-direction siblings". Not a paraphrase of the token name.
 - The `Bad | Good | Why` row is mandatory when the token has a near-neighbor it gets confused with (e.g. `accent.fg` vs `accent.emphasis`). Skip only when no near-neighbor exists.
+
+### Foundation-derived rule subsections in `references/tokens.md`
+
+Rules extracted from a `[docs:foundation]` URL land as `### token/<slug>` subsections inside the family file they belong to (`tokens.md` for single-family DSes; `tokens/colors.md` for multi-family DSes with a color-usage foundation). They live alongside the per-token entries above, not in a separate file. The slug pattern is `token/<noun>-<rule>` — e.g. `token/screen-surface-dark-theme`, `token/emphasis-foreground-pairing`, `token/border-contrast-minimum`.
+
+Each subsection follows the per-rule skeleton documented in `references/foundation-extraction.md` (heading + one-sentence rule + `When it bites:` line + optional wiring fence for Shape 5 + `Bad | Good | Why` row + source citation). The skeleton is the contract enforced by `scripts/check-skill-docs.sh` SLUG_RESOLUTION check — every `token/*` slug grepped from the SKILL.md routing table or any reference file must have a matching `### token/<slug>` heading somewhere in the tokens family.
+
+Worked example of a single subsection (mirrors the hand-written `token/screen-surface-dark-theme` rule the workshop repo already ships):
+
+```markdown
+### token/screen-surface-dark-theme
+
+When the app sets `data-color-mode="dark"` on `<html>`, the root surface and default text colors must be wired through Primer's semantic tokens — otherwise the browser default white surface sits underneath the dark theme and the page renders dark text on a white page.
+
+**When it bites:** any page that imports `@primer/primitives/dist/css/functional/themes/dark.css` without also setting `color-scheme` and the body surface — the issues page in the post-mortem rendered dark text on white because of exactly this gap.
+
+**Wiring:**
+```css
+:root { color-scheme: dark; }
+html, body {
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+}
+```
+
+| Bad | Good | Why |
+|---|---|---|
+| `@import "tailwindcss";` alone in `globals.css` | `@import "tailwindcss";` + the wiring block above | Tailwind reset paints the browser default surface white; semantic Primer tokens never reach the root |
+
+Source: https://primer.style/product/getting-started/foundations/color-usage/#dark-mode
+```
 
 ## Pattern-example collapse rule
 

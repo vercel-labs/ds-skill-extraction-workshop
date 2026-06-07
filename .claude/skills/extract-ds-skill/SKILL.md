@@ -19,9 +19,9 @@ The skill runs in three labeled phases. The single human gate sits at the bounda
 
 ## Phase 1: Discovery summary
 
-Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
+Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, docs:foundation, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
 
-The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[storybook]` / `[private-blocker]`), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
+The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), foundation docs URL if any (one line, tagged `[docs:foundation]`, single URL, omitted entirely if the user did not provide one), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
 
 Inspect-but-do-not-enumerate is the rule. Read enough to know what each source contains (package exports, top-level folders, docs index, example apps); do not list every component, token, or icon yet. The full enumeration happens in Phase 2, against the pruned set the user confirms.
 
@@ -40,6 +40,8 @@ Components found (38), proposing (4):
 Tokens detected: ~180 across color (primer/primitives), space (4px grid), type (functional scale).
 Assets detected: 0 icons in this package (octicons ship separately, out of scope for v1).
 
+Foundation docs: https://primer.style/product/getting-started/foundations/color-usage/ [docs:foundation] (color usage + dark-mode wiring + semantic-foreground roles)
+
 Headline rule candidates:
 - "Use `disabled={isLoading}` on submit buttons, not `inactive` - `inactive` is a non-interactive visual state, screen readers still announce it as actionable" (Button.docs.tsx:142)
 - "Wrap every TextInput / Checkbox in `<FormControl>`; bare inputs lose label association and fail axe" (FormControl.docs.tsx:31)
@@ -48,6 +50,7 @@ Headline rule candidates:
 Sources used:
 - github.com/primer/react @ v37.x [code, joint-read]
 - primer.style/react [docs]
+- primer.style/product/getting-started/foundations/color-usage/ [docs:foundation]
 
 Out-of-scope rules surfaced (route to sibling copy skill): "button labels are Title Case", "placeholder text is action-oriented".
 
@@ -60,7 +63,9 @@ Triggered only after explicit user confirmation from Phase 1. Goal: prove the ex
 
 Load `references/validate.md` for the deterministic typecheck + grep-resolves protocol. The validation runs `scripts/validate.sh` against the scratch workspace. It typechecks the extracted component contracts against the DS package's published types, greps every cited token name against the source token file, greps every cited icon/asset name against the asset package, and counts `[VERIFY]` markers.
 
-The proof point surfaced before the gate is a single line of the form: "N props verified against source, M tokens grep-resolved, K assets grep-resolved, 0 hallucinations" alongside any open `[VERIFY]` markers as a numbered tally. If the tally is non-zero, the agent describes each unresolved marker and asks whether to drop the rule, escalate to a second-pass source read, or accept it as a known limitation.
+If a `[docs:foundation]` URL is in scope from Phase 1, run the foundation-docs extraction step in addition. WebFetch the URL once, load `references/foundation-extraction.md`, classify candidate rules into the six shapes (token-pairing, mode-aware, contrast-minimum, semantic-role, wiring-contract, fallback-element), grep-resolve every cited CSS variable against the installed token package (`node_modules/<ds-package>/dist/css/`), and mark unresolved cites `[VERIFY]`. Stash extracted rules in `.extract-ds-skill-scratch/tokens-extracted.md` — no foundation rule lands in `.claude/skills/<slug>/` until Phase 3. Skip this paragraph entirely when no foundation URL is in scope; the baseline typecheck + grep-resolves contract is the full Phase 2.
+
+The proof point surfaced before the gate is a single line of the form: "N props verified against source, M tokens grep-resolved, K assets grep-resolved, F foundation-rules extracted (X cited, Y `[VERIFY]`), 0 hallucinations" alongside any open `[VERIFY]` markers as a numbered tally. Omit the `F foundation-rules` segment when no `[docs:foundation]` URL was in scope. If the tally is non-zero, the agent describes each unresolved marker and asks whether to drop the rule, escalate to a second-pass source read, or accept it as a known limitation.
 
 Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval before Phase 3.
 
@@ -71,10 +76,12 @@ Validation complete.
 - 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, FormControl: 2)
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
+- 6 foundation-rules extracted (5 cited, 1 [VERIFY])
 - 0 hallucinations
-- 2 open [VERIFY] markers:
+- 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
   2. FormControl.md:18 - validation slot signature absent from public types; inferred from docs
+  3. tokens.md:74 - `--fgColor-onMuted` cited by foundation URL but no grep-resolve in @primer/primitives@11.9.0
 
 Approve to persist? (Reply "go" to write to .claude/skills/primer-react/.)
 ```
@@ -91,15 +98,17 @@ The persist target is `.claude/skills/<slug>/` in the attendee's project (per-pr
 
 ## Source-role taxonomy
 
-Every source the user points at falls into one of seven roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
+Every source the user points at falls into one of nine roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
 
 - **Design-system code** (`[code]`) - the package source, types file, and component implementations. Highest authority. Joint-read with docs; wins on conflict.
 - **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. octicons, geist-icons). Treat exports as the inventory; do not invent names.
 - **Product/example app** (`[code]`) - a real consumer of the DS. The single best source for wiring (provider mount, font setup, globals CSS, install scripts). Copy wiring verbatim from here when available.
 - **Internal AGENTS/CLAUDE files** (`[code]`) - guidance the DS team has already written for agents. Inherit liberally; cite by `file:line`.
-- **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures.
+- **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures. Cited, not extracted.
+- **Docs:foundation** (`[docs:foundation]`) - a single prose foundations page on the DS docs site that is EXTRACTED into `token/*` rules, not just cited. One URL per call, opt-in. Phase 2 fetches it via WebFetch, extracts six rule shapes per `references/foundation-extraction.md`, and materializes them as subsections inside `references/tokens.md` (plus the produced SKILL.md Setup section for Shape 5 wiring-contract rules).
 - **Storybook** (`[storybook]`) - canonical variant examples. Useful for composition examples; not always authoritative on prop names if the stories lag the package.
 - **Figma** (`[figma]`) - design-time source. Use for tokens and visual rules; never for prop names or API contracts.
+- **Private/inaccessible** (`[private-blocker]`) - soft blocker. Log, proceed, may become available later.
 
 ## Six rule shapes (extraction recognition)
 
@@ -141,6 +150,7 @@ Progressive disclosure is the contract. Load each reference file only at the gat
 | About to write the first file under `.claude/skills/<slug>/` in Phase 3 | `references/persist.md` + `references/skill-template.md` | Slug-collision check, file layout, SKILL.md contract |
 | After closing message, considering the optional `dry-runs/` snapshot prompt | `references/persist.md` (`## Optional: dry-run snapshot`) | Conditional on `dry-runs/` existing at project root; prompt shape, copy + RUBRIC stub |
 | Extracting a single component into `references/components/<name>.md` | `references/component-extraction.md` | 8-section component-file checklist, six rule shapes, Shape 3 routing |
+| Extracting rules from a `[docs:foundation]` URL into `references/tokens.md` and the produced SKILL.md Setup section | `references/foundation-extraction.md` | Six foundation rule shapes, per-rule subsection skeleton, CSS-variable grep-resolve, Setup-injection contract |
 | Writing a `Bad \| Good \| Why` block, or any cross-cutting anti-pattern | `references/anti-patterns.md` | Column grammar, code-fence rule, cross-component duplication |
 | Asked "why did you inherit X from Y?" by a maintainer | `references/inheritance.md` | Source-by-source inherit / do-not-inherit ledger |
 | Hitting a known gap (Hallmark progressive-disclosure tiers, stamp pattern, refresh verb) | `references/coverage-gaps.md` | ~150-200 instruction-budget caveat, deferred work |

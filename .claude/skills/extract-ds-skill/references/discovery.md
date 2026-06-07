@@ -4,13 +4,14 @@ Deep guidance for the discovery phase. Read before producing the discovery summa
 
 ## Source-role classification
 
-Every source the user provides resolves to one of eight roles. Tag each one before inspecting.
+Every source the user provides resolves to one of nine roles. Tag each one before inspecting.
 
 - **design-system code** — the package that ships components, tokens, primitives. Authoritative for APIs, prop shapes, default behavior. Joint-read with docs; code wins on conflict.
 - **asset package** — icons, logos, fonts shipped as a separate module. Authoritative for asset names, sizes, sprite layout. Often versioned independently from the component package.
 - **product-or-example app** — a real consumer of the design system. Authoritative for wiring (provider mount, globals, font setup) and idiomatic composition. Copy wiring verbatim, do not reconstruct.
 - **internal AGENTS/CLAUDE files** — instructions the DS team already wrote for agents. Treat as prior art. May contain rules to inherit, may contain rules that contradict current source — flag and verify.
-- **docs site** — narrative explanations, prose around examples. Authoritative for intent and headline rules. Pairs with code via joint-read.
+- **docs site** — narrative explanations, prose around examples. Authoritative for intent and headline rules. Pairs with code via joint-read. Cited, not extracted.
+- **docs:foundation** — a single prose foundations page on the DS docs site that gets EXTRACTED into `token/*` rules, not just cited. Distinct from generic `docs` in that its prose contracts (token-pairing, mode-aware behavior, contrast minimums, semantic-role rules, wiring requirements, fallback-element styling) land as rule subsections in `references/tokens.md` and optionally as Setup steps in the produced `SKILL.md`. One URL per call (opt-in; omit entirely if the user did not point at a foundations page). Tagged `[docs:foundation]` in the sources line. See `references/foundation-extraction.md` for the six rule shapes and the per-rule subsection skeleton.
 - **Storybook** — variant catalog with live examples. Authoritative for which combinations are sanctioned. Useful to spot props that exist in code but never appear in any story (likely deprecated).
 - **Figma** — design intent, naming, visual specs. Authoritative for token names and component taxonomy when the codebase trails the design.
 - **private / inaccessible** — soft blocker. Log, proceed, may become available later.
@@ -60,10 +61,13 @@ Render inline, not as a file. Every summary contains:
 - Components found (N), proposing (M) — bulleted, one line each (auto-discover output)
 - Tokens detected — one line summary (count + families, e.g. color/space/type/motion)
 - Assets detected — one line summary (omit entirely if none)
+- Foundation docs URL — one line, tagged `[docs:foundation]`, with the URL and a one-phrase summary of the page's coverage (e.g. "color usage + dark mode wiring"). Omit this line entirely if the user did not provide a foundation URL. One URL per call — never crawl, never multi-URL.
 - Headline rule candidates (1-3) with `file:line` cites
-- Sources used — one line per input, tagged `[code]` / `[docs]` / `[storybook]` / `[private-blocker]`
+- Sources used — one line per input, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`
 - Open questions or blockers — only if they would stop Phase 2
 - Closing sentence asking the user to confirm or adjust
+
+Budget note: the foundation URL adds at most one line to the sources block and one line to the proposed summary. The 30-line ceiling holds.
 
 ### Scope routing during discovery
 
@@ -100,3 +104,19 @@ No blockers. Storybook is public but not cloned - will fall back to docs site fo
 
 Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 ```
+
+### Worked example variant: Primer React with a foundation URL
+
+Same Primer React extraction, with the user passing `https://primer.style/product/getting-started/foundations/color-usage/` as a foundation source. Only the diff from the example above is shown — the rest of the summary is unchanged.
+
+```
+Foundation docs: https://primer.style/product/getting-started/foundations/color-usage/ [docs:foundation] (color usage + dark-mode wiring + semantic-foreground roles)
+
+Sources used:
+- github.com/primer/react @ v37.x [code, joint-read]
+- primer.style/react [docs]
+- primer.style/product/getting-started/foundations/color-usage/ [docs:foundation]
+- packages/react/CHANGELOG.md [code]
+```
+
+The foundation line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will WebFetch the URL and extract `token/*` rules per `references/foundation-extraction.md`; if no URL is provided, both lines are omitted entirely and Phase 2 behaves exactly as the baseline example above.
