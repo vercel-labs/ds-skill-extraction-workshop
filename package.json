@@ -13,6 +13,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@primer/octicons-react": "19.28.0",
     "@primer/primitives": "11.9.0",
     "@primer/react": "38.26.0",
     "next": "16.2.6",
