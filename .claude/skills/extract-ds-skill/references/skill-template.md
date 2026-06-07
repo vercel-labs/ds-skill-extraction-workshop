@@ -51,6 +51,31 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
 - **Import rules** — barrel vs deep, public vs internal. State the canonical import path (`<ds-package>`, not `<ds-package>/lib-esm/Button` or any other internal subpath). List any deep imports that ARE public (rare). Mark every other deep path as forbidden.
 - **Source-of-truth rules** — which docs/repo paths are canonical. Code wins on conflict with docs. List the repo path (e.g. `packages/react/src/`), the docs URL, the Storybook URL if public. Mark private/inaccessible sources explicitly.
 - **Routing table** — 3-column dispatch: `Trigger | Files to load | Notes`. Every row resolves to a real file under `references/`. Triggers are user-intent phrases ("user asks for a button", "user wires a form"), not file names.
+
+  **Composition exemplar rows.** When the reference-project extraction surfaced composition exemplars (see `references/reference-project.md`, Composition exemplar extraction section), the routing table carries one row per exemplar file plus an index row. Replace any single `**Validated examples:** references/examples/` row with:
+
+  - `| user reviews available composition exemplars | references/examples/index.md | one entry per composition exemplar lifted from the reference project |`
+  - One row per exemplar, of the shape: `| <basename>: <one-line summary> | references/examples/<basename>.md | composition exemplar lifted from <reference-project>/<relative-path> |`
+
+  The per-exemplar summary is the same one-line phrase the scaffolder writes into `references/examples/index.md`, derived from the first bullet of the exemplar's "What to copy" section. When the reference project ships zero exemplars (or no reference project was passed), omit BOTH the index row and the per-exemplar rows — empty `references/examples/` is the correct empty state, not a row pointing at an empty directory.
+
+  Worked example — routing table fragment for a produced skill whose reference project shipped 4 exemplars (illustrative; substitute the user's `<reference-project>` and the basenames the scaffolder actually produced):
+
+  ```markdown
+  ## When to Load References
+
+  | Trigger | Files to load | Notes |
+  |---|---|---|
+  | user asks for a button | references/components/button.md | per-component file |
+  | user wires a form | references/components/form-control.md | a11y composition rules |
+  | user reviews available composition exemplars | references/examples/index.md | one entry per composition exemplar lifted from the reference project |
+  | home: <one-line summary> | references/examples/home.md | composition exemplar lifted from <reference-project>/app/page.tsx |
+  | <route-a>: <one-line summary> | references/examples/<route-a>.md | composition exemplar lifted from <reference-project>/app/<route-a>/page.tsx |
+  | <route-b>: <one-line summary> | references/examples/<route-b>.md | composition exemplar lifted from <reference-project>/app/<route-b>/page.tsx |
+  | <showcase-name>: <one-line summary> | references/examples/<showcase-name>.md | composition exemplar lifted from <reference-project>/components/showcase/<showcase-name>.tsx |
+  ```
+
+  A reference project that ships zero exemplars omits all five exemplar rows; the routing table carries only the per-component rows.
 - **Hard rules** — do-not-invent list + `[VERIFY]` convention. State plainly: any prop, variant, token, or asset the agent cannot ground in source gets a literal `[VERIFY]` marker inline. Mark unverifiable facts `[VERIFY]`. Report blockers instead of guessing.
 - **Final checks** — closing summary the agent emits after generating UI: cite each component used to its source file, list any `[VERIFY]` markers it had to leave, name the screen-level prompt it just built.
 

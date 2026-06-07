@@ -156,7 +156,7 @@ Progressive disclosure is the contract. Load each reference file only at the gat
 | After closing message, considering the optional `dry-runs/` snapshot prompt | `references/persist.md` (`## Optional: dry-run snapshot`) | Conditional on `dry-runs/` existing at project root; prompt shape, copy + RUBRIC stub |
 | Extracting a single component into `references/components/<name>.md` | `references/component-extraction.md` | 8-section component-file checklist, six rule shapes, Shape 3 routing |
 | Extracting rules from a `[docs:foundation]` URL into `references/tokens.md` and the produced SKILL.md Setup section | `references/foundation-extraction.md` | Six foundation rule shapes, per-rule subsection skeleton, CSS-variable grep-resolve, Setup-injection contract |
-| Lifting wiring from an `[example:project]` reference project into `.extract-ds-skill-scratch/wiring-extracted.md` | `references/reference-project.md` | Framework auto-detection (Vite / Next.js App / Next.js Pages / CRA), provider + CSS imports + root-attrs lift recipe, framework-adaptation note, fallback-to-docs path |
+| Lifting wiring from an `[example:project]` reference project into `.extract-ds-skill-scratch/wiring-extracted.md`, AND lifting composition exemplars from the same reference project into `.extract-ds-skill-scratch/examples/<basename>.md` | `references/reference-project.md` | Framework auto-detection (Vite / Next.js App / Next.js Pages / CRA), provider + CSS imports + root-attrs lift recipe, framework-adaptation note, fallback-to-docs path, AND composition exemplar extraction (two globs — `app/**/page.tsx` and `components/showcase/*.tsx` — one scratch file per match, per-file "What to copy" pattern bullets) |
 | Writing a `Bad \| Good \| Why` block, or any cross-cutting anti-pattern | `references/anti-patterns.md` | Column grammar, code-fence rule, cross-component duplication |
 | Asked "why did you inherit X from Y?" by a maintainer | `references/inheritance.md` | Source-by-source inherit / do-not-inherit ledger |
 | Hitting a known gap (Hallmark progressive-disclosure tiers, stamp pattern, refresh verb) | `references/coverage-gaps.md` | ~150-200 instruction-budget caveat, deferred work |
@@ -196,6 +196,7 @@ Required loads (non-negotiable):
 - Encourage raw CSS values when tokens exist. A skill that opens the door to raw hex codes loses the design-system contract on the first prompt.
 - Include examples that do not compile against public APIs. Every example file in `references/components/*.md` must be runnable against the published package.
 - Put the full design system manual in SKILL.md. SKILL.md routes; references carry the manual.
+- Invent example files. If the reference project ships zero composition exemplars (no `app/**/page.tsx`, no `components/showcase/*.tsx`), the produced skill ships zero example files. Empty `references/examples/` is the correct empty state — never fabricate a composition exemplar to fill the directory.
 
 ## Reflexive audit (the skill IS the rubric)
 
@@ -208,6 +209,7 @@ Three layered mechanisms operate during and after extraction. There is no separa
 3. Every rule is in scope (tokens/assets/components/APIs). Any copy/voice/casing rule surfaced during extraction is recorded in the discovery summary as a candidate for a sibling copy skill, not extracted here. The scope guardrail block is quoted by this rule.
 4. Every routing-table row in the new SKILL.md resolves to a file the scaffolder is about to write. Phantom rows (rows pointing at files the scaffolder will not produce) are the most common consistency bug; the pre-emit tick is the cheapest place to catch them.
 5. Every rule slug in the new SKILL.md follows the registry pattern (`component/<name>-<rule>`, `token/<name>-<rule>`, `asset/<name>-<rule>`). Hyphenated, namespaced, one slug per concept.
+6. Every `references/examples/<name>.md` file lifts from a real file in the reference project (an `app/**/page.tsx` or a `components/showcase/*.tsx`), and the routing table contains one row per example file plus the index row. If the reference project ships zero exemplars, `references/examples/` is omitted and the routing table carries no example rows — the empty state is a real state, not an omission to backfill.
 
 If any tick fails, fix in `.extract-ds-skill-scratch/` and re-run the tick-list before calling `scripts/scaffold.sh`. This is a visible chain-of-thought step, not a hidden one. The agent pastes the tick-list back into the message so a human reviewing the transcript can verify the audit ran.
 

@@ -212,6 +212,48 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# Test 14: EXAMPLES_INDEX pass-fixture — produced skill ships 3 composition
+# exemplars plus an index that references each by basename. Tally must PASS,
+# script must exit 0.
+assert "pass-multi-example exits 0 with PASS tally" \
+  "$FIXTURES/pass-multi-example/produced-skill" \
+  0 "EXAMPLES_INDEX=PASS"
+
+# Test 15: EXAMPLES_INDEX fail-fixture — produced skill ships 2 example files
+# but no index.md. Tally must FAIL, script must exit non-zero, and the failure
+# message must name the missing index path.
+assert "fail-missing-examples-index exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-missing-examples-index/produced-skill" \
+  1 "EXAMPLES_INDEX=FAIL" \
+  "references/examples/index.md is missing"
+
+# Test 16: meta-mode skips EXAMPLES_INDEX entirely. The produced-mode-only
+# check must NOT emit the tally line when run against the meta-skill itself.
+if grep -qE '^EXAMPLES_INDEX=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit EXAMPLES_INDEX tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips EXAMPLES_INDEX"
+  PASS=$((PASS + 1))
+fi
+
+# Test 17: produced-mode emits EXAMPLES_INDEX even when references/examples/
+# is absent (re-use the on-the-fly produced fixture from Test 4 — no examples
+# dir, so the check is a no-op PASS, but the tally line MUST appear).
+if grep -qE '^EXAMPLES_INDEX=' <<<"$out_produced"; then
+  echo "PASS  produced-mode emits EXAMPLES_INDEX tally"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must emit EXAMPLES_INDEX tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]

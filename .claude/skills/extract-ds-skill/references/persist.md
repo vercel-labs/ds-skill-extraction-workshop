@@ -36,6 +36,11 @@ The validation gate at the end of Phase 2 is the only checkpoint. Past that gate
     ├── components/<name>.md      (per-component, if ≥10 components)
     │   OR components.md           (single file, if <10 components)
     ├── tokens.md                  (or per-family if >1 family)
+    ├── examples/<name>.md         (one per composition exemplar lifted from
+    │   OR (omitted)                the reference project; omitted entirely
+    │                               when no exemplars exist — see split rules)
+    ├── examples/index.md          (sub-index of every examples/<name>.md;
+    │   OR (omitted)                co-required with examples/<name>.md)
     └── anti-patterns.md
 ```
 
@@ -45,6 +50,7 @@ Split rules:
 
 - Components: ≥10 components → one file per component under `references/components/`. <10 components → single `references/components.md` with one `## <ComponentName>` section per component.
 - Tokens: one family (e.g. color only) → single `references/tokens.md`. Multiple families → `references/tokens/<family>.md` per family (color, space, type, motion).
+- Examples: one file per composition exemplar surfaced by the reference-project extraction (see `references/reference-project.md`, Composition exemplar extraction section), plus an `index.md` sub-index. Basename derivation lives in `scripts/scaffold.sh` (`app/<dir>/page.tsx → <dir>.md`, `app/page.tsx → home.md`, `components/showcase/<name>.tsx → <name>.md`). Basenames are derived from the reference project's filesystem and CAN collide across runs against different reference projects (rare, but possible — the scaffolder surfaces the colliding name in its output). When the reference project ships zero exemplars (or no reference project was passed), omit `references/examples/` entirely — empty `references/examples/index.md` is a worse failure mode than an absent directory.
 
 ## Closing message contract
 

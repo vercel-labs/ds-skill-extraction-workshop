@@ -284,6 +284,54 @@ if [[ "$MODE" == "produced" ]]; then
       ;;
   esac
 
+  # 9. EXAMPLES_INDEX (produced-skill mode only). When references/examples/*.md
+  #    exists, references/examples/index.md must also exist AND reference every
+  #    sibling example file by its basename (sans .md). Per
+  #    references/reference-project.md (Composition exemplar extraction), the
+  #    index is co-required with per-file exemplars — a partial scaffold that
+  #    writes example files without the index is the failure mode this check
+  #    surfaces immediately. Empty references/examples/ (no per-file *.md and
+  #    no index.md) is a valid empty state and the check passes silently.
+  EXAMPLES_DIR="$SKILL_PATH/references/examples"
+  EXAMPLES_INDEX="$EXAMPLES_DIR/index.md"
+  if [[ -d "$EXAMPLES_DIR" ]]; then
+    EX_FILES=()
+    while IFS= read -r f; do
+      [[ -n "$f" ]] && EX_FILES+=("$f")
+    done < <(find "$EXAMPLES_DIR" -type f -name '*.md' -not -name 'index.md' 2>/dev/null | sort)
+
+    if [[ ${#EX_FILES[@]} -eq 0 ]]; then
+      # Empty examples/ dir — valid empty state. Index presence is not required.
+      echo "EXAMPLES_INDEX=PASS"
+    elif [[ ! -f "$EXAMPLES_INDEX" ]]; then
+      echo "EXAMPLES_INDEX=FAIL"
+      echo "  references/examples/ ships ${#EX_FILES[@]} example file(s) but references/examples/index.md is missing — per references/persist.md (Examples split rule), the index is co-required with per-file exemplars"
+      FAILED=1
+    else
+      MISSING_FROM_INDEX=()
+      for ex in "${EX_FILES[@]}"; do
+        basename_no_ext="$(basename "$ex" .md)"
+        # Index must reference each basename by name. Accept either the markdown-
+        # link form `[<basename>](./<basename>.md)` or a bare mention of the
+        # filename — the scaffolder writes the link form, but a hand-edited
+        # index that lists `<basename>.md` plainly is also acceptable.
+        if ! grep -qE "(\[${basename_no_ext}\]\(\.?/?${basename_no_ext}\.md\)|${basename_no_ext}\.md)" "$EXAMPLES_INDEX"; then
+          MISSING_FROM_INDEX+=("${basename_no_ext}")
+        fi
+      done
+      if [[ ${#MISSING_FROM_INDEX[@]} -eq 0 ]]; then
+        echo "EXAMPLES_INDEX=PASS"
+      else
+        echo "EXAMPLES_INDEX=FAIL"
+        echo "  references/examples/index.md does not reference: ${MISSING_FROM_INDEX[*]} — per references/persist.md (Examples split rule), the index must list every sibling example file by basename"
+        FAILED=1
+      fi
+    fi
+  else
+    # No examples/ dir at all — valid empty state for reference-project-less skills.
+    echo "EXAMPLES_INDEX=PASS"
+  fi
+
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,

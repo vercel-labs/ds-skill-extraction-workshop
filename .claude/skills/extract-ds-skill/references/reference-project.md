@@ -50,6 +50,149 @@ Anything below the provider tree (route-specific layout, conditional logic, erro
 
 ---
 
+## Composition exemplar extraction
+
+Additive to the wiring lift above. When `[example:project]` is in scope, Phase 2 ALSO walks the reference project for **composition exemplars** — real, multi-component pages and showcases the produced skill ships verbatim so downstream agents have full compositions to pattern-match against, not just API surface. The wiring lift and the exemplar lift run in parallel against the scratch workspace; neither blocks the other.
+
+The block below is the canonical contract. A companion PRD living alongside the reference project (`<reference-project>/PRD-composition-exemplars.md`) quotes this block verbatim under its "Contract reference" section. Edits to either copy must land in both copies in the same commit; otherwise the meta-skill scans paths the reference project does not ship, or the reference project ships pages the meta-skill ignores.
+
+> **Composition exemplar extraction (Phase 2, additive to wiring lift).**
+>
+> When `[example:project]` is in scope, Phase 2 scans the reference
+> project for composition exemplars in addition to lifting the root
+> wiring. Two globs are walked top-to-bottom; both run, results
+> concatenated:
+>
+> 1. `app/**/page.tsx` — Next.js App Router route pages (including the
+>    root `app/page.tsx` when present).
+> 2. `components/showcase/*.tsx` — non-routed showcase compositions.
+>
+> For each file matched, Phase 2 writes one file to
+> `.extract-ds-skill-scratch/examples/<basename>.md`, where
+> `<basename>` is the parent directory name for
+> `app/<dir>/page.tsx` files (e.g. `app/issues/page.tsx` →
+> `issues.md`), the literal `home` for the root `app/page.tsx`, or the
+> file's basename without extension for `components/showcase/<name>.tsx`
+> files (e.g. `create-repo-card.tsx` → `create-repo-card.md`).
+>
+> Each scratch example file follows the per-example template:
+>
+> ```markdown
+> # Example: <title-cased-basename>
+>
+> Lifted from `<reference-project>/<relative-path>` (<framework>).
+>
+> ## Required imports
+>
+> - `<ds-package>`: <comma-separated list of named imports>
+> - `<ds-asset-package>`: <comma-separated list of named imports, or "(none)">
+> - Other: <one line per non-DS import, or "(none)">
+>
+> ## Composition (verbatim)
+>
+> ```tsx
+> <verbatim copy of the file body from the first relevant import to
+> the close of the default-exported component>
+> ```
+>
+> ## What to copy
+>
+> - <one bullet per composition pattern the example demonstrates, sourced
+>   from re-reading the lifted file>
+> - <patterns, not data — e.g. "Action footer is a horizontal Stack with
+>   `justify='end'`: invisible Cancel then primary submit", NOT "form has
+>   a Cancel button">
+> ```
+>
+> `app/layout.tsx` is **excluded** from the example scan — it remains
+> the wiring source defined in the existing Extraction recipe above. The
+> recipe runs both extractions in parallel against the scratch workspace.
+>
+> Phase 3 materializes each scratch file to
+> `.claude/skills/<slug>/references/examples/<basename>.md` verbatim,
+> and writes a `.claude/skills/<slug>/references/examples/index.md`
+> sub-index with one row per file: `- [<basename>](./<basename>.md) —
+> <one-line summary lifted from the example file's first bullet>`.
+>
+> The produced `SKILL.md` routing table replaces the single
+> `**Validated examples:** references/examples/` row with the
+> `**Examples index:** references/examples/index.md` row plus one row
+> per example file:
+> `- **<basename>:** references/examples/<basename>.md — <one-line summary>`.
+>
+> **Fallback.** When neither glob matches (no `app/**/page.tsx` and no
+> `components/showcase/*.tsx`), Phase 2 skips this step entirely. The
+> produced skill's `references/examples/` directory is omitted, and the
+> routing table omits both the examples-index row and the per-file
+> rows. No `[VERIFY]` marker fires — an empty example set is a valid
+> state for reference projects that ship wiring only.
+
+### Slug derivation (enforced by the scaffolder)
+
+The basename rule is implemented in `scripts/scaffold.sh` and re-asserted by `scripts/check-skill-docs.sh`. Prose cites the rule; the script enforces it. The mapping:
+
+- `app/page.tsx` → `home.md`
+- `app/<dir>/page.tsx` → `<dir>.md` (the parent directory name is the basename, not the file name — basename-from-file would produce N colliding `page.md` files)
+- `components/showcase/<name>.tsx` → `<name>.md`
+
+When two source paths collide on the same output basename (e.g. `app/empty/page.tsx` and `components/showcase/empty.tsx` both want `empty.md`), the `app/` glob wins and a `[VERIFY: example basename collision <name> — kept app/ source, dropped components/showcase/ source]` marker fires.
+
+### "What to copy" bullets — patterns, not data
+
+After the verbatim copy lands in the scratch file, re-read the lifted file and write 3-6 bullets describing the composition patterns the example demonstrates. The separation between **patterns** and **data** is what lets the downstream agent generalize the example instead of literally copying it:
+
+- **Pattern (write this):** "Action footer is a horizontal Stack with `justify='end'`: invisible Cancel then primary submit."
+- **Data (do NOT write this):** "Form has a Cancel button labeled 'Cancel' and a primary submit button labeled 'Create repository'."
+
+The pattern phrasing teaches the composition; the data phrasing reads as transcription and the agent learns to copy literally instead of compose.
+
+### Worked example — extraction against a generic reference project (illustrative)
+
+The block below uses placeholders to ground the recipe. The skill makes no assumption about which DS or which reference project the user passes — substitute the user's `<reference-project>`, `<ds-package>`, and the components actually exported by the DS in scope.
+
+Suppose the reference project ships:
+
+- `app/page.tsx` — a home page composing a header bar, a feature grid, and a footer.
+- `app/<route>/page.tsx` — a list page composing a header, a filter row, and a table primitive.
+- `components/showcase/<name>.tsx` — a non-routed card showing a multi-input form with an action footer.
+
+Phase 2 walks the two globs and writes three scratch files:
+
+- `.extract-ds-skill-scratch/examples/home.md` (from `app/page.tsx`)
+- `.extract-ds-skill-scratch/examples/<route>.md` (from `app/<route>/page.tsx`)
+- `.extract-ds-skill-scratch/examples/<name>.md` (from `components/showcase/<name>.tsx`)
+
+Each follows the per-example template above. Shape of one of them:
+
+```markdown
+# Example: <Route>
+
+Lifted from `<reference-project>/app/<route>/page.tsx` (next-app).
+
+## Required imports
+
+- `<ds-package>`: <ComponentA>, <ComponentB>, <ComponentC>, ...
+- `<ds-asset-package>`: <IconA>, <IconB>
+- Other: (none)
+
+## Composition (verbatim)
+
+​```tsx
+<verbatim copy of app/<route>/page.tsx from the first relevant import
+to the close of the default-exported component>
+​```
+
+## What to copy
+
+- Page chrome is a layout primitive with a header painted on the muted surface token and content painted on the default surface token; the contrast between the two is what makes the page read as a real DS screen rather than components arranged.
+- Filter row is a horizontal stack primitive with `justify='space-between'`: a filter input on the left, a button group on the right.
+- The table primitive carries an explicit `aria-label`; column headers use the DS's status-pill primitive rather than raw text.
+```
+
+Phase 3 then copies the three scratch files verbatim into `<slug>/references/examples/`, writes `<slug>/references/examples/index.md` listing all three with their one-line summaries, and updates the produced `SKILL.md` routing table to point at the index plus one row per example file. A reference project that ships only `app/layout.tsx` (the wiring source) and no `app/**/page.tsx` or `components/showcase/*.tsx` falls through silently to the wiring-only path — `references/examples/` is omitted from the produced skill, the routing table carries no example rows, and no `[VERIFY]` marker fires.
+
+---
+
 ## Output contract
 
 Write the lifted wiring to `.extract-ds-skill-scratch/wiring-extracted.md`. The scratch file is throwaway — Phase 3 materializes it into the produced `SKILL.md` Setup section per `references/skill-template.md`. Format:

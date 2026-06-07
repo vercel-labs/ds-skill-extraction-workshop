@@ -10,9 +10,10 @@ COMPONENTS=""
 DS_PACKAGE=""
 DS_VERSION=""
 SCOPE="project"
+EXAMPLES_FROM=""
 
 usage() {
-  echo "usage: scaffold.sh <slug> --components <n1,n2,...> --ds-package <name> [--ds-version <v>] [--scope project|user]" >&2
+  echo "usage: scaffold.sh <slug> --components <n1,n2,...> --ds-package <name> [--ds-version <v>] [--scope project|user] [--examples-from <dir>]" >&2
   exit 2
 }
 
@@ -21,10 +22,11 @@ SLUG="$1"; shift
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --components) COMPONENTS="${2:-}"; shift 2 ;;
-    --ds-package) DS_PACKAGE="${2:-}"; shift 2 ;;
-    --ds-version) DS_VERSION="${2:-}"; shift 2 ;;
-    --scope)      SCOPE="${2:-}"; shift 2 ;;
+    --components)    COMPONENTS="${2:-}"; shift 2 ;;
+    --ds-package)    DS_PACKAGE="${2:-}"; shift 2 ;;
+    --ds-version)    DS_VERSION="${2:-}"; shift 2 ;;
+    --scope)         SCOPE="${2:-}"; shift 2 ;;
+    --examples-from) EXAMPLES_FROM="${2:-}"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; usage ;;
   esac
 done
@@ -136,10 +138,59 @@ write_file "${PERSIST_PATH}/references/anti-patterns.md" "<!-- scaffold-stub: re
 |-----|------|-----|
 "
 
+# STEP 3b — Composition exemplars (additive, fallback to no-op when empty).
+# When --examples-from <dir> is passed AND that dir contains *.md files,
+# copy each to references/examples/<basename>.md and generate index.md.
+# When the flag is absent or the dir is empty, omit references/examples/
+# entirely — per references/persist.md, empty examples/ is the correct
+# empty state, not an empty index pointing at nothing.
+EXAMPLE_COUNT=0
+if [[ -n "$EXAMPLES_FROM" && -d "$EXAMPLES_FROM" ]]; then
+  shopt -s nullglob
+  EX_FILES=("$EXAMPLES_FROM"/*.md)
+  shopt -u nullglob
+  if [[ ${#EX_FILES[@]} -gt 0 ]]; then
+    mkdir -p "${PERSIST_PATH}/references/examples"
+    INDEX_LINES=()
+    INDEX_LINES+=("# Examples")
+    INDEX_LINES+=("")
+    INDEX_LINES+=("Composition exemplars lifted from the reference project. Each file is verbatim; see references/reference-project.md for the lift recipe.")
+    INDEX_LINES+=("")
+    for src in "${EX_FILES[@]}"; do
+      base="$(basename "$src")"
+      dest="${PERSIST_PATH}/references/examples/${base}"
+      cp "$src" "$dest"
+      WRITTEN+=("$dest")
+      EXAMPLE_COUNT=$((EXAMPLE_COUNT + 1))
+      # Extract the first bullet under "## What to copy" as the index summary.
+      # Bullets continuing on indented lines are truncated to their first line
+      # by design — the index is a one-liner per file.
+      summary="$(awk '
+        /^## What to copy[[:space:]]*$/ { in_section=1; next }
+        in_section && /^## / { in_section=0 }
+        in_section && /^-[[:space:]]/ {
+          sub(/^-[[:space:]]+/, "")
+          print
+          exit
+        }
+      ' "$src")"
+      if [[ -z "$summary" ]]; then
+        summary="[VERIFY] no \"What to copy\" first bullet found in ${base}"
+      fi
+      slug="${base%.md}"
+      INDEX_LINES+=("- [${slug}](./${base}) — ${summary}")
+    done
+    INDEX_PATH="${PERSIST_PATH}/references/examples/index.md"
+    printf '%s\n' "${INDEX_LINES[@]}" > "$INDEX_PATH"
+    WRITTEN+=("$INDEX_PATH")
+  fi
+fi
+
 # STEP 4 — NO STAMP. Plain Markdown only, per locked Q6.
 
 echo "SCAFFOLD_RESULT=OK"
 echo "PERSIST_PATH=${PERSIST_PATH}"
+echo "EXAMPLES_WRITTEN=${EXAMPLE_COUNT}"
 echo "FILES_WRITTEN=${#WRITTEN[@]}"
 for p in "${WRITTEN[@]}"; do
   echo "- ${p}"
