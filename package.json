@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "echo 'no test suite yet' && exit 0",
+    "verify": "pnpm typecheck && pnpm build",
     "prepare": "husky"
   },
   "dependencies": {
