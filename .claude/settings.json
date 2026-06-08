@@ -34,6 +34,7 @@
       "Bash(npx --no-install tsc *)",
       "Bash(npx biome *)",
       "Bash(npx --no biome *)",
+      "Bash(npm view *)",
       "Bash(timeout * pnpm *)",
       "Bash(timeout * npx *)",
 
