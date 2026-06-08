@@ -144,7 +144,7 @@ else
       scan_section "$f" ''
     done
   fi
-  extract_imports "$TARGET/wiring-extracted.md" '^## Companion CSS file \(verbatim\)'
+  extract_imports "$TARGET/wiring-extracted.md" '^## Companion CSS file'
 fi
 
 # NOOP — no var(--X) consumption found anywhere (Tailwind-style apps).

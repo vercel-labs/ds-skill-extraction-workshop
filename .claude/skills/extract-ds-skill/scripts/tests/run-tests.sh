@@ -380,6 +380,24 @@ assert_coverage "scoped-css-symlinked (pnpm-style) exits 0 with PASS tally" \
   "$FIXTURES/scoped-css-symlinked/produced-skill" \
   0 "TOKEN_COVERAGE=PASS"
 
+# Test 30 (PASS counter): pass-token-coverage — scratch-mode fixture exercises
+# check-token-coverage.sh end-to-end through the line-147 extract_imports call.
+# Regression guard for the awk -v pat= escape bug where backslash-escaped parens
+# in the heading pattern silently failed on macOS BWK awk (PRD-token-coverage-portability.md).
+assert_coverage "pass-token-coverage exits 0 with PASS tally" \
+  "$FIXTURES/pass-token-coverage/ds-pkg" \
+  "$FIXTURES/pass-token-coverage/scratch" \
+  0 "TOKEN_COVERAGE=PASS"
+
+# Test 31 (PASS counter): fail-token-coverage — same scratch-mode shape with a
+# non-covering @import. Guards against the pattern relaxation in Change A
+# accidentally over-pass-matching.
+assert_coverage "fail-token-coverage exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-token-coverage/ds-pkg" \
+  "$FIXTURES/fail-token-coverage/scratch" \
+  1 "TOKEN_COVERAGE=FAIL" \
+  "MISSING: --surface-default"
+
 # Test 26: live meta-skill self-check — every phase close in the real
 # extract-ds-skill/SKILL.md emits a handoff doc, and discovery/validate/persist
 # each carry the per-phase template. HANDOFF_EMISSION must report PASS.
