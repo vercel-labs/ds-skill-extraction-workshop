@@ -166,18 +166,37 @@ while IFS= read -r var; do
   [[ -z "$var" ]] && continue
   varname="${var#--}"
   first_use=$(awk -F'\t' -v v="$var" '$1==v{print $2; exit}' "$CONSUMPTION")
-  definer=$(grep -rEl "^[[:space:]]*--${varname}:" "$DS_ROOT" 2>/dev/null | head -1 || true)
-  if [[ -z "$definer" ]]; then
+  # A var may be defined in MULTIPLE files (e.g. Primer's --bgColor-default
+  # appears in themes/light.css, themes/dark.css, and several -tritanopia /
+  # -colorblind variants). Coverage holds if ANY of those files is @import'd
+  # by one of the lifted Companion CSS blocks. Collect every definer, check
+  # each against IMPORTS, mark covered on the first match.
+  definer_files=$(grep -rEl "^[[:space:]]*--${varname}:" "$DS_ROOT" 2>/dev/null || true)
+  if [[ -z "$definer_files" ]]; then
     echo "MISSING: $var consumed in $first_use, NOT DEFINED in $DS_ROOT (no file under DS package root carries --${varname}:)" >> "$FAILS"
     FAIL=true
     continue
   fi
-  definer_relative="${definer#$DS_ROOT/}"
-  match_suffix=$(suffix_for_match "$definer_relative")
-  if grep -qF "$match_suffix" "$IMPORTS"; then
+  covered=false
+  while IFS= read -r definer; do
+    [[ -z "$definer" ]] && continue
+    definer_relative="${definer#$DS_ROOT/}"
+    match_suffix=$(suffix_for_match "$definer_relative")
+    if grep -qF "$match_suffix" "$IMPORTS"; then
+      covered=true
+      break
+    fi
+  done <<< "$definer_files"
+  if $covered; then
     TOKENS_COVERED=$((TOKENS_COVERED + 1))
   else
-    pretty_path="${PKG_NAME:+${PKG_NAME}/}${definer_relative}"
+    # Report the FIRST definer path in the MISSING row — it's the most likely
+    # canonical home and the easiest pointer for the user to act on. Other
+    # definers exist but aren't imported either; surfacing all of them would
+    # only add noise.
+    first_definer=$(printf '%s\n' "$definer_files" | head -1)
+    first_relative="${first_definer#$DS_ROOT/}"
+    pretty_path="${PKG_NAME:+${PKG_NAME}/}${first_relative}"
     echo "MISSING: $var consumed in $first_use, defined in $pretty_path, NOT imported by any lifted CSS file" >> "$FAILS"
     FAIL=true
   fi
