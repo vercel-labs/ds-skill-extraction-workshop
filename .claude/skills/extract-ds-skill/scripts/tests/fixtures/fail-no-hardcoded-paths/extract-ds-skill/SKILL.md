@@ -12,4 +12,4 @@ Prescription text claims the canonical reference project lives at <https://githu
 Inside the labeled block, hardcoded references are allowed:
 
 - Reference project: <https://github.com/vercel-labs/example-app>
-- Token package: `@primer/primitives`
+- Token package: `@example/tokens`

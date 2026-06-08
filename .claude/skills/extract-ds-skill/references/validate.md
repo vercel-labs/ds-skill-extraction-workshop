@@ -137,3 +137,69 @@ Present the validation result as a concise summary. Three buckets:
 Close with a single question: "Approve to persist, or adjust?"
 
 Do not proceed without an explicit affirmative. "Go", "ship it", "approved", or equivalent. Silence is not consent. A request to change something is a loop back to the relevant phase, not a green light.
+
+## Handoff document — phase-2.md template
+
+Phase 2 closes by writing `.extract-ds-skill-scratch/handoffs/phase-2.md` BEFORE the approval gate. The doc is the irrecoverable-state snapshot for a future session that resumes after a context-window blow-out or `/exit`. Apply the `/handoff` skill discipline: capture only what is NOT recoverable from scratch artefacts on disk. Reference everything else by path.
+
+**Include (Phase 2 state the next session needs to reach the approval gate without re-validating):**
+
+- Proof-point line verbatim (the one emitted just before the gate)
+- Token-coverage tally verbatim (`TOKEN_COVERAGE=PASS|NOOP|FAIL` + counts)
+- Scratch file inventory — one-line pointers to each artefact Phase 3 will materialize:
+  - `.extract-ds-skill-scratch/wiring-extracted.md` (size, last-modified)
+  - `.extract-ds-skill-scratch/examples/*.md` (count, names)
+  - `.extract-ds-skill-scratch/foundations/*.md` (count, names)
+  - `.extract-ds-skill-scratch/tokens-extracted.md` (size, last-modified)
+- `[VERIFY]` marker list — each marker with file:line + the one-line reason, plus user-acceptance status (`pending`, `accepted as known limitation`, `flagged for redo`)
+- Approval-pending flag (`status: awaiting-approval`)
+- Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-2.md`)
+
+**Do NOT include:**
+
+- The lifted CSS bodies (they live in `wiring-extracted.md` on disk)
+- The extracted component prose (lives in scratch `examples/*.md`)
+- The extracted token/foundation rules (live in scratch `foundations/*.md` + `tokens-extracted.md`)
+- The Phase 3 materialization procedure (lives in `references/persist.md`, loaded fresh by the resuming session)
+- The token-coverage script details (live in `scripts/check-token-coverage.sh`, called fresh on any iteration)
+
+**Template shape:**
+
+```markdown
+# Phase 2 handoff — <slug>
+
+_Written by /extract-ds-skill at <ISO date> after validation iteration <N>. Status: awaiting-approval. Read by the next session to reach the Phase 2/3 gate without re-validating._
+
+## Proof point (verbatim)
+
+<verbatim proof-point line from the validation summary>
+
+TOKEN_COVERAGE=<PASS|NOOP|FAIL> (consumed: <N>, covered: <M>)
+
+## Scratch artefacts (Phase 3 will materialize from these)
+
+- `.extract-ds-skill-scratch/wiring-extracted.md` — <byte-size>, modified <ISO date>
+- `.extract-ds-skill-scratch/examples/` — <K> files: <name>, <name>, …
+- `.extract-ds-skill-scratch/foundations/` — <F> files: <name>, <name>, …
+- `.extract-ds-skill-scratch/tokens-extracted.md` — <byte-size>, modified <ISO date>
+
+## Open [VERIFY] markers
+
+1. `<file>:<line>` — <one-line reason>. Status: <pending|accepted|flagged-redo>
+2. `<file>:<line>` — <one-line reason>. Status: <pending|accepted|flagged-redo>
+…
+
+## Resume context
+
+- cwd convention: resume in the same worktree where this handoff was written (`<absolute-worktree-path>`).
+- Phase 3 entry: load `references/persist.md` + `references/skill-template.md`. Slug-collision check runs FIRST. Materialize the scratch artefacts to `.claude/skills/<slug>/` per the persist map. Run `scripts/check-skill-docs.sh` after writes. Then close with the closing-message contract.
+- If the user has not yet approved the proof-point above, surface the proof-point and the open `[VERIFY]` markers verbatim and ask `Approve to persist, or adjust?` — this is the same gate the prior session was at.
+
+## Pickup prompt (paste into the new session)
+
+```
+/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-2.md
+```
+```
+
+Re-write the handoff after each validate iteration — the proof-point and `[VERIFY]` tally drift between iterations, and a resumed session must see the LATEST state, not an earlier one.

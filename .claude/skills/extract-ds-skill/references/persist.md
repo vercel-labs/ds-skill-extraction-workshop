@@ -173,3 +173,80 @@ blank.
 ```
 
 Then the conversation is done. Do NOT offer further actions; the user owns the next move (run the generation prompt, fill the rubric, update `SUMMARY.md`).
+
+## Handoff document — phase-3.md template
+
+After the closing message lands and the optional snapshot step resolves, write `.extract-ds-skill-scratch/handoffs/phase-3.md`. Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for **sibling agents** (demo runners, integration follow-ups, post-extraction reviewers), not for re-entering `/extract-ds-skill`. Apply the `/handoff` skill discipline: the sibling agent reads this brief, not a recap of the meta-skill or the produced skill's contents.
+
+**Include (the as-shipped snapshot the sibling agent acts on):**
+
+- Produced skill's absolute path (`.claude/skills/<slug>/`)
+- `check-skill-docs.sh` tally — verbatim stdout from the final run (exit code 0, all assertions, counts)
+- Remaining `[VERIFY]` markers — verbatim from the closing message, with file:line + the one-line reason
+- Suggested follow-up actions for the sibling agent (one bullet per action, named imperatives):
+  - `pnpm --filter <consumer-app> typecheck` (or the project's equivalent)
+  - `Render a demo of <slug>` (loop a demo agent against the new skill)
+  - `Run integration test <suite>` (if the consumer ships one)
+  - `Snapshot to dry-runs/<date>-<label>/` (if not already done in the optional snapshot step above)
+- Dry-run snapshot status (`yes — written to dry-runs/<date>-<label>/`, `no — declined`, or `n/a — no dry-runs/ dir`)
+- Pickup prompt (one line: `Read .extract-ds-skill-scratch/handoffs/phase-3.md`) — NO `/extract-ds-skill` re-entry
+
+**Do NOT include:**
+
+- The produced skill's contents (live under `.claude/skills/<slug>/`, the sibling agent reads them directly)
+- The meta-skill's audit logic (lives in `scripts/check-skill-docs.sh`)
+- Scratch artefacts from Phase 2 (the sibling agent does not iterate validation; that already passed)
+- The closing-message example prompts (those were already shown to the user; re-stating them here is noise)
+- A `/extract-ds-skill` resume prompt — Phase 3 is terminal; there is nothing for the meta-skill to do post-persist
+
+**Suggest the skills the sibling agent might invoke** (per `/handoff` discipline — name them so the next session loads them):
+
+- For demo runs: `/render-skill-demo` (or the project's demo-loop skill if one is wired up)
+- For integration: project-specific test scripts (`pnpm test:integration`, `pnpm exec playwright test`, etc.)
+- For dry-run rubrics: the workshop's rubric-filling skill if one exists in `dry-runs/TEMPLATE.md`
+
+**Template shape:**
+
+```markdown
+# Phase 3 handoff — <slug> (as-shipped snapshot)
+
+_Written by /extract-ds-skill at <ISO date> after `check-skill-docs.sh` exit 0. This is a brief for sibling agents (demo, integration, review), not a resume point for /extract-ds-skill — the meta-skill has no further work._
+
+## Produced skill
+
+- Path: `<absolute-path>/.claude/skills/<slug>/`
+- Slug: `<slug>`
+- DS: `<one-line DS summary>`
+- Components shipped: <N> (`<Comp1>`, `<Comp2>`, …)
+- Foundation files: <K> (`<page-1>`, `<page-2>`, …)
+
+## Audit (verbatim from `scripts/check-skill-docs.sh`)
+
+```
+<verbatim stdout>
+```
+
+Exit code: 0.
+
+## Open [VERIFY] markers
+
+1. `references/<file>:<line>` — <one-line reason>
+2. `references/<file>:<line>` — <one-line reason>
+…
+(Or: "0 open [VERIFY] markers — every rule grounded.")
+
+## Suggested follow-ups (for the sibling agent)
+
+- [ ] `pnpm --filter <consumer-app> typecheck` — confirms the produced exemplars compile against the consumer's TS config.
+- [ ] Render a demo: invoke `/render-skill-demo <slug>` (or the project's demo loop) to exercise the produced skill end-to-end against a real page.
+- [ ] Run integration tests: `<project-specific command>` if a suite is wired up against this DS.
+- [ ] Snapshot to dry-runs: <yes — already written to dry-runs/<date>-<label>/ | no — declined by user | n/a — no dry-runs/ dir>.
+
+## Pickup prompt (for the sibling agent)
+
+```
+Read .extract-ds-skill-scratch/handoffs/phase-3.md
+```
+```
+
+The template's role is to bound the shape, not the DS-specific contents. Fill the angle-bracketed placeholders from the closing message and the audit output; leave nothing as `<…>` in the written file. If a section is empty (e.g. zero `[VERIFY]` markers), state the empty state explicitly — don't omit the section.

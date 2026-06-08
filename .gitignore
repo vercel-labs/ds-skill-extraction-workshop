@@ -51,4 +51,8 @@ next-env.d.ts
 # meta-skill phase-2 scratch (gitignored by design, see SKILL.md)
 .extract-ds-skill-scratch/
 
+# planning/PRD scratch — these are session artefacts, not deliverables
+PRD-*.md
+/PRD-*.md
+
 .pnpm-store

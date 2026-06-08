@@ -2,9 +2,9 @@
 
 Prescription text. Placeholders only outside illustrative blocks.
 
-### Example output — extraction against a Primer-shaped target (illustrative)
+### Example output — extraction against an MUI-shaped target (illustrative)
 
-Pair `--bgColor-emphasis` with `--fgColor-onEmphasis`. (`https://primer.style/product/getting-started/foundations/color-usage/#emphasis-surfaces`)
+Pair `--mui-palette-primary-main` with `--mui-palette-primary-contrastText`. (`https://mui.com/material-ui/customization/palette/#default-colors`)
 
 ### Example output — extraction against a shadcn-shaped target (illustrative)
 

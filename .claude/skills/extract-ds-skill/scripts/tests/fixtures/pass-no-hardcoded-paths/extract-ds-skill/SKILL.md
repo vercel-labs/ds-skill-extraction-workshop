@@ -12,8 +12,8 @@ Generic prescription text using placeholders only: `<ds-package>`, `<docs-url>`,
 The block below uses a public-DS-shaped target. The hardcoded URL and package name below sit INSIDE the labeled block, so the check ignores them.
 
 - Reference project: <https://github.com/vercel-labs/example-app>
-- Token package: `@primer/primitives`
-- Docs anchor: <https://primer.style/product/getting-started/foundations/color-usage/#dark-mode>
+- Token package: `@example/tokens`
+- Docs anchor: <https://tokens.example.com/foundations/color-usage/#dark-mode>
 
 ## Another prescription section
 

@@ -168,3 +168,65 @@ Sources used:
 ```
 
 The reference-project line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will read the auto-detected root entry file and lift the wiring per `references/reference-project.md`; if no project is provided, both lines are omitted and Phase 2 falls back to the foundation-docs setup snippet (or empties the Setup section entirely if no foundation URL is in scope either). When a reference project is supplied AND a foundation URL is in scope, the soft-nudge line is omitted because the reference project IS the cleaner source.
+
+## Handoff document — phase-1.md template
+
+Phase 1 closes by writing `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc is the irrecoverable-state snapshot for a future session that resumes after a context-window blow-out or `/exit`. Apply the `/handoff` skill discipline: capture only what is NOT recoverable from the codebase, the meta-skill, or `AGENTS.md`. Reference everything else by path.
+
+**Include (decisions surfaced in the discovery summary, as the user accepted them):**
+
+- Slug and target path
+- Reference project URL + entry file + framework
+- Proposing set, final (the M from `Components found (N), proposing (M)` after the user pruned/extended)
+- DS package names, versions, and `node_modules/` paths (resolved during inspection)
+- Foundation URLs accepted, with the depth-1 crawl tree per accepted root
+- The 1-3 headline rule candidates VERBATIM with their `file:line` cites
+- cwd convention reminder ("if this resumed session is not in `.claude/worktrees/dryrun-NN/`, the dry-run worktree where the handoff was written, ask the user where to land outputs")
+- Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-1.md`)
+
+**Do NOT include:**
+
+- The full discovery exploration (npm view, curl, grep outputs, file listings)
+- Per-component deliberation about why a component was or was not proposed
+- Raw inspection notes for sources the user has not yet seen
+- The meta-skill's Phase 2 procedure (it lives in `references/validate.md` + `references/reference-project.md` + `references/foundation-extraction.md` and is loaded fresh by the resuming session)
+- Anti-pattern rules, scope guardrails, or other meta-skill content (in `SKILL.md`, `references/anti-patterns.md`)
+- The dry-run worktree convention prose (in `AGENTS.md`)
+
+**Template shape:**
+
+```markdown
+# Phase 1 handoff — <slug>
+
+_Written by /extract-ds-skill at <ISO date>. Read by the next session to skip discovery and enter Phase 2 directly._
+
+## Decisions (irrecoverable from codebase)
+
+- **Slug**: `<slug>` → `.claude/skills/<slug>/`
+- **Reference project**: `<repo-url>` (`<framework>`, entry `<entry-file-path>`)
+- **Proposing set** (<M> components, as approved):
+  - <Component1>, <Component2>, …
+- **DS packages**:
+  - `<pkg-1>@<version>` (path: `<resolved-node_modules-path>`)
+  - `<pkg-2>@<version>` (path: `<resolved-node_modules-path>`)
+- **Foundation docs** (<K> accepted):
+  - `<root-url-1>` [docs:foundation] — crawled, accepted sub-pages: <slug>, <slug>, …
+  - `<root-url-2>` [docs:foundation] — crawled, accepted sub-pages: <slug>, <slug>, …
+- **Headline rules** (verbatim):
+  1. "<rule-1>" (`<file>:<line>`)
+  2. "<rule-2>" (`<file>:<line>`)
+  3. "<rule-3>" (`<file>:<line>`)
+
+## Resume context
+
+- cwd convention: resume in the same worktree where this handoff was written (`<absolute-worktree-path>`). If a new session opens in a different worktree, ask the user where to land outputs before proceeding.
+- Phase 2 entry: load `references/validate.md` + `references/reference-project.md` + (if foundation URLs accepted) `references/foundation-extraction.md`. Write to `.extract-ds-skill-scratch/` only. Run `scripts/check-token-coverage.sh` as the hard gate. Wait for approval before Phase 3.
+
+## Pickup prompt (paste into the new session)
+
+```
+/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-1.md
+```
+```
+
+The template's role is to bound the doc's shape, not its DS-specific contents. Fill the angle-bracketed placeholders from the discovery summary the user just confirmed; leave nothing as `<…>` in the written file.

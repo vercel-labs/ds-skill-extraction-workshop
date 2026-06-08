@@ -15,6 +15,7 @@ set -uo pipefail
 # Resolve repo paths from this script's location so it works from any CWD.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+META_SKILL_ROOT="$(cd -- "$SKILL_DIR/.." && pwd)"
 CHECK="$SKILL_DIR/check-skill-docs.sh"
 COVERAGE="$SKILL_DIR/check-token-coverage.sh"
 FIXTURES="$SCRIPT_DIR/fixtures"
@@ -336,28 +337,28 @@ assert_coverage() {
   fi
 }
 
-# Test 22: primer-shaped-complete — the lifted @import set includes the file
+# Test 22: scoped-css-complete — the lifted @import set includes the file
 # that defines every consumed var(--X). TOKEN_COVERAGE must report PASS and
 # the script must exit 0.
-assert_coverage "primer-shaped-complete exits 0 with PASS tally" \
-  "$FIXTURES/primer-shaped-complete/ds-pkg" \
-  "$FIXTURES/primer-shaped-complete/produced-skill" \
+assert_coverage "scoped-css-complete exits 0 with PASS tally" \
+  "$FIXTURES/scoped-css-complete/ds-pkg" \
+  "$FIXTURES/scoped-css-complete/produced-skill" \
   0 "TOKEN_COVERAGE=PASS"
 
-# Test 23: primer-shaped-incomplete — the exemplar consumes --borderRadius-large
+# Test 23: scoped-css-incomplete — the exemplar consumes --borderRadius-large
 # but the lifted @import set omits the radius.css file that defines it.
 # TOKEN_COVERAGE must report FAIL, exit non-zero, and the failure row must name
 # the consumed var, the defining @pkg path, and the "NOT imported" clause.
-assert_coverage "primer-shaped-incomplete exits non-zero with FAIL tally" \
-  "$FIXTURES/primer-shaped-incomplete/ds-pkg" \
-  "$FIXTURES/primer-shaped-incomplete/produced-skill" \
+assert_coverage "scoped-css-incomplete exits non-zero with FAIL tally" \
+  "$FIXTURES/scoped-css-incomplete/ds-pkg" \
+  "$FIXTURES/scoped-css-incomplete/produced-skill" \
   1 "TOKEN_COVERAGE=FAIL" \
   "MISSING: --borderRadius-large consumed in"
-assert_coverage "primer-shaped-incomplete names the defining package path" \
-  "$FIXTURES/primer-shaped-incomplete/ds-pkg" \
-  "$FIXTURES/primer-shaped-incomplete/produced-skill" \
+assert_coverage "scoped-css-incomplete names the defining package path" \
+  "$FIXTURES/scoped-css-incomplete/ds-pkg" \
+  "$FIXTURES/scoped-css-incomplete/produced-skill" \
   1 "TOKEN_COVERAGE=FAIL" \
-  "defined in @primer/primitives/dist/css/functional/size/radius.css, NOT imported by any lifted CSS file"
+  "defined in @example/tokens/dist/css/functional/size/radius.css, NOT imported by any lifted CSS file"
 
 # Test 24: tailwind-shaped — zero var(--X) consumption anywhere. The script
 # must NOOP cleanly and exit 0; no MISSING rows must appear.
@@ -366,7 +367,7 @@ assert_coverage "tailwind-shaped exits 0 with NOOP tally" \
   "$FIXTURES/tailwind-shaped/produced-skill" \
   0 "TOKEN_COVERAGE=NOOP"
 
-# Test 25: primer-shaped-symlinked — ds-pkg passed as a SYMLINK (the shape
+# Test 25: scoped-css-symlinked — ds-pkg passed as a SYMLINK (the shape
 # pnpm uses: node_modules/@scope/pkg → ../.pnpm/<scope+pkg>@<ver>/...). The
 # definer-file lookup must follow the symlink given as the directory
 # argument. BSD `grep -r` does NOT follow such symlinks (returns zero
@@ -374,10 +375,46 @@ assert_coverage "tailwind-shaped exits 0 with NOOP tally" \
 # identically. This test is the regression guard for that one-character fix
 # in check-token-coverage.sh; with the buggy `-r`, TOKEN_COVERAGE would
 # report FAIL with "NOT DEFINED" instead of PASS.
-assert_coverage "primer-shaped-symlinked (pnpm-style) exits 0 with PASS tally" \
-  "$FIXTURES/primer-shaped-symlinked/ds-pkg-link" \
-  "$FIXTURES/primer-shaped-symlinked/produced-skill" \
+assert_coverage "scoped-css-symlinked (pnpm-style) exits 0 with PASS tally" \
+  "$FIXTURES/scoped-css-symlinked/ds-pkg-link" \
+  "$FIXTURES/scoped-css-symlinked/produced-skill" \
   0 "TOKEN_COVERAGE=PASS"
+
+# Test 26: live meta-skill self-check — every phase close in the real
+# extract-ds-skill/SKILL.md emits a handoff doc, and discovery/validate/persist
+# each carry the per-phase template. HANDOFF_EMISSION must report PASS.
+# Asserts the check fires against the canonical target (regression guard for
+# anyone editing the meta-skill files and forgetting the handoff prose).
+assert "live extract-ds-skill HANDOFF_EMISSION PASSES" \
+  "$META_SKILL_ROOT" \
+  0 "HANDOFF_EMISSION=PASS"
+
+# Test 27: fail-handoff-emission fixture — SKILL.md carries the three-phase
+# structure (so the check fires) but lacks the resume-detect pre-checks and
+# the per-phase handoff-write instructions. HANDOFF_EMISSION must report FAIL
+# and the failure message must name SKILL.md and point at the state/handoff-skipped
+# slug.
+assert "fail-handoff-emission exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-handoff-emission/extract-ds-skill" \
+  1 "HANDOFF_EMISSION=FAIL" \
+  "state/handoff-skipped"
+
+# Test 28: pass-fixture (pass-no-hardcoded-paths) without three-phase structure
+# does NOT emit a HANDOFF_EMISSION tally — the SKILL.md portion is guarded on
+# "## Phase 1: Discovery summary" so minimal meta-mode fixtures skip the check
+# rather than fail. This is the "partial skeleton" posture documented inline
+# in check-skill-docs.sh.
+out_no_phase="$(bash "$CHECK" "$FIXTURES/pass-no-hardcoded-paths/extract-ds-skill" 2>&1)" || true
+if grep -qE '^HANDOFF_EMISSION=FAIL' <<<"$out_no_phase"; then
+  echo "FAIL  partial-skeleton fixture must NOT emit HANDOFF_EMISSION=FAIL"
+  echo "  --- script output ---"
+  echo "$out_no_phase" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  partial-skeleton fixture skips HANDOFF_EMISSION"
+  PASS=$((PASS + 1))
+fi
 
 echo
 echo "PASSED=$PASS FAILED=$FAIL"

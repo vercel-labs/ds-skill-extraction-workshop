@@ -1,15 +1,15 @@
 # Example: Dashboard
 
-Lifted from `primer-shaped-template/app/dashboard/page.tsx` (next-app).
+Lifted from `example-app-template/app/dashboard/page.tsx` (next-app).
 
 ## Required imports
 
-- `@primer/react`: Box
+- `@example/react`: Box
 
 ## Composition (verbatim)
 
 ```tsx
-import { Box } from '@primer/react';
+import { Box } from '@example/react';
 
 export default function Dashboard() {
   return (

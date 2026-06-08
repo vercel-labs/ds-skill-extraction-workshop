@@ -75,7 +75,7 @@ Repeating the same WHY clause across rows in the same axis is correct — the fa
 
 Layer A and Layer B describe rules the *produced* skill ships — guidance for the agent that USES the skill. Layer C describes rules the *meta-skill itself* obeys while producing a skill. They live in this file because the audit surface is the same (slug registry, `check-skill-docs.sh` enforcement), but the failure mode is upstream: a Layer C violation is the meta-skill shipping a broken produced skill, not the produced skill mis-guiding the agent.
 
-Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line naming the script and the gate. Slugs use the `wiring/` namespace (the only Layer C namespace today; more will be added when more meta-skill rules surface).
+Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line naming the script and the gate. Slugs use the `wiring/` and `state/` namespaces (the only Layer C namespaces today; more will be added when more meta-skill rules surface).
 
 ### wiring/css-prose-summary
 
@@ -85,6 +85,14 @@ Companion CSS files lifted from the reference project must ship verbatim in `SKI
 
 **How to enforce:** Two gates. Phase 2 hard gate — `scripts/check-token-coverage.sh <ds-pkg-root> .extract-ds-skill-scratch/` runs at the end of the Reference-project extraction step in `references/validate.md`; failure blocks the wait-for-approval gate. Phase 3 post-emit — `scripts/check-skill-docs.sh` check #11 `TOKEN_COVERAGE` re-runs the same logic against the persisted skill when invoked with `--ds-package-root <path>`; without the flag, the check NOOPs and passes (the gate is opt-in for produced-mode because the DS package root is not derivable from the produced skill alone).
 
+### state/handoff-skipped
+
+Each phase close MUST write `.extract-ds-skill-scratch/handoffs/phase-N.md` before its wait-gate (or before the closing message in Phase 3). The handoff doc captures ONLY irrecoverable state — user decisions surfaced in the discovery summary (Phase 1), proof-point + `[VERIFY]` tally + scratch artefact pointers (Phase 2), produced-skill path + audit tally + follow-up suggestions (Phase 3). Never duplicate content already in the meta-skill files (`SKILL.md`, `references/*.md`), in `AGENTS.md`, or in scratch artefacts on disk. The template for each phase's handoff lives in the per-phase reference doc (`references/discovery.md` for phase-1, `references/validate.md` for phase-2, `references/persist.md` for phase-3).
+
+**Why:** Mid-extraction sessions are long. Phase 1 explores many sources; Phase 2 lifts CSS, mines tokens, fetches foundation docs, extracts component composition. By the Phase 2/3 gate, context-window blow-outs and accidental `/exit` are common. Without a handoff doc, the user's accepted decisions (slug, proposing set, `[VERIFY]` acceptances, headline rules) live ONLY in chat history — a fresh session re-enters Phase 1 from zero, wasting the explore-cost AND re-asking the user for confirmations they already gave. With the handoff, a new session reads the doc and resumes at the next phase boundary, skipping the recompute.
+
+**How to enforce:** `scripts/tests/run-tests.sh` runs a `HANDOFF_EMISSION` regex check that asserts (a) `SKILL.md` contains the three handoff-write instructions and the two resume-detect pre-checks, and (b) `references/discovery.md`, `references/validate.md`, and `references/persist.md` each contain a `## Handoff document — phase-N.md template` section header. `scripts/check-skill-docs.sh` meta-mode mirrors the same check, so the meta-skill self-audit catches drift if a future edit removes the handoff prose.
+
 ## Rule slug namespaces
 
 Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
@@ -92,12 +100,13 @@ Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs 
 - `token/...` for token violations (Layer B) — examples: `token/hex-literal`, `token/ad-hoc-spacing`, `token/ad-hoc-font-size`, `token/ad-hoc-duration`, `token/ad-hoc-shadow`.
 - `component/...` for component-level rules (Layer A) — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`.
 - `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
-- `wiring/...` for meta-skill extraction-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. These slugs fire against the meta-skill's own output, not against produced-skill usage.
+- `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
+- `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`. Fire against the meta-skill's own session management (handoff emission, resume detection), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
 
 Slug grammar:
 
 - Lowercase, hyphen-separated.
-- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
+- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
 - One slug per concept. If the same trap fires in two component files, the slug is identical in both — the slug names the rule, not its location.
 - Slugs are stable. Renaming a slug breaks every finding that cites it, so renames go through `coverage-gaps.md` first.
 - Slugs are unique across the skill. Slug collisions are surfaced by `check-skill-docs.sh` and ASK the user to rename one (same convention as the persist-time slug-collision rule).

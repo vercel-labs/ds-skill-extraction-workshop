@@ -1,10 +1,10 @@
 # RATIONALE.md — `extract-ds-skill`
 
-Diego-authored rationale. Not loaded by the agent at runtime. The human-readable record of WHY this skill is shaped the way it is.
+Workshop rationale. Not loaded by the agent at runtime. The human-readable record of WHY this skill is shaped the way it is.
 
 ## Workshop context
 
-40-minute workshop "Transform your design system into agent skills" at the 2026 venue. Hands-on segment runs minutes 22-35 of 40. 18 days to venue as of 2026-05-31. The meta-skill at `.claude/skills/extract-ds-skill/` is the centerpiece — attendees clone the Primer starter, run this skill on it, and watch a real DS skill get extracted from real source on their laptop. The hands-on segment is the only part of the workshop that has to survive contact with an audience, so this file exists to keep the design defensible when something drifts.
+40-minute workshop "Transform your design system into agent skills" at the 2026 venue. Hands-on segment runs minutes 22-35 of 40. 18 days to venue as of 2026-05-31. The meta-skill at `.claude/skills/extract-ds-skill/` is the centerpiece — attendees clone the workshop starter DS, run this skill on it, and watch a real DS skill get extracted from real source on their laptop. The hands-on segment is the only part of the workshop that has to survive contact with an audience, so this file exists to keep the design defensible when something drifts.
 
 ## Scope lock (2026-05-31)
 
@@ -23,7 +23,7 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 - **A2 reflexive audit** — the skill IS the rubric, no separate `audit/checklist.md`.
 - **C2 two-file coda** — `SKILL.md` + `references/anti-patterns.md` as the minimum viable skill if everything else gets cut.
 - **I3 joint read** — code AND docs, code wins on conflict.
-- **D3 curated subset** + Diego-authored RATIONALE.md (this file) — the meta-skill ships a Diego-curated rationale, not a generated one.
+- **D3 curated subset** + workshop-authored RATIONALE.md (this file) — the meta-skill ships a curated rationale, not a generated one.
 - 11th decision logged in grill transcript, not load-bearing for build.
 
 ## The six v1-build decisions (ratified 2026-05-31)
@@ -58,20 +58,20 @@ The repetition is intentional. Single-point-of-truth scope is too brittle to loa
 5. `references/component-extraction.md` Shape 3 labelled `[OUT OF SCOPE - route to copy skill, do not extract]`.
 6. `references/inheritance.md` product-copywriting row under `does_not_inherit`.
 7. `references/inheritance.md` Hallmark row under `does_not_inherit`.
-8. `RATIONALE.md` (this file) records Diego's 2026-05-31 scope lock as a dated decision.
+8. `RATIONALE.md` (this file) records the 2026-05-31 scope lock as a dated decision.
 
 ## Open dry-run risks
 
-Before the workshop, the meta-skill needs at least 3 dry-runs against Primer (cloned locally) to confirm:
+Before the workshop, the meta-skill needs at least 3 dry-runs against the workshop starter DS (cloned locally) to confirm:
 
-- **Q5 risk** — the headline rule `inactive` vs `disabled` may not surface from extraction. Dry-run check: run the meta-skill cold on `primer/react@v37.x`, confirm the rule appears in Phase 1 discovery without prompt-engineering it in. If it misses, tune extraction heuristics until it lands.
-- **Q4 risk** — the auto-discover + prune flow may produce a noisy or wrong component count for Primer. Dry-run check: confirm `inspect.sh` surfaces a clean "Components found (N), proposing (M)" line where N matches package exports and M is a defensible workshop subset.
+- **Q5 risk** — the headline rule `inactive` vs `disabled` may not surface from extraction. Dry-run check: run the meta-skill cold on the workshop starter DS, confirm the rule appears in Phase 1 discovery without prompt-engineering it in. If it misses, tune extraction heuristics until it lands.
+- **Q4 risk** — the auto-discover + prune flow may produce a noisy or wrong component count for the starter DS. Dry-run check: confirm `inspect.sh` surfaces a clean "Components found (N), proposing (M)" line where N matches package exports and M is a defensible workshop subset.
 - **Q2 risk** — the typecheck + grep validation may produce a flat or unconvincing signal. Dry-run check: run `validate.sh` against the scratch extraction and confirm it emits something like "14 props verified against source, 0 hallucinations" — concrete enough to land as a proof point in the workshop.
 - **Q1 risk** — the per-project persist target may feel arbitrary if attendees don't connect it to ownership. Dry-run check: after persistence, confirm `.claude/skills/<slug>/` shows up in `git status` and an attendee can `git add` it in one motion. The ownership story needs to be visible.
 
 ## What this skill consciously does NOT do
 
-- Does not author `DESIGN.md` for the user's DS (D3 — Diego authors that for the workshop's Primer starter).
+- Does not author a top-level DS-design document for the user's DS (D3 — the workshop maintainer authors that for the starter DS, separately).
 - Does not run a separate audit/eval harness (A2 — the skill IS the rubric).
 - Does not produce a runnable app (Q3 — skill files only, starter repo is separate).
 - Does not stamp emitted files (Q6 — git tracks provenance).

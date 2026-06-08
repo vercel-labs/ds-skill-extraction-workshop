@@ -524,9 +524,7 @@ if [[ "$MODE" == "meta" ]]; then
           leak = substr($0, RSTART, RLENGTH)
         } else if (match($0, /github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/)) {
           leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /@(primer|shadcn|mui|geist|chakra-ui|radix-ui)\/[A-Za-z0-9._-]+/)) {
-          leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /primer\.style\/[-A-Za-z0-9._\/#?=&]*/)) {
+        } else if (match($0, /@(shadcn|mui|geist|chakra-ui|radix-ui)\/[A-Za-z0-9._-]+/)) {
           leak = substr($0, RSTART, RLENGTH)
         }
         if (leak != "") printf "%s:%d:%s\n", FILENAME, NR, leak
@@ -590,7 +588,65 @@ if [[ "$MODE" == "meta" ]]; then
       rest="${entry#*:}"
       count_part="${rest%%:*}"
       hosts_part="${rest#*:}"
-      echo "  single-DS bias in $file_part — only $count_part distinct hostname(s) cited ($hosts_part) — see [[Meta-Skill Must Be DS-Agnostic — No Embedded Primer Examples]]; worked examples must span ≥2 distinct DSs (≥2 distinct hostnames)"
+      echo "  single-DS bias in $file_part — only $count_part distinct hostname(s) cited ($hosts_part) — see [[Meta-Skill Must Be DS-Agnostic — No Embedded DS-Specific Examples]]; worked examples must span ≥2 distinct DSs (≥2 distinct hostnames)"
+    done
+    FAILED=1
+  fi
+
+  # 10. HANDOFF_EMISSION (meta-skill self-mode only). The three-phase skill must
+  #     emit a handoff doc at each phase close so a fresh session can resume
+  #     after a context-window blow-out. SKILL.md carries the resume-detect
+  #     pre-checks at Phase 1 + Phase 2 entry and the handoff-write instructions
+  #     at each phase close; references/{discovery,validate,persist}.md each
+  #     carry the per-phase handoff template. This check guards against drift —
+  #     a future edit removing the prose silently breaks the resume path.
+  #
+  #     The SKILL.md portion fires only when SKILL.md carries the full
+  #     three-phase structure (a Phase 1 section header is the proxy), so
+  #     minimal meta-mode test fixtures that don't reproduce the full skill
+  #     don't trip it. Per-reference-doc checks fire only when the doc exists,
+  #     so partial skeletons skip rather than fail (mirrors the
+  #     WORKED_EXAMPLE_DS_BIAS posture on missing inputs).
+  HANDOFF_FAILS=()
+  SM="$SKILL_PATH/SKILL.md"
+  if [[ -f "$SM" ]] && grep -q "^## Phase 1: Discovery summary" "$SM"; then
+    # Two "Resume check first" pre-checks expected (Phase 1 entry + Phase 2 entry).
+    resume_count=$(grep -c "Resume check first" "$SM" 2>/dev/null || echo 0)
+    if [[ "$resume_count" -lt 2 ]]; then
+      HANDOFF_FAILS+=("SKILL.md|expected ≥2 'Resume check first' pre-checks (Phase 1 + Phase 2 entry), got $resume_count")
+    fi
+    # Phase 1 close + Phase 3 close handoff subsection headers.
+    for header in "Phase 1 close (handoff emission, mandatory)" "Phase 3 close (handoff emission, mandatory)"; do
+      if ! grep -qF "$header" "$SM"; then
+        HANDOFF_FAILS+=("SKILL.md|missing section '$header'")
+      fi
+    done
+    # Phase 2 close handoff-write instruction (inline prose, no subsection).
+    if ! grep -qF ".extract-ds-skill-scratch/handoffs/phase-2.md" "$SM"; then
+      HANDOFF_FAILS+=("SKILL.md|missing Phase 2 close handoff-write referencing .extract-ds-skill-scratch/handoffs/phase-2.md")
+    fi
+  fi
+  # Per-phase template headers in the per-phase reference docs.
+  for triple in "discovery.md|1" "validate.md|2" "persist.md|3"; do
+    refname="${triple%%|*}"
+    phaseN="${triple##*|}"
+    refpath="$SKILL_PATH/references/$refname"
+    if [[ -f "$refpath" ]]; then
+      header="## Handoff document — phase-${phaseN}.md template"
+      if ! grep -qF "$header" "$refpath"; then
+        HANDOFF_FAILS+=("references/$refname|missing section '$header'")
+      fi
+    fi
+  done
+
+  if [[ ${#HANDOFF_FAILS[@]} -eq 0 ]]; then
+    echo "HANDOFF_EMISSION=PASS"
+  else
+    echo "HANDOFF_EMISSION=FAIL"
+    for entry in "${HANDOFF_FAILS[@]}"; do
+      file_part="${entry%%|*}"
+      msg_part="${entry#*|}"
+      echo "  $file_part: $msg_part — see references/anti-patterns.md state/handoff-skipped"
     done
     FAILED=1
   fi

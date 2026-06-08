@@ -1,6 +1,6 @@
 ---
-name: primer-shaped-complete-fixture
-description: Test fixture — produced-skill mode, Companion CSS @imports cover every consumed var(--X).
+name: scoped-css-symlinked-fixture
+description: Test fixture — produced-skill mode, ds-pkg passed as a SYMLINK (pnpm shape). Regression guard for the BSD grep -r vs -R bug — definer lookup must follow symlinks given as the directory argument.
 ---
 
 ## Setup
@@ -8,7 +8,7 @@ description: Test fixture — produced-skill mode, Companion CSS @imports cover 
 Install:
 
 ```bash
-npm install @primer/primitives
+npm install @example/tokens
 ```
 
 Provider wiring (Next.js App Router):
@@ -23,7 +23,7 @@ export default function RootLayout({ children }) {
 ### Companion CSS — app/globals.css
 
 ```css
-@import "@primer/primitives/dist/css/functional/size/radius.css";
+@import "@example/tokens/dist/css/functional/size/radius.css";
 ```
 
 ## When to Load References

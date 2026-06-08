@@ -1,5 +1,5 @@
 ---
-name: primer-shaped-incomplete-fixture
+name: scoped-css-incomplete-fixture
 description: Test fixture — produced-skill mode, Companion CSS @imports DO NOT cover --borderRadius-large.
 ---
 
@@ -8,7 +8,7 @@ description: Test fixture — produced-skill mode, Companion CSS @imports DO NOT
 Install:
 
 ```bash
-npm install @primer/primitives
+npm install @example/tokens
 ```
 
 Provider wiring (Next.js App Router):
@@ -23,7 +23,7 @@ export default function RootLayout({ children }) {
 ### Companion CSS — app/globals.css
 
 ```css
-@import "@primer/primitives/dist/css/base/size/size.css";
+@import "@example/tokens/dist/css/base/size/size.css";
 ```
 
 ## When to Load References

@@ -19,6 +19,8 @@ The skill runs in three labeled phases. The single human gate sits at the bounda
 
 ## Phase 1: Discovery summary
 
+**Resume check first.** Before running discovery, check whether `.extract-ds-skill-scratch/handoffs/phase-1.md` exists at the project root. If it does, read it instead of running discovery — a prior session captured the decisions. Render a one-line resume summary back to the user (`Resuming <slug> from phase-1 handoff — <N> components proposing, <K> foundation URLs accepted`) and enter Phase 2 directly. The convention is to resume in the same worktree where the handoff was written; if you are in a different worktree, the file will be absent and discovery proceeds normally. The handoff template lives in `references/discovery.md` (`## Handoff document — phase-1.md template`).
+
 Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, docs:foundation, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
 
 The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), foundation docs block if any (N URLs accepted or rejected per-URL, tagged `[docs:foundation]`, with each accepted root's depth-1 crawl tree shown abbreviated; omitted entirely if the user did not provide any foundation URL), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
@@ -62,7 +64,15 @@ Out-of-scope rules surfaced (route to sibling copy skill): "button labels are Ti
 No blockers. Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 ```
 
+### Phase 1 close (handoff emission, mandatory)
+
+After the user confirms (with "go" or adjustments) and BEFORE entering Phase 2, run `mkdir -p .extract-ds-skill-scratch/handoffs/` and write `.extract-ds-skill-scratch/handoffs/phase-1.md` from the template in `references/discovery.md` (`## Handoff document — phase-1.md template`). The doc captures ONLY the decisions surfaced in the discovery summary — slug, ref project + entry, proposing set (as approved by the user), DS package versions + paths, accepted foundation URLs, the three headline rules verbatim with their `file:line` cites. Do NOT include the discovery exploration, the raw npm/curl/grep outputs, or the per-component deliberation — those are recoverable from the codebase and the meta-skill itself.
+
+Tell the user once: `Phase 1 handoff written to .extract-ds-skill-scratch/handoffs/phase-1.md — a future session can resume from there if this one dies.` Then enter Phase 2.
+
 ## Phase 2: Validate the extraction in a scratch workspace
+
+**Resume check first.** Before running validation, check whether `.extract-ds-skill-scratch/handoffs/phase-2.md` exists. If it does, read it instead of running validation — a prior session completed Phase 2 and is waiting at the approval gate. Render a one-line resume summary (`Resuming <slug> from phase-2 handoff — proof-point: <verbatim line>, <N> open [VERIFY] markers`), surface the open `[VERIFY]` markers verbatim, and ask the user to approve or send back to iterate (same gate as if Phase 2 had just finished). On approval, enter Phase 3 directly. The handoff template lives in `references/validate.md` (`## Handoff document — phase-2.md template`).
 
 Triggered only after explicit user confirmation from Phase 1. Goal: prove the extraction grounds in real source before any file is written to `.claude/skills/<slug>/`. Everything in this phase lives in `.extract-ds-skill-scratch/` (local, gitignored). Nothing is written to `.claude/skills/<slug>/` yet - iteration is cheap and partial state never lands in the user's project.
 
@@ -73,6 +83,8 @@ If any `[docs:foundation]` URLs are in scope from Phase 1, run the foundation-do
 If an `[example:project]` source is in scope from Phase 1, run the reference-project extraction step in addition. Load `references/reference-project.md` for the framework auto-detection, the five-step extraction recipe (provider, CSS imports, root-element attrs, bonus composition, **recursive companion-CSS lift**), and the scratch output contract. Step 5 of the recipe lifts the verbatim full contents of every CSS file the entry file imports (depth 3, within `app/`/`src/`) — not just the import lines — so the produced `SKILL.md` Setup section ships paste-ready wiring instead of prose summaries. After the lift completes, run `bash scripts/check-token-coverage.sh <ds-pkg-root> .extract-ds-skill-scratch/` as a Phase 2 hard gate: the script collects every `var(--X)` consumed in the produced code-block surfaces, locates each token's defining CSS file in the DS package, and asserts the file appears as an `@import` line in one of the lifted Companion CSS blocks. A FAIL exit blocks the wait-for-approval gate; the per-var `MISSING: ...` report surfaces verbatim to the user, who either accepts the gap or loops back to discovery. PASS / NOOP (Tailwind-style apps) proceeds.
 
 The proof point surfaced before the gate is a single line of the form: "N props verified against source, M tokens grep-resolved, K assets grep-resolved, F foundation-rules extracted (X cited, Y `[VERIFY]`), 0 hallucinations" alongside any open `[VERIFY]` markers as a numbered tally. Omit the `F foundation-rules` segment when no `[docs:foundation]` URL was in scope. When a reference project IS in scope, append the wiring line (`Wiring extracted from <ref>@<entry> (<framework>, N lines, K CSS files lifted, M tokens consumed, M covered)`) and the `TOKEN_COVERAGE=PASS|NOOP|FAIL` tally line immediately after — see `references/validate.md` for the full proof-point format. If the tally is non-zero, the agent describes each unresolved marker and asks whether to drop the rule, escalate to a second-pass source read, or accept it as a known limitation.
+
+After the proof-point line is emitted (and any `[VERIFY]` tally is surfaced), BEFORE waiting for approval, write `.extract-ds-skill-scratch/handoffs/phase-2.md` from the template in `references/validate.md` (`## Handoff document — phase-2.md template`). The doc embeds the proof-point line verbatim, lists the scratch artefacts Phase 3 will materialize (`wiring-extracted.md`, `examples/*.md`, `foundations/*.md`, `tokens-extracted.md`), records the token-coverage tally, and notes each `[VERIFY]` marker with its user-acceptance status. Do NOT duplicate the lifted CSS or the extracted prose — those live on disk in scratch and the handoff references them by path. Re-write the handoff after each validate iteration (the proof-point and `[VERIFY]` tally drift between iterations).
 
 Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval before Phase 3.
 
@@ -271,6 +283,14 @@ If the user accepts, copy `.claude/skills/<slug>/` to `dry-runs/<date>-<label>/e
 Detail and mechanics in `references/persist.md` (`## Optional: dry-run snapshot`). Do NOT pre-load that section — load it on this step's gate only.
 
 If the user replies "no" (or anything other than a label/yes), skip silently. This is a single-question gate, not a multi-step interaction; if the user is unsure, the snapshot can be created manually after the fact with `cp -R .claude/skills/<slug>/ dry-runs/<date>-<label>/extracted-skill/`.
+
+## Phase 3 close (handoff emission, mandatory)
+
+After the closing message lands and the optional snapshot step resolves (yes or no), write `.extract-ds-skill-scratch/handoffs/phase-3.md` from the template in `references/persist.md` (`## Handoff document — phase-3.md template`). Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for sibling agents (demo runners, integration follow-ups, post-extraction reviewers) to act on.
+
+The doc captures: the produced skill's absolute path, the `check-skill-docs.sh` tally, any remaining `[VERIFY]` markers from the closing message, and suggested follow-up actions for the sibling agent (typecheck the consumer app, render a demo, run integration tests against the produced skill). The pickup prompt is `Read .extract-ds-skill-scratch/handoffs/phase-3.md` — no `/extract-ds-skill` skill to re-enter, just a brief.
+
+Tell the user once: `Phase 3 handoff written to .extract-ds-skill-scratch/handoffs/phase-3.md — sibling agents (demo runner, integration tests) can pick up from there.`
 
 ## Slug-naming heuristics
 
