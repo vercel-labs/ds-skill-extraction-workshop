@@ -73,31 +73,22 @@ Effort: `low|medium|high|xhigh|max`. Mid-session: `/model <id>`, `/effort <level
 
 **Fast mode.** No launch flag. `/fast` mid-session, or `"fastMode": true` in `.claude/settings.json`. Opus-only (4.6/4.7/4.8) — faster output, no model downgrade.
 
-**Phase 1 — Discovery.** Path to the DS source is mandatory. Bare `/extract-ds-skill` aborts with nothing to inspect:
+**Phase 1 from scratch.** Pass foundation root URL(s) plus the reference-project GitHub URL as free text — no labeled keywords:
 
 ```
-/extract-ds-skill ./ds
+/extract-ds-skill <foundation-root-url> <reference-project-github-url>
 ```
 
-Optional positional args after the source: foundation-docs URL(s), reference-project URL. Phase 1 hard-stops at close → writes `.extract-ds-skill-scratch/handoffs/phase-1.md` → exits.
+The skill auto-classifies each URL — foundation docs are depth-1 crawled; the reference project's framework is auto-detected and the DS package is resolved from its `package.json`. Pass root URLs only; do not enumerate sub-pages or local `node_modules` paths.
 
-**Phase 2 — Validate.** Resume in a fresh session. Keyword + path are both mandatory:
+**Resume between phases.** Phase 1 + 2 hard-stop at close. Resume in a fresh session — keyword names the *next* phase, path points at the prior handoff:
 
 ```
 /extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/phase-1.md
+/extract-ds-skill persist:  .extract-ds-skill-scratch/handoffs/phase-2.md
 ```
 
-Hard-stops at close → writes `phase-2.md` → exits.
-
-**Phase 3 — Persist.** Same shape, `persist:` keyword:
-
-```
-/extract-ds-skill persist: .extract-ds-skill-scratch/handoffs/phase-2.md
-```
-
-Writes the skill to `.claude/skills/<slug>/`. Done.
-
-**Rules.** Keyword names the *next* phase (`validate:` → Phase 2, `persist:` → Phase 3). No path = abort. No keyword = Phase 1 from scratch (no auto-pickup of leftover handoffs). Override hard-stop with `continue inline` to stay in one session.
+`validate:` → Phase 2. `persist:` → Phase 3. No parameter = Phase 1 from scratch (no auto-pickup). Override hard-stop with `continue inline` to stay in one session.
 
 ## What ships in this repo
 
