@@ -23,8 +23,17 @@ TARGET="$2"
 [[ -d "$DS_ROOT" ]] || { echo "ERROR: ds-package-root not a directory: $DS_ROOT" >&2; exit 2; }
 [[ -d "$TARGET" ]] || { echo "ERROR: target not a directory: $TARGET" >&2; exit 2; }
 
-# Normalize DS_ROOT (strip trailing slash) so suffix-stripping below is consistent.
+# Normalize DS_ROOT: strip trailing slash AND resolve symlinks to the
+# physical path. pnpm installs scoped packages as symlinks
+# (`node_modules/@scope/pkg` → `.pnpm/<scope+pkg>@<ver>/node_modules/@scope/pkg`).
+# BSD `grep -r`/`-R` both REFUSE to follow a symlink given as the top-level
+# directory argument (a long-standing quirk; the man page claims `-R` follows
+# but in practice it doesn't for the arg itself, only for symlinks discovered
+# during recursion). Resolving with `cd && pwd -P` dereferences the symlink so
+# grep recurses into the real directory. GNU grep's behavior is unchanged
+# because the path is already physical.
 DS_ROOT="${DS_ROOT%/}"
+DS_ROOT="$(cd "$DS_ROOT" && pwd -P)"
 
 # Derive package name from DS_ROOT/package.json for the MISSING-row `@pkg/...` prefix.
 # Falls back to empty when package.json is absent or node is unavailable; the prefix is
@@ -166,11 +175,15 @@ while IFS= read -r var; do
   [[ -z "$var" ]] && continue
   varname="${var#--}"
   first_use=$(awk -F'\t' -v v="$var" '$1==v{print $2; exit}' "$CONSUMPTION")
-  # A var may be defined in MULTIPLE files (e.g. Primer's --bgColor-default
-  # appears in themes/light.css, themes/dark.css, and several -tritanopia /
-  # -colorblind variants). Coverage holds if ANY of those files is @import'd
-  # by one of the lifted Companion CSS blocks. Collect every definer, check
-  # each against IMPORTS, mark covered on the first match.
+  # A var may be defined in MULTIPLE files (e.g. a semantic surface token
+  # defined separately in light, dark, and contrast-variant theme files).
+  # Coverage holds if ANY of those files is @import'd by one of the lifted
+  # Companion CSS blocks. Collect every definer, check each against IMPORTS,
+  # mark covered on the first match.
+  #
+  # DS_ROOT has already been resolved to its physical path at the top of the
+  # script (see `pwd -P` normalization), so plain `-r` is correct here — the
+  # grep target is always a real directory by the time we get here.
   definer_files=$(grep -rEl "^[[:space:]]*--${varname}:" "$DS_ROOT" 2>/dev/null || true)
   if [[ -z "$definer_files" ]]; then
     echo "MISSING: $var consumed in $first_use, NOT DEFINED in $DS_ROOT (no file under DS package root carries --${varname}:)" >> "$FAILS"

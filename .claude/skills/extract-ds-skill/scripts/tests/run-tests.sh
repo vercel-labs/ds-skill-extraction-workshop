@@ -366,6 +366,19 @@ assert_coverage "tailwind-shaped exits 0 with NOOP tally" \
   "$FIXTURES/tailwind-shaped/produced-skill" \
   0 "TOKEN_COVERAGE=NOOP"
 
+# Test 25: primer-shaped-symlinked — ds-pkg passed as a SYMLINK (the shape
+# pnpm uses: node_modules/@scope/pkg → ../.pnpm/<scope+pkg>@<ver>/...). The
+# definer-file lookup must follow the symlink given as the directory
+# argument. BSD `grep -r` does NOT follow such symlinks (returns zero
+# matches → false "NOT DEFINED" rows); `grep -R` does. GNU grep treats both
+# identically. This test is the regression guard for that one-character fix
+# in check-token-coverage.sh; with the buggy `-r`, TOKEN_COVERAGE would
+# report FAIL with "NOT DEFINED" instead of PASS.
+assert_coverage "primer-shaped-symlinked (pnpm-style) exits 0 with PASS tally" \
+  "$FIXTURES/primer-shaped-symlinked/ds-pkg-link" \
+  "$FIXTURES/primer-shaped-symlinked/produced-skill" \
+  0 "TOKEN_COVERAGE=PASS"
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]
