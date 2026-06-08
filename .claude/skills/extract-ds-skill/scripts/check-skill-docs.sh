@@ -39,13 +39,20 @@ TOKENS_DIR="$SKILL_PATH/references/tokens"
 FAILED=0
 
 # Collect every file that might hold a `### token/<slug>` subsection: tokens.md
-# (single-family DS) and tokens/<family>.md (multi-family DS). Either or both
-# may be absent.
+# (single-family DS), tokens/<family>.md (multi-family DS), and any
+# foundations/<page>.md (one per accepted+crawled foundation URL). Either or
+# all may be absent. The slug namespace stays `token/<slug>`; only the file
+# location expands when foundation extraction is in scope.
+FOUNDATIONS_DIR="$SKILL_PATH/references/foundations"
 TOKEN_FILES=()
 [[ -f "$TOKENS_MD" ]] && TOKEN_FILES+=("$TOKENS_MD")
 if [[ -d "$TOKENS_DIR" ]]; then
   while IFS= read -r f; do TOKEN_FILES+=("$f"); done \
     < <(find "$TOKENS_DIR" -type f -name '*.md')
+fi
+if [[ -d "$FOUNDATIONS_DIR" ]]; then
+  while IFS= read -r f; do TOKEN_FILES+=("$f"); done \
+    < <(find "$FOUNDATIONS_DIR" -type f -name '*.md' -not -name 'index.md')
 fi
 
 # Produced-skill checks (1-7). These assert the shape of a produced DS skill
@@ -330,6 +337,51 @@ if [[ "$MODE" == "produced" ]]; then
   else
     # No examples/ dir at all — valid empty state for reference-project-less skills.
     echo "EXAMPLES_INDEX=PASS"
+  fi
+
+  # 10. FOUNDATIONS_INDEX (produced-skill mode only). When
+  #     references/foundations/*.md exists, references/foundations/index.md
+  #     must also exist AND reference every sibling foundation file by its
+  #     basename (sans .md). Per references/persist.md (Foundations split
+  #     rule), the index is co-required with per-file foundations — a partial
+  #     scaffold that writes foundation files without the index is the
+  #     failure mode this check surfaces immediately. Empty
+  #     references/foundations/ (no per-file *.md and no index.md) is a valid
+  #     empty state (no foundation URL was passed) and the check passes
+  #     silently. Mirrors EXAMPLES_INDEX exactly.
+  FOUNDATIONS_INDEX="$FOUNDATIONS_DIR/index.md"
+  if [[ -d "$FOUNDATIONS_DIR" ]]; then
+    FD_FILES=()
+    while IFS= read -r f; do
+      [[ -n "$f" ]] && FD_FILES+=("$f")
+    done < <(find "$FOUNDATIONS_DIR" -type f -name '*.md' -not -name 'index.md' 2>/dev/null | sort)
+
+    if [[ ${#FD_FILES[@]} -eq 0 ]]; then
+      # Empty foundations/ dir — valid empty state. Index presence is not required.
+      echo "FOUNDATIONS_INDEX=PASS"
+    elif [[ ! -f "$FOUNDATIONS_INDEX" ]]; then
+      echo "FOUNDATIONS_INDEX=FAIL"
+      echo "  references/foundations/ ships ${#FD_FILES[@]} foundation file(s) but references/foundations/index.md is missing — per references/persist.md (Foundations split rule), the index is co-required with per-file foundations"
+      FAILED=1
+    else
+      MISSING_FROM_FD_INDEX=()
+      for fd in "${FD_FILES[@]}"; do
+        basename_no_ext="$(basename "$fd" .md)"
+        if ! grep -qE "(\[${basename_no_ext}\]\(\.?/?${basename_no_ext}\.md\)|${basename_no_ext}\.md)" "$FOUNDATIONS_INDEX"; then
+          MISSING_FROM_FD_INDEX+=("${basename_no_ext}")
+        fi
+      done
+      if [[ ${#MISSING_FROM_FD_INDEX[@]} -eq 0 ]]; then
+        echo "FOUNDATIONS_INDEX=PASS"
+      else
+        echo "FOUNDATIONS_INDEX=FAIL"
+        echo "  references/foundations/index.md does not reference: ${MISSING_FROM_FD_INDEX[*]} — per references/persist.md (Foundations split rule), the index must list every sibling foundation file by basename"
+        FAILED=1
+      fi
+    fi
+  else
+    # No foundations/ dir at all — valid empty state for skills without a foundation URL.
+    echo "FOUNDATIONS_INDEX=PASS"
   fi
 
 fi  # end produced-mode checks

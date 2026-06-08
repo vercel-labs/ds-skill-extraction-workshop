@@ -12,7 +12,7 @@ Every source the user provides resolves to one of ten roles. Tag each one before
 - **`[example:project]`** — a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Authoritative for provider mount, globals CSS, font setup, and root-element HTML attributes. Phase 2 walks the framework auto-detection order (Vite `src/main.{jsx,tsx}` → Next.js App Router `app/layout.{tsx,jsx}` → Next.js Pages Router `pages/_app.{tsx,jsx}` → CRA `src/index.{jsx,tsx}`) and lifts the topmost provider + direct CSS imports + root-element attributes verbatim into the scratch file. See `references/reference-project.md` for the recipe, output contract, framework-adaptation note, and fallback rules. The skill carries no default reference project — the user chooses one because the choice signals which framework, which version, and which idioms the produced wiring should reflect.
 - **internal AGENTS/CLAUDE files** — instructions the DS team already wrote for agents. Treat as prior art. May contain rules to inherit, may contain rules that contradict current source — flag and verify.
 - **docs site** — narrative explanations, prose around examples. Authoritative for intent and headline rules. Pairs with code via joint-read. Cited, not extracted.
-- **docs:foundation** — a single prose foundations page on the DS docs site that gets EXTRACTED into `token/*` rules, not just cited. Distinct from generic `docs` in that its prose contracts (token-pairing, mode-aware behavior, contrast minimums, semantic-role rules, fallback-element styling) land as rule subsections in `references/tokens.md`. One URL per call (opt-in; omit entirely if the user did not point at a foundations page). Tagged `[docs:foundation]` in the sources line. See `references/foundation-extraction.md` for the five rule shapes and the per-rule subsection skeleton. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md` when one is in scope, or from the verbatim docs setup snippet as a fallback per `references/skill-template.md`.
+- **docs:foundation** — prose foundations pages on the DS docs site that get EXTRACTED into `token/*` rules, not just cited. Distinct from generic `docs` in that the prose contracts (token-pairing, mode-aware behavior, contrast minimums, semantic-role rules, fallback-element styling) land as per-rule subsections inside `references/foundations/<page>.md` — one file per accepted+crawled URL. **N URLs per call** (opt-in; omit entirely if the user did not point at any foundations page). Each accepted root URL is **crawled depth-1 within its path prefix** so the user names roots, not every sub-page. Tagged `[docs:foundation]` in the sources block, with one accepted-or-rejected line per input URL. See `references/foundation-extraction.md` for the five rule shapes, the per-rule subsection skeleton, and the per-URL iteration contract. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md` when one is in scope, or from the verbatim docs setup snippet as a fallback per `references/skill-template.md`.
 - **Storybook** — variant catalog with live examples. Authoritative for which combinations are sanctioned. Useful to spot props that exist in code but never appear in any story (likely deprecated).
 - **Figma** — design intent, naming, visual specs. Authoritative for token names and component taxonomy when the codebase trails the design.
 - **private / inaccessible** — soft blocker. Log, proceed, may become available later.
@@ -62,7 +62,16 @@ Render inline, not as a file. Every summary contains:
 - Components found (N), proposing (M) — bulleted, one line each (auto-discover output)
 - Tokens detected — one line summary (count + families, e.g. color/space/type/motion)
 - Assets detected — one line summary (omit entirely if none)
-- Foundation docs URL — one line, tagged `[docs:foundation]`, with the URL and a one-phrase summary of the page's coverage (e.g. "color usage + dark mode wiring"). Omit this line entirely if the user did not provide a foundation URL. One URL per call — never crawl, never multi-URL.
+- Foundation docs — one block tagged `[docs:foundation]`. Every URL the user passed gets its own line, accepted or rejected. Never silently drop a URL; either it lands in the accepted block with its crawl tree, or it lands in the rejected block with a one-phrase reason. Omit the block entirely if the user did not provide any foundation URL. Format:
+
+  ```
+  Foundation docs:
+  - accepted: <url-1> — crawled, found <N> sub-pages: <slug-a>, <slug-b>, ...
+  - accepted: <url-2> — crawled, found <M> sub-pages: <slug-c>, <slug-d>, ...
+  - rejected: <url-3> — <reason: unreachable | non-HTML | off-domain | depth-cap hit>
+  ```
+
+  Each accepted root is crawled depth-1 within its path prefix per the **Crawl rules** subsection below. The discovered tree surfaces here so the user can prune before Phase 2 proceeds.
 - Reference project — one line, tagged `[example:project]`, with the URL or local path, the auto-detected framework (`vite` / `next-app` / `next-pages` / `cra`), and the resolved root entry file (e.g. `<reference-project-url-or-path>` @ `<root-entry-file>` (`<framework>`)). Omit this line entirely if the user did not provide a reference project. See `references/reference-project.md` for the recipe Phase 2 will run against it.
 - Headline rule candidates (1-3) with `file:line` cites
 - Sources used — one line per input, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[example:project]` / `[storybook]` / `[private-blocker]`
@@ -70,7 +79,20 @@ Render inline, not as a file. Every summary contains:
 - Soft nudge — when `[example:project]` is missing AND a `[docs:foundation]` URL is in scope, surface a one-line informational nudge inside the discovery summary (not a blocker): *"No reference project provided; Phase 2 will fall back to the foundation-docs setup snippet. Strongly recommend a reference project for cleaner wiring extraction — see `references/reference-project.md`."* Omit when no foundation URL is in scope OR when a reference project IS provided.
 - Closing sentence asking the user to confirm or adjust
 
-Budget note: the foundation URL adds at most one line to the sources block and one line to the proposed summary. The reference-project line adds at most one line to each. The 30-line ceiling holds even with all four optional lines present (foundation, reference project, soft nudge, out-of-scope routing) — the worst case lands at 28 lines, inside the target.
+Budget note: the foundation block adds one accepted-or-rejected line per input URL plus one short crawl-tree segment per accepted root. Cap the per-root sub-page enumeration in the summary at 6 visible slugs followed by `+N more` so the 30-line ceiling holds even with 3 accepted roots × 12 crawled children each. The worst case (3 roots, each at the depth-1 cap, plus reference project, soft nudge, out-of-scope routing) still lands inside the 30-line target — the user reads the abbreviated tree here and the full enumeration lands in the Phase 2 proof-point line.
+
+### Crawl rules (depth-1, per accepted root)
+
+The agent runs this loop against every URL in the accepted block — never against the rejected block. This is agent work via `WebFetch`, not a separate script.
+
+1. **Fetch the root.** Run `WebFetch <accepted-root>` once. Parse `<a href>` tags from the returned markdown. Treat unreachable / non-HTML / off-domain responses as a hard reject at parse-time — surface the URL in the rejected block with the reason, do not crawl.
+2. **Filter by path prefix.** Keep only links whose URL begins with the same path prefix as the root. For root `<scheme>://<host>/foundations`, keep `<scheme>://<host>/foundations/<anything>`; drop `<scheme>://<host>/components/...`, drop external hostnames, drop `mailto:` / `#anchor-only` / `javascript:` schemes.
+3. **Deduplicate.** Drop the root URL itself and any URL already in the accepted set (from another root's crawl, or a sibling root the user passed explicitly).
+4. **Cap at 12 sub-pages per root.** If more than 12 survive the dedup, keep the first 12 in document order and emit a single `log()` line: `crawl truncated for <root>: kept 12 of <N>, dropped <list-of-dropped-slugs>`. Never silently truncate — the log line is the contract.
+5. **No recursion.** Depth-1 only. If a sub-page surfaces a useful grandchild, the user adds that grandchild's parent as another root in a follow-up invocation.
+6. **No cross-hostname follow.** If a sub-page link points at a different host than the root, drop it silently — cross-domain crawl is out of scope.
+
+The agent assembles the per-root sub-page list into the accepted line of the Foundation docs block (abbreviated to 6 + `+N more` per the budget note), then proceeds to the rest of the discovery summary. Phase 2 will iterate the full `accepted_roots ∪ crawled_sub_pages` set without re-fetching the roots — see `references/foundation-extraction.md`.
 
 ### Scope routing during discovery
 
@@ -111,21 +133,25 @@ No blockers. Storybook is public but not cloned - will fall back to docs site fo
 Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 ```
 
-### Worked example — same extraction with a foundation URL added (illustrative)
+### Worked example — same extraction with multiple foundation URLs + crawl (illustrative)
 
-Same illustrative target, with the user passing a foundation URL as an additional source. Only the diff from the example above is shown — the rest of the summary is unchanged.
+Same illustrative target, with the user passing two foundation root URLs + one URL the agent must reject. Only the diff from the baseline example is shown. The Foundation docs block reports one line per input URL, with the depth-1 crawl tree abbreviated per the budget note.
 
 ```
-Foundation docs: https://mantine.dev/styles/colors/ [docs:foundation] (color scales + dark-mode behavior + functional color tokens)
+Foundation docs:
+- accepted: https://mantine.dev/styles/colors/ [docs:foundation] — crawled, found 4 sub-pages: dark-mode, functional, primary, theme-object
+- accepted: https://ui.shadcn.com/docs/theming [docs:foundation] — crawled, found 3 sub-pages: dark-mode, css-variables, conventions
+- rejected: https://figma.com/file/abc/Mantine-Tokens [docs:foundation] — off-domain / non-HTML (Figma file, not a docs page)
 
 Sources used:
 - github.com/mantinedev/mantine @ v7.x [code, joint-read]
 - mantine.dev/core/button [docs]
-- mantine.dev/styles/colors/ [docs:foundation]
+- mantine.dev/styles/colors/ [docs:foundation] (+4 crawled)
+- ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
 - CHANGELOG.md [code]
 ```
 
-The foundation line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will WebFetch the URL and extract `token/*` rules per `references/foundation-extraction.md`; if no URL is provided, both lines are omitted entirely and Phase 2 behaves exactly as the baseline example above.
+Each accepted URL becomes its own file in the produced skill at `references/foundations/<slug>.md` (slug via the persist map — e.g. `colors`, `dark-mode`, `theming`, `css-variables`). The rejected URL is named and reasoned, never silently dropped. Phase 2 iterates the full accepted+crawled set per `references/foundation-extraction.md`. If no foundation URL is provided, the Foundation docs block is omitted entirely and Phase 2 behaves exactly as the baseline example above.
 
 ### Worked example — same extraction with a reference project added (illustrative)
 

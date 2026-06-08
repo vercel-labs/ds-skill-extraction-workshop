@@ -36,6 +36,11 @@ The validation gate at the end of Phase 2 is the only checkpoint. Past that gate
     ├── components/<name>.md      (per-component, if ≥10 components)
     │   OR components.md           (single file, if <10 components)
     ├── tokens.md                  (or per-family if >1 family)
+    ├── foundations/<page>.md      (one per accepted+crawled foundation URL;
+    │   OR (omitted)                omitted entirely when no foundation URL
+    │                               passed — see split rules)
+    ├── foundations/index.md       (sub-index of every foundations/<page>.md;
+    │   OR (omitted)                co-required with foundations/<page>.md)
     ├── examples/<name>.md         (one per composition exemplar lifted from
     │   OR (omitted)                the reference project; omitted entirely
     │                               when no exemplars exist — see split rules)
@@ -49,7 +54,22 @@ Apply the universal-coverage rule: every component file ships a Best Practices s
 Split rules:
 
 - Components: ≥10 components → one file per component under `references/components/`. <10 components → single `references/components.md` with one `## <ComponentName>` section per component.
-- Tokens: one family (e.g. color only) → single `references/tokens.md`. Multiple families → `references/tokens/<family>.md` per family (color, space, type, motion).
+- Tokens: one family (e.g. color only) → single `references/tokens.md`. Multiple families → `references/tokens/<family>.md` per family (color, space, type, motion). `references/tokens.md` holds per-token entries (name + value + family + use-when prose); prose-rule subsections from foundation pages move to `references/foundations/<page>.md` per the Foundations split rule below.
+- Foundations: one file per accepted+crawled foundation URL surfaced by the discovery crawl (see `references/foundation-extraction.md`, Per-URL iteration contract), plus an `index.md` sub-index. Basename derivation: apply the **slug map below** to the URL's last path segment; unmapped slugs fall through to the raw last segment. Basenames are derived from the URLs the user passed and CAN collide across runs against different DSes (rare; the scaffolder surfaces the colliding name in its output). When no foundation URL was passed, omit `references/foundations/` entirely — empty `references/foundations/index.md` is a worse failure mode than an absent directory. The slug map ships as part of the meta-skill at `scripts/scaffold.sh` (encoded as a bash case statement) and is documented as prose below so the agent can predict the destination filename before scaffolder time.
+
+  | URL last segment | Canonical filename |
+  |---|---|
+  | `color`, `color-usage`, `colors` | `colors.md` |
+  | `typography`, `type` | `typography.md` |
+  | `spacing`, `layout`, `space` | `spacing-layout.md` |
+  | `icons`, `iconography` | `icons.md` |
+  | `responsive`, `breakpoints` | `responsive.md` |
+  | `dark-mode`, `theming`, `theme`, `color-modes` | `theming.md` |
+  | `content`, `voice`, `tone` | (route OUT — copy skill; do not create the file) |
+  | (anything else) | raw last segment as `<segment>.md` |
+
+  The `content` / `voice` / `tone` row is a route-out, not a write — the scope guardrail still applies even when a foundations URL surfaces a copy/voice page. Surface the routed URL in the discovery summary as a sibling-copy-skill candidate and skip writing the foundation file.
+
 - Examples: one file per composition exemplar surfaced by the reference-project extraction (see `references/reference-project.md`, Composition exemplar extraction section), plus an `index.md` sub-index. Basename derivation lives in `scripts/scaffold.sh` (`app/<dir>/page.tsx → <dir>.md`, `app/page.tsx → home.md`, `components/showcase/<name>.tsx → <name>.md`). Basenames are derived from the reference project's filesystem and CAN collide across runs against different reference projects (rare, but possible — the scaffolder surfaces the colliding name in its output). When the reference project ships zero exemplars (or no reference project was passed), omit `references/examples/` entirely — empty `references/examples/index.md` is a worse failure mode than an absent directory.
 
 ## Closing message contract

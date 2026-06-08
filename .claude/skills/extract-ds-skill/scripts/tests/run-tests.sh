@@ -254,6 +254,49 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# Test 18: FOUNDATIONS_INDEX pass-fixture — produced skill ships 3 foundation
+# pages plus an index that references each by basename. Tally must PASS,
+# script must exit 0.
+assert "pass-multi-foundation-pages exits 0 with PASS tally" \
+  "$FIXTURES/pass-multi-foundation-pages/produced-skill" \
+  0 "FOUNDATIONS_INDEX=PASS"
+
+# Test 19: FOUNDATIONS_INDEX fail-fixture — produced skill ships 2 foundation
+# files but no index.md. Tally must FAIL, script must exit non-zero, and the
+# failure message must name the missing index path.
+assert "fail-missing-foundations-index exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-missing-foundations-index/produced-skill" \
+  1 "FOUNDATIONS_INDEX=FAIL" \
+  "references/foundations/index.md is missing"
+
+# Test 20: meta-mode skips FOUNDATIONS_INDEX entirely. The produced-mode-only
+# check must NOT emit the tally line when run against the meta-skill itself.
+if grep -qE '^FOUNDATIONS_INDEX=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit FOUNDATIONS_INDEX tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips FOUNDATIONS_INDEX"
+  PASS=$((PASS + 1))
+fi
+
+# Test 21: produced-mode emits FOUNDATIONS_INDEX even when
+# references/foundations/ is absent (re-use Test 4's on-the-fly produced
+# fixture — no foundations dir, so the check is a no-op PASS, but the tally
+# line MUST appear).
+if grep -qE '^FOUNDATIONS_INDEX=' <<<"$out_produced"; then
+  echo "PASS  produced-mode emits FOUNDATIONS_INDEX tally"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must emit FOUNDATIONS_INDEX tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]

@@ -1,6 +1,6 @@
 # Foundation extraction
 
-How to turn a single `[docs:foundation]` URL — a prose foundations page on a DS docs site (color usage, dark mode, theming, contrast, breakpoints, spacing scale) — into a set of `token/*` rules inside the extracted skill's `references/tokens.md`. Read this file once per Phase 2 extraction pass that includes a foundation URL. Re-read the Five foundation rule shapes section whenever a candidate rule resists classification.
+How to turn the `[docs:foundation]` URLs from Phase 1 (the accepted roots plus their depth-1 crawled sub-pages — see `references/discovery.md`, Crawl rules) — prose foundations pages on a DS docs site (color usage, dark mode, theming, contrast, breakpoints, spacing scale) — into a set of `token/*` rules inside the extracted skill, one file per source URL under `references/foundations/<slug>.md`. Read this file once per Phase 2 extraction pass that includes any foundation URL. Re-read the Five foundation rule shapes section whenever a candidate rule resists classification.
 
 Scope reminder before any extraction begins:
 
@@ -12,9 +12,25 @@ Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from f
 
 ## When to load this file
 
-Phase 2 only. Triggered when the Phase 1 discovery summary contains a source line tagged `[docs:foundation]`. If no foundation URL is in scope, skip this file entirely — `references/component-extraction.md` covers everything you need.
+Phase 2 only. Triggered when the Phase 1 discovery summary contains any source line tagged `[docs:foundation]`. If no foundation URL is in scope, skip this file entirely — `references/component-extraction.md` covers everything you need.
 
-WebFetch the URL once at the top of Phase 2, before instantiating any component probe. Cache the returned prose into a single string the extraction pass can re-read; do not re-fetch per rule.
+## Per-URL iteration contract
+
+Phase 1 already produced two sets: the accepted root URLs and the depth-1 sub-pages crawled per root. Phase 2 iterates the union, one file per URL, in document order:
+
+```
+for url in (accepted_roots ∪ crawled_sub_pages):
+    prose = WebFetch(url)                                      # cache the returned markdown
+    rules = extract_rules(prose, scope=foundation)             # apply Five rule shapes below
+    slug  = persist_slug_map(url)                              # see references/persist.md
+    write(.extract-ds-skill-scratch/foundations/<slug>.md)
+```
+
+Cache each WebFetch result for the duration of the file's extraction; do not re-fetch per rule. Do not re-fetch the accepted roots — Phase 1 already loaded them once for the crawl. Aim for one WebFetch per URL across the entire run.
+
+**One bad URL does not abort the run.** If `WebFetch(url)` fails (HTTP error, non-HTML response, timeout), write the file as a one-line stub `[VERIFY: WebFetch failed for <url>]` and continue to the next URL. The `[VERIFY]` marker rolls up into the Phase 2 proof-point tally. The user decides at the gate whether to drop the failing page from the produced skill, retry the run, or accept the gap.
+
+Each output file starts with a one-line `## What this covers` section whose first bullet summarizes the page in one phrase — the scaffolder lifts this bullet into `references/foundations/index.md` as the per-file description (mirrors the `## What to copy` convention used by `references/examples/`). Missing the section produces an `[VERIFY] no description` index line, not a hard fail.
 
 ---
 
@@ -109,7 +125,7 @@ Same two-marker rule as component extraction, with one addition specific to foun
 
 ## Per-rule subsection skeleton
 
-Every foundation rule extracted into `references/tokens.md` follows the same skeleton.
+Every foundation rule extracted into a `references/foundations/<page>.md` file follows the same skeleton. Multiple rules per file is the common case — a single foundations page (color usage, spacing) often covers 3-6 distinct rules across the five shapes below. The rules sit beneath the file's `## What this covers` opening section.
 
 ```markdown
 ### token/<slug>
@@ -141,7 +157,7 @@ If a page genuinely covers only one shape (e.g. a pure contrast-ratio reference)
 
 ## Cross-rule citation duplication
 
-Unlike component extraction (where the same rule lives in every reachable component file), foundation rules live in exactly one place — the relevant subsection of `references/tokens.md`. Do NOT duplicate a foundation rule into a component file. If a component file needs to reference a foundation rule, link to it: `[Dark-mode wiring](../tokens.md#token-screen-surface-dark-theme)`.
+Unlike component extraction (where the same rule lives in every reachable component file), foundation rules live in exactly one place — the relevant subsection inside the matching `references/foundations/<page>.md` file. Do NOT duplicate a foundation rule into a component file or across foundation files. If a component file needs to reference a foundation rule, link to it: `[Dark-mode wiring](../foundations/colors.md#token-screen-surface-dark-theme)` (or whichever foundations page hosts the rule).
 
 The reason foundation rules do not duplicate: the trap they prevent is screen-wide or surface-wide, not component-scoped. A token-pairing rule applies anywhere those tokens appear; pinning the rule to Button or to Banner would suggest the rule is component-scoped when it is not.
 
