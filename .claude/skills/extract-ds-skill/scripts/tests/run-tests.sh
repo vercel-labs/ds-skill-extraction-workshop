@@ -16,9 +16,11 @@ set -uo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 CHECK="$SKILL_DIR/check-skill-docs.sh"
+COVERAGE="$SKILL_DIR/check-token-coverage.sh"
 FIXTURES="$SCRIPT_DIR/fixtures"
 
 [[ -x "$CHECK" || -f "$CHECK" ]] || { echo "error: check script missing: $CHECK" >&2; exit 2; }
+[[ -x "$COVERAGE" || -f "$COVERAGE" ]] || { echo "error: coverage script missing: $COVERAGE" >&2; exit 2; }
 [[ -d "$FIXTURES" ]] || { echo "error: fixtures dir missing: $FIXTURES" >&2; exit 2; }
 
 PASS=0
@@ -296,6 +298,73 @@ else
   echo "  ---"
   FAIL=$((FAIL + 1))
 fi
+
+# ---------- check-token-coverage.sh fixtures ----------
+#
+# These exercise the standalone token-coverage script. Each fixture pairs a
+# fake DS package root (with token-defining CSS files under dist/css/) with
+# a fake produced-skill that consumes some var(--X) tokens. The script asserts
+# the lifted @import set covers every consumed token.
+
+# Run the coverage script against (ds-pkg, target) and assert exit code, tally,
+# and optional failure substring. Usage:
+#   assert_coverage <name> <ds-pkg> <target> <want-exit> <tally-grep> [fail-sub]
+assert_coverage() {
+  local name="$1" ds="$2" target="$3" want_exit="$4" tally="$5" fail_sub="${6:-}"
+  local out got_exit=0
+  out="$(bash "$COVERAGE" "$ds" "$target" 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qE "^${tally}$" <<<"$out"; then
+    err+=$'\n  tally line not found: '"$tally"
+  fi
+  if [[ -n "$fail_sub" ]] && ! grep -qF "$fail_sub" <<<"$out"; then
+    err+=$'\n  expected failure substring not found: '"$fail_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+# Test 22: primer-shaped-complete — the lifted @import set includes the file
+# that defines every consumed var(--X). TOKEN_COVERAGE must report PASS and
+# the script must exit 0.
+assert_coverage "primer-shaped-complete exits 0 with PASS tally" \
+  "$FIXTURES/primer-shaped-complete/ds-pkg" \
+  "$FIXTURES/primer-shaped-complete/produced-skill" \
+  0 "TOKEN_COVERAGE=PASS"
+
+# Test 23: primer-shaped-incomplete — the exemplar consumes --borderRadius-large
+# but the lifted @import set omits the radius.css file that defines it.
+# TOKEN_COVERAGE must report FAIL, exit non-zero, and the failure row must name
+# the consumed var, the defining @pkg path, and the "NOT imported" clause.
+assert_coverage "primer-shaped-incomplete exits non-zero with FAIL tally" \
+  "$FIXTURES/primer-shaped-incomplete/ds-pkg" \
+  "$FIXTURES/primer-shaped-incomplete/produced-skill" \
+  1 "TOKEN_COVERAGE=FAIL" \
+  "MISSING: --borderRadius-large consumed in"
+assert_coverage "primer-shaped-incomplete names the defining package path" \
+  "$FIXTURES/primer-shaped-incomplete/ds-pkg" \
+  "$FIXTURES/primer-shaped-incomplete/produced-skill" \
+  1 "TOKEN_COVERAGE=FAIL" \
+  "defined in @primer/primitives/dist/css/functional/size/radius.css, NOT imported by any lifted CSS file"
+
+# Test 24: tailwind-shaped — zero var(--X) consumption anywhere. The script
+# must NOOP cleanly and exit 0; no MISSING rows must appear.
+assert_coverage "tailwind-shaped exits 0 with NOOP tally" \
+  "$FIXTURES/tailwind-shaped/ds-pkg" \
+  "$FIXTURES/tailwind-shaped/produced-skill" \
+  0 "TOKEN_COVERAGE=NOOP"
 
 echo
 echo "PASSED=$PASS FAILED=$FAIL"

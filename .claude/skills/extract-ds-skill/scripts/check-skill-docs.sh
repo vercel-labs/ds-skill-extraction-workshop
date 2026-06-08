@@ -16,8 +16,23 @@
 
 set -euo pipefail
 
-[[ $# -ge 1 ]] || { echo "usage: check-skill-docs.sh <skill-path>" >&2; exit 2; }
-SKILL_PATH="${1%/}"
+usage() {
+  echo "usage: check-skill-docs.sh <skill-path> [--ds-package-root <path>]" >&2
+  exit 2
+}
+
+DS_PACKAGE_ROOT=""
+ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ds-package-root)   [[ -n "${2:-}" ]] || usage; DS_PACKAGE_ROOT="$2"; shift 2 ;;
+    --ds-package-root=*) DS_PACKAGE_ROOT="${1#*=}"; shift ;;
+    -h|--help)           usage ;;
+    *)                   ARGS+=("$1"); shift ;;
+  esac
+done
+[[ ${#ARGS[@]} -ge 1 ]] || usage
+SKILL_PATH="${ARGS[0]%/}"
 SKILL_MD="$SKILL_PATH/SKILL.md"
 [[ -d "$SKILL_PATH" ]] || { echo "error: skill path missing: $SKILL_PATH" >&2; exit 2; }
 [[ -f "$SKILL_MD" ]]   || { echo "error: SKILL.md missing: $SKILL_MD"   >&2; exit 2; }
@@ -382,6 +397,45 @@ if [[ "$MODE" == "produced" ]]; then
   else
     # No foundations/ dir at all — valid empty state for skills without a foundation URL.
     echo "FOUNDATIONS_INDEX=PASS"
+  fi
+
+  # 11. TOKEN_COVERAGE (produced-skill mode, opt-in via --ds-package-root). When
+  #     the caller passes --ds-package-root <path>, run check-token-coverage.sh
+  #     against this produced skill. The script collects every var(--X) consumed
+  #     in the produced code-block surfaces (Setup, examples/*.md Composition
+  #     (verbatim), components/*.md Composition examples) and asserts each
+  #     consumed token's defining file is @import'd by one of the lifted
+  #     Companion CSS blocks. When --ds-package-root is absent, the check NOOPs
+  #     — the DS package root is not derivable from the produced skill alone,
+  #     so the gate is opt-in. See references/anti-patterns.md Layer C
+  #     (wiring/css-prose-summary) and references/validate.md (Reference-project
+  #     extraction step 5) for the matching Phase 2 hard gate.
+  if [[ -n "$DS_PACKAGE_ROOT" ]]; then
+    COVERAGE_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/check-token-coverage.sh"
+    if [[ ! -f "$COVERAGE_SCRIPT" ]]; then
+      echo "TOKEN_COVERAGE=FAIL"
+      echo "  check-token-coverage.sh missing at $COVERAGE_SCRIPT"
+      FAILED=1
+    else
+      COVERAGE_EXIT=0
+      COVERAGE_OUT="$(bash "$COVERAGE_SCRIPT" "$DS_PACKAGE_ROOT" "$SKILL_PATH" 2>&1)" || COVERAGE_EXIT=$?
+      COVERAGE_TALLY="$(grep -E '^TOKEN_COVERAGE=' <<<"$COVERAGE_OUT" | tail -1 || true)"
+      # Surface the sub-script's TOKENS_* counters and MISSING rows as
+      # supplementary info, indented; the TOKEN_COVERAGE= tally is emitted
+      # separately at column 1 so callers grepping ^TOKEN_COVERAGE= find it.
+      # `|| true` absorbs grep's exit 1 when no non-tally lines exist (NOOP case).
+      { grep -vE '^TOKEN_COVERAGE=' <<<"$COVERAGE_OUT" | sed 's/^/  /'; } || true
+      if [[ -n "$COVERAGE_TALLY" ]]; then
+        echo "$COVERAGE_TALLY"
+      else
+        echo "TOKEN_COVERAGE=FAIL"
+        echo "  check-token-coverage.sh produced no TOKEN_COVERAGE= tally line (exit=$COVERAGE_EXIT)"
+        FAILED=1
+      fi
+      if [[ "$COVERAGE_EXIT" -ne 0 ]]; then FAILED=1; fi
+    fi
+  else
+    echo "TOKEN_COVERAGE=NOOP (--ds-package-root not provided)"
   fi
 
 fi  # end produced-mode checks

@@ -37,11 +37,15 @@ Runs only when the Phase 1 discovery summary contains a source line tagged `[exa
 Sequence:
 
 1. **Resolve the root entry file via framework auto-detection.** Walk the order documented in `references/reference-project.md` (Vite `src/main.{jsx,tsx}` → Next.js App Router `app/layout.{tsx,jsx}` → Next.js Pages Router `pages/_app.{tsx,jsx}` → CRA `src/index.{jsx,tsx}`). First hit wins. If none resolve, mark the wiring `[VERIFY: reference project root entry not auto-detected — extracting from <best-guess-path>]` and continue with the best-guess file.
-2. **Lift the wiring snippet verbatim.** Per the recipe in `references/reference-project.md`: topmost provider element, direct CSS imports, root-element HTML attributes (Next App Router lifts from `<html>` in the layout; Vite lifts from `index.html`), and any bonus composition wrapped inside the provider. Copy character-for-character; do not paraphrase, re-indent, or "tidy" import order.
+2. **Lift the wiring snippet verbatim.** Per the recipe in `references/reference-project.md` (Extraction recipe steps 1-5): topmost provider element, direct CSS imports, root-element HTML attributes (Next App Router lifts from `<html>` in the layout; Vite lifts from `index.html`), any bonus composition wrapped inside the provider, AND the verbatim full contents of every CSS file the entry file imports (recursive depth 3, scoped to the consumer-app source tree). Copy character-for-character; do not paraphrase, re-indent, or "tidy" import order.
 3. **Grep-resolve any CSS variable named inside the wiring.** When the lifted snippet references a CSS custom property (e.g. `var(--bgColor-default)` inside a `<BaseStyles>` style prop), run `grep -r "<var-name>" node_modules/<ds-package>/dist/css/` symmetric to the foundation-extraction step. Unresolved variables get `[VERIFY: <var-name> did not grep-resolve in installed package]` inline.
 4. **Stash extracted wiring in the scratch workspace.** Write to `.extract-ds-skill-scratch/wiring-extracted.md` per the output contract in `references/reference-project.md`. Phase 3 will materialize it into the produced `SKILL.md` Setup section.
+5. **Token-coverage hard gate.** Run `bash .claude/skills/extract-ds-skill/scripts/check-token-coverage.sh <ds-pkg-root> .extract-ds-skill-scratch/` (where `<ds-pkg-root>` is the DS package's resolved path from Phase 1 discovery — e.g. `node_modules/@primer/primitives/`). The script collects every `var(--X)` consumed in the code-block surfaces of the scratch (Setup, composition exemplars, component composition examples), locates each token's defining CSS file under `<ds-pkg-root>/dist/css/`, and asserts that file appears as an `@import` line in one of the lifted Companion CSS blocks. Three outcomes:
+   - **PASS** (`TOKEN_COVERAGE=PASS`, exit 0) — every consumed token resolves through a lifted `@import`. Proceed to the wait-for-approval gate.
+   - **NOOP** (`TOKEN_COVERAGE=NOOP`, exit 0) — zero `var(--X)` consumed (Tailwind-style apps). Proceed.
+   - **FAIL** (`TOKEN_COVERAGE=FAIL`, exit 1, per-var `MISSING: ...` rows on stdout) — the lifted `@import` set is incomplete. Block the wait-for-approval gate; surface the per-var report verbatim to the user. The user either accepts the gap (e.g. adds the missing `@import` lines to the scratch by hand and re-runs the gate) or loops back to discovery (e.g. picked the wrong reference project).
 
-The step writes to scratch only; no wiring lands in `.claude/skills/<slug>/` until Phase 3.
+The step writes to scratch only; no wiring lands in `.claude/skills/<slug>/` until Phase 3. The token-coverage gate is re-asserted in Phase 3 post-emit by `scripts/check-skill-docs.sh` check #11 `TOKEN_COVERAGE` (gated on `--ds-package-root`), so a hand-edited or re-extracted skill gets the same protection.
 
 ## Foundation-docs extraction step
 
@@ -65,10 +69,16 @@ The wait-gate proof point gains one line when a foundation URL is in scope, and 
 The reference-project line uses the format (placeholders):
 
 ```
-Wiring extracted from <reference-project>@<root-entry-file> (<framework>, N lines, M CSS imports verified)
+Wiring extracted from <reference-project>@<root-entry-file> (<framework>, N lines, K CSS files lifted, M tokens consumed, M covered)
 ```
 
-Where `<framework>` is one of `vite`, `next-app`, `next-pages`, `cra`, or `unknown` (when auto-detection failed). `N lines` is the lifted snippet length; `M CSS imports verified` is the count of grep-resolved CSS imports plus inline CSS variables in the snippet.
+Where `<framework>` is one of `vite`, `next-app`, `next-pages`, `cra`, or `unknown` (when auto-detection failed). `N lines` is the lifted entry-file snippet length. `K CSS files lifted` is the count of `## Companion CSS file (verbatim) — <path>` blocks in the scratch (`0` for entry files with no `import './X.css'` lines). `M tokens consumed` is the count of distinct `var(--X)` names the token-coverage gate found in the produced code-block surfaces; `M covered` is the count whose defining file appears as an `@import` line in one of the lifted CSS blocks. PASS means `consumed == covered`; FAIL means `covered < consumed` and the gate refused to proceed.
+
+The format follows the proof-point line with a tally line on the next line:
+
+```
+TOKEN_COVERAGE=PASS    (or TOKEN_COVERAGE=NOOP, or TOKEN_COVERAGE=FAIL with per-var MISSING rows above)
+```
 
 ### Worked example — Phase 2 proof-point with foundation URL and reference project in scope (illustrative)
 
@@ -80,7 +90,8 @@ Validation complete.
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
-- Wiring extracted from github.com/mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS import verified)
+- Wiring extracted from github.com/mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
+- TOKEN_COVERAGE=PASS
 - 0 hallucinations
 - 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
@@ -92,7 +103,7 @@ Approve to persist? (Reply "go" to write to .claude/skills/acme-ui/.)
 
 The foundation line is mandatory when a `[docs:foundation]` source was in scope, even if the extraction produced zero rules (empty foundation runs surface as `0 foundation-rules extracted (0 cited, 0 [VERIFY]) — URL may be wrong source`, which is a Phase 1 re-open signal not a Phase 2 approval signal). Without a foundation URL, omit the line entirely.
 
-The wiring line is mandatory when an `[example:project]` source was in scope. Omit when no reference project was supplied; the produced Setup section then falls back to the docs snippet (when a foundation URL is in scope) or is empty (when neither is in scope) per `references/reference-project.md`. When auto-detection failed, surface `framework=unknown` and the `[VERIFY]` marker from step 1 of the reference-project extraction step above.
+The wiring line is mandatory when an `[example:project]` source was in scope. Omit when no reference project was supplied; the produced Setup section then falls back to the docs snippet (when a foundation URL is in scope) or is empty (when neither is in scope) per `references/reference-project.md`. When auto-detection failed, surface `framework=unknown` and the `[VERIFY]` marker from step 1 of the reference-project extraction step above. The `TOKEN_COVERAGE=...` tally line immediately follows the wiring line whenever the wiring line is present; it is omitted only when no reference project was in scope.
 
 ## What the user is confirming
 

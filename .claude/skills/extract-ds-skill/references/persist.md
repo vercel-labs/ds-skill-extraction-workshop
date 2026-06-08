@@ -72,6 +72,14 @@ Split rules:
 
 - Examples: one file per composition exemplar surfaced by the reference-project extraction (see `references/reference-project.md`, Composition exemplar extraction section), plus an `index.md` sub-index. Basename derivation lives in `scripts/scaffold.sh` (`app/<dir>/page.tsx → <dir>.md`, `app/page.tsx → home.md`, `components/showcase/<name>.tsx → <name>.md`). Basenames are derived from the reference project's filesystem and CAN collide across runs against different reference projects (rare, but possible — the scaffolder surfaces the colliding name in its output). When the reference project ships zero exemplars (or no reference project was passed), omit `references/examples/` entirely — empty `references/examples/index.md` is a worse failure mode than an absent directory.
 
+## Companion CSS materialization
+
+When the Phase 2 scratch file `.extract-ds-skill-scratch/wiring-extracted.md` carries one or more `## Companion CSS file (verbatim) — <relative-path>` blocks (produced by step 5 of the Extraction recipe in `references/reference-project.md`), Phase 3 lifts each block verbatim into the produced `SKILL.md` Setup section as a `### Companion CSS — <relative-path>` subheading with a fenced CSS code block. Block order in Setup mirrors block order in scratch (depth-first, in `import` order).
+
+No companion CSS lands outside the Setup section — it does NOT get its own file under `references/foundations/`, `references/wiring/`, or anywhere else. The Setup section is the single contract surface for wiring; `references/foundations/<page>.md` documents rules, not wiring. The `wiring/css-prose-summary` Layer C anti-pattern (see `references/anti-patterns.md`) bans cross-referencing foundation files for "the verbatim CSS."
+
+When the scratch file carries zero `## Companion CSS file (verbatim)` blocks (entry files with no `import './X.css'` lines), Phase 3 emits no `### Companion CSS` subheadings — the Setup section ships the root-entry-file code block + (when applicable) the `### Foundation wiring` subheading + nothing else. Empty Companion CSS subheadings are forbidden.
+
 ## Closing message contract
 
 Tell the user the skill is saved, then show 2-3 example prompts to try. Make them screen- or product-level ("a settings page", "a pricing section"), not component shopping lists.

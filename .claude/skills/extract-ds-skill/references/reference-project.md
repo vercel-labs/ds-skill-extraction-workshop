@@ -45,6 +45,9 @@ Once the root entry file resolves, walk it top-to-bottom and lift the following 
 2. **Direct CSS imports.** Any `import './something.css'` or `import '<ds-package>/styles.css'` at the top of the entry file. Include each one verbatim with its quote style and path.
 3. **Root-element HTML attributes.** When the entry file is a Next App Router `layout.tsx`, also lift the `<html>` element's attributes (e.g. `lang="en"`, `data-color-mode="auto"`, `suppressHydrationWarning`, `className={fontVariables}`). When it is a Vite `main.tsx`, the root-element attributes live in `index.html` instead — read that file too and lift the attributes from the `<html>` and `<body>` tags there.
 4. **Bonus composition wrapped inside the provider.** Sometimes the application wraps additional elements between the provider and `{children}` — `<CSSReset />` (Chakra), `<CssBaseline />` (MUI), `<Notifications />` (Mantine), `<Toaster />` (shadcn), `<InitColorSchemeScript />` (MUI mode boot). Lift these too; they are part of the wiring contract.
+5. **Companion CSS files (verbatim contents, recursively).** For each `import './X.css'` line surfaced in step 2 — and each `import './Y.css'` line surfaced inside files lifted earlier in this step — resolve the path within the consumer-app source tree (`app/`, `src/`) and lift the resolved CSS file's **full contents** verbatim into the scratch workspace. Recurse depth 3. Stay inside the consumer-app tree: `@import "@pkg/..."` lines inside CSS files are NOT followed (their content lives under `node_modules/`) — they stay as paths, and `scripts/check-token-coverage.sh` is what validates that those `@pkg/...` imports cover every `var(--X)` the produced exemplars consume. Relative `@import "./Z.css"` lines inside lifted CSS files are followed using the same depth-3 budget. If recursion hits depth 3 with files unresolved, emit `[VERIFY: CSS import depth exceeded — manually review additional files at <paths>]` and continue.
+
+   The verbatim contents matter because the produced `SKILL.md` Setup section is the *only* place the downstream agent will see the wiring. Summarizing as prose ("imports the full token surface") is the failure mode the `wiring/css-prose-summary` anti-pattern bans — see `references/anti-patterns.md` Layer C. The downstream agent cannot reconstruct a 15-line `@import` block from a one-line summary.
 
 Anything below the provider tree (route-specific layout, conditional logic, error boundaries, analytics scripts) is application code, not wiring. Stop lifting at the first child element that is application-specific.
 
@@ -218,10 +221,24 @@ Write the lifted wiring to `.extract-ds-skill-scratch/wiring-extracted.md`. The 
 
 - `<attr-name>="<attr-value>"` on `<html>` / `<body>` (file:line)
 
+## Companion CSS file (verbatim) — <relative-path-from-consumer-app-root>
+
+```css
+<verbatim full contents of the resolved CSS file — no paraphrase, no truncation>
+```
+
+## Companion CSS file (verbatim) — <next-relative-path>
+
+```css
+<verbatim full contents of the next resolved CSS file>
+```
+
 ## Notes
 
 - <one line per non-obvious choice — e.g. "InitColorSchemeScript must precede ThemeProvider per upstream README">
 ```
+
+The `## Companion CSS file (verbatim) — <path>` block repeats once per CSS file lifted in step 5 of the Extraction recipe (the JS `import './X.css'` line in the entry file resolves to the first block; each further file the recursion surfaces gets its own block, in import order, depth-first). When the entry file imports zero CSS files, the block is omitted entirely — there is no "## Companion CSS file (verbatim)" placeholder with empty contents.
 
 Phase 3 uses this file as the verbatim source for the produced `SKILL.md` Setup section. Phase 3 does NOT re-read the reference project; the scratch file is the contract surface.
 
@@ -259,6 +276,7 @@ Symmetric to the rules in `references/foundation-extraction.md`. Apply to every 
 - **Unconfirmed provider element → drop the example.** If the entry file does NOT contain a JSX element whose name contains `Provider` or whose import path begins with `<ds-package>`, the reference project is not exercising the DS at the root — pick a different reference project or fall back to the docs snippet. Do not invent a provider that the entry file does not contain.
 - **Do not paraphrase the verbatim copy.** The wiring is lifted character-for-character. Reformatting indentation, dropping comments, or "tidying" the import order silently changes the contract surface. Phase 3 will re-format if needed; Phase 2's job is fidelity, not aesthetics.
 - **Do not pull wiring from files outside the entry-file chain.** A reference project may have a hundred files; the wiring is in the entry file (plus `index.html` for Vite). If a token value or theme object is imported from `<reference-project>/src/theme.ts`, link to that file — do not copy its contents into `wiring-extracted.md`. The Setup section is about HOW to wire, not WHAT the theme contains.
+- **Do not summarize Companion CSS files as prose.** The CSS files surfaced in step 5 of the Extraction recipe ship verbatim into `wiring-extracted.md` and Phase 3 lifts them verbatim into the produced `SKILL.md` Setup section. Never write "imports the full token surface" or "includes the size + typography + motion stack" in place of the actual `@import` lines. Never cross-ref to `references/foundations/<page>.md` for the "verbatim CSS" — foundation files document rules, not wiring. The rule is registered as `wiring/css-prose-summary` in `references/anti-patterns.md` Layer C; the produced-mode `check-skill-docs.sh` and the Phase 2 hard gate `check-token-coverage.sh` both enforce it.
 
 ---
 

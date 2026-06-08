@@ -1,6 +1,6 @@
-# Anti-patterns — two layers, one slug registry
+# Anti-patterns — three layers, one slug registry
 
-Anti-patterns live in two places because two different traps fire in two different scopes. A component-local trap belongs next to that component's API contract. A cross-cutting token-discipline trap belongs in one columnar table that every component file links back to. Duplication across layers is correctness, not noise — see `component-extraction.md` cross-component-rule-duplication.
+Anti-patterns live in three places because three different trap classes fire in three different scopes. A component-local trap belongs next to that component's API contract. A cross-cutting token-discipline trap belongs in one columnar table that every component file links back to. A meta-skill extraction-discipline trap belongs in this file too — those rules govern how the meta-skill produces the skill, not how the produced skill is used. Duplication across layers is correctness, not noise — see `component-extraction.md` cross-component-rule-duplication.
 
 In scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting. When you encounter a copy/naming/casing rule during extraction (e.g. "Title Case the label", "placeholder is action-oriented"), recognize it, route it - mention it in the discovery summary as a candidate for a sibling copy skill - but do NOT extract it into this DS skill.
 
@@ -71,18 +71,33 @@ A populated table for an illustrative extraction (substitute the user's DS token
 
 Repeating the same WHY clause across rows in the same axis is correct — the failure mode is genuinely the same. Do not paraphrase for variety.
 
+## Layer C — Meta-skill extraction discipline
+
+Layer A and Layer B describe rules the *produced* skill ships — guidance for the agent that USES the skill. Layer C describes rules the *meta-skill itself* obeys while producing a skill. They live in this file because the audit surface is the same (slug registry, `check-skill-docs.sh` enforcement), but the failure mode is upstream: a Layer C violation is the meta-skill shipping a broken produced skill, not the produced skill mis-guiding the agent.
+
+Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line naming the script and the gate. Slugs use the `wiring/` namespace (the only Layer C namespace today; more will be added when more meta-skill rules surface).
+
+### wiring/css-prose-summary
+
+Companion CSS files lifted from the reference project must ship verbatim in `SKILL.md` Setup under a `### Companion CSS — <relative-path>` subheading per lifted file. Never summarize as prose (e.g. "imports the full token surface", "includes the size + typography + motion stack"). Never cross-ref to `references/foundations/<page>.md` for the "verbatim CSS" — foundation files document rules, not wiring.
+
+**Why:** A downstream agent reading prose like "imports the full token surface" cannot reconstruct a 15-line `@import` block. The agent plausibly writes 6 lines; the missing 9 mean `var(--X)` tokens consumed by produced exemplars never resolve, and pages paint via the `var(--X, 12px)` literal fallbacks — visually plausible, factually drifting off the DS.
+
+**How to enforce:** Two gates. Phase 2 hard gate — `scripts/check-token-coverage.sh <ds-pkg-root> .extract-ds-skill-scratch/` runs at the end of the Reference-project extraction step in `references/validate.md`; failure blocks the wait-for-approval gate. Phase 3 post-emit — `scripts/check-skill-docs.sh` check #11 `TOKEN_COVERAGE` re-runs the same logic against the persisted skill when invoked with `--ds-package-root <path>`; without the flag, the check NOOPs and passes (the gate is opt-in for produced-mode because the DS package root is not derivable from the produced skill alone).
+
 ## Rule slug namespaces
 
-Every anti-pattern — Layer A or Layer B — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
+Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
 
-- `token/...` for token violations — examples: `token/hex-literal`, `token/ad-hoc-spacing`, `token/ad-hoc-font-size`, `token/ad-hoc-duration`, `token/ad-hoc-shadow`.
-- `component/...` for component-level rules — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`.
-- `asset/...` for asset violations — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
+- `token/...` for token violations (Layer B) — examples: `token/hex-literal`, `token/ad-hoc-spacing`, `token/ad-hoc-font-size`, `token/ad-hoc-duration`, `token/ad-hoc-shadow`.
+- `component/...` for component-level rules (Layer A) — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`.
+- `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
+- `wiring/...` for meta-skill extraction-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. These slugs fire against the meta-skill's own output, not against produced-skill usage.
 
 Slug grammar:
 
 - Lowercase, hyphen-separated.
-- Namespace prefix (`token/`, `component/`, `asset/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
+- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
 - One slug per concept. If the same trap fires in two component files, the slug is identical in both — the slug names the rule, not its location.
 - Slugs are stable. Renaming a slug breaks every finding that cites it, so renames go through `coverage-gaps.md` first.
 - Slugs are unique across the skill. Slug collisions are surfaced by `check-skill-docs.sh` and ASK the user to rename one (same convention as the persist-time slug-collision rule).
