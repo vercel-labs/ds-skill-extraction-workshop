@@ -61,6 +61,27 @@ claude
 If `pnpm install` finishes without errors and `claude --version` prints a
 version string, you are ready for Block 5.
 
+## Running
+
+**Launch flags.** Pin model + effort at shell; both override `settings.json`:
+
+```bash
+claude --model claude-opus-4-6 --effort medium
+```
+
+Effort: `low|medium|high|xhigh|max`. Mid-session: `/model <id>`, `/effort <level>`.
+
+**Fast mode.** No launch flag. `/fast` mid-session, or `"fastMode": true` in `.claude/settings.json`. Opus-only (4.6/4.7/4.8) — faster output, no model downgrade.
+
+**Resume between phases.** Phase 1 + 2 hard-stop at close. Resume in a fresh session — keyword names the *next* phase, path points at the prior handoff:
+
+```
+/extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/phase-1.md
+/extract-ds-skill persist:  .extract-ds-skill-scratch/handoffs/phase-2.md
+```
+
+`validate:` → Phase 2. `persist:` → Phase 3. No parameter = Phase 1 from scratch (no auto-pickup). Override hard-stop with `continue inline` to stay in one session.
+
 ## What ships in this repo
 
 - `ds/` — the design system wrappers and `DESIGN.md` (populated in Slice
