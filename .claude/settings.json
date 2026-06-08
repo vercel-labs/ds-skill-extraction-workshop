@@ -11,6 +11,8 @@
       "Bash(bash .claude/skills/extract-ds-skill/scripts/check-skill-docs.sh *)",
       "Bash(bash .claude/skills/do-work/scripts/*)",
       "Bash(bash .claude/skills/extract-ds-skill/scripts/*)",
+      "Bash(cd .claude/skills/extract-ds-skill && bash scripts/*)",
+      "Bash(cd .claude/skills/do-work && bash scripts/*)",
 
       "Bash(pnpm install *)",
       "Bash(pnpm install)",
@@ -87,15 +89,26 @@
       "Bash(git worktree list *)",
       "Bash(git worktree list)",
 
+      "Bash(gh api *)",
+      "Bash(gh repo view *)",
+      "Bash(gh release view *)",
+
       "WebSearch",
-      "WebFetch(domain:primer.style)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:vercel.com)",
-      "WebFetch(domain:nextjs.org)",
+      "WebFetch",
 
       "Read(//tmp/**)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+
+      "Read(node_modules/**)",
+      "Read(**/node_modules/@primer/**)",
+
+      "Read(.extract-ds-skill-scratch/**)",
+      "Write(.extract-ds-skill-scratch/**)",
+      "Edit(.extract-ds-skill-scratch/**)",
+
+      "Read(.claude/skills/**)",
+      "Write(.claude/skills/**)",
+      "Edit(.claude/skills/**)"
     ]
   }
 }
