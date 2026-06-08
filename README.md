@@ -73,14 +73,31 @@ Effort: `low|medium|high|xhigh|max`. Mid-session: `/model <id>`, `/effort <level
 
 **Fast mode.** No launch flag. `/fast` mid-session, or `"fastMode": true` in `.claude/settings.json`. Opus-only (4.6/4.7/4.8) — faster output, no model downgrade.
 
-**Resume between phases.** Phase 1 + 2 hard-stop at close. Resume in a fresh session — keyword names the *next* phase, path points at the prior handoff:
+**Phase 1 — Discovery.** Path to the DS source is mandatory. Bare `/extract-ds-skill` aborts with nothing to inspect:
+
+```
+/extract-ds-skill ./ds
+```
+
+Optional positional args after the source: foundation-docs URL(s), reference-project URL. Phase 1 hard-stops at close → writes `.extract-ds-skill-scratch/handoffs/phase-1.md` → exits.
+
+**Phase 2 — Validate.** Resume in a fresh session. Keyword + path are both mandatory:
 
 ```
 /extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/phase-1.md
-/extract-ds-skill persist:  .extract-ds-skill-scratch/handoffs/phase-2.md
 ```
 
-`validate:` → Phase 2. `persist:` → Phase 3. No parameter = Phase 1 from scratch (no auto-pickup). Override hard-stop with `continue inline` to stay in one session.
+Hard-stops at close → writes `phase-2.md` → exits.
+
+**Phase 3 — Persist.** Same shape, `persist:` keyword:
+
+```
+/extract-ds-skill persist: .extract-ds-skill-scratch/handoffs/phase-2.md
+```
+
+Writes the skill to `.claude/skills/<slug>/`. Done.
+
+**Rules.** Keyword names the *next* phase (`validate:` → Phase 2, `persist:` → Phase 3). No path = abort. No keyword = Phase 1 from scratch (no auto-pickup of leftover handoffs). Override hard-stop with `continue inline` to stay in one session.
 
 ## What ships in this repo
 
