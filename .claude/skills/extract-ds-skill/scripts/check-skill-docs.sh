@@ -594,12 +594,29 @@ if [[ "$MODE" == "meta" ]]; then
   fi
 
   # 10. HANDOFF_EMISSION (meta-skill self-mode only). The three-phase skill must
-  #     emit a handoff doc at each phase close so a fresh session can resume
-  #     after a context-window blow-out. SKILL.md carries the resume-detect
-  #     pre-checks at Phase 1 + Phase 2 entry and the handoff-write instructions
-  #     at each phase close; references/{discovery,validate,persist}.md each
-  #     carry the per-phase handoff template. This check guards against drift —
-  #     a future edit removing the prose silently breaks the resume path.
+  #     emit a handoff doc at each phase close AND hard-stop the session at the
+  #     Phase 1 and Phase 2 cutoffs so a fresh session can resume via the
+  #     explicit `validate:` / `persist:` parameter without burning context on
+  #     the prior phase. See references/anti-patterns.md state/handoff-skipped
+  #     and state/inline-phase-transition for the rule definitions, and
+  #     PRD-phase-cutoffs.md for the full contract.
+  #
+  #     Assertion shape (≈11 substring checks per PRD Change D, split into
+  #     ~14 micro-greps so failure messages name the missing thing directly):
+  #       (1-3) Handoff-write prose — phase-N.md mentioned in SKILL.md (one
+  #             check per phase).
+  #       (4-5) Hard-stop prose — Phase 1 and Phase 2 close sections each
+  #             contain EXIT + their resume keyword (validate: / persist:).
+  #             Section-scoped via awk so a stray "EXIT" elsewhere doesn't
+  #             mask a missing cutoff.
+  #       (6-7) Resume-parameter prose — `validate:` and `persist:` keywords
+  #             appear in SKILL.md (global, covers the "Resume from a prior
+  #             phase" top-of-skill section).
+  #       (8)   Dryrun-label derivation — `dryrun-NN` filename prefix pattern
+  #             AND the `.claude/worktrees/dryrun-` cwd-derivation reference
+  #             both appear in SKILL.md.
+  #       (9-11) Per-phase template headers in references/{discovery,validate,
+  #             persist}.md.
   #
   #     The SKILL.md portion fires only when SKILL.md carries the full
   #     three-phase structure (a Phase 1 section header is the proxy), so
@@ -610,23 +627,61 @@ if [[ "$MODE" == "meta" ]]; then
   HANDOFF_FAILS=()
   SM="$SKILL_PATH/SKILL.md"
   if [[ -f "$SM" ]] && grep -q "^## Phase 1: Discovery summary" "$SM"; then
-    # Two "Resume check first" pre-checks expected (Phase 1 entry + Phase 2 entry).
-    resume_count=$(grep -c "Resume check first" "$SM" 2>/dev/null || echo 0)
-    if [[ "$resume_count" -lt 2 ]]; then
-      HANDOFF_FAILS+=("SKILL.md|expected ≥2 'Resume check first' pre-checks (Phase 1 + Phase 2 entry), got $resume_count")
-    fi
-    # Phase 1 close + Phase 3 close handoff subsection headers.
-    for header in "Phase 1 close (handoff emission, mandatory)" "Phase 3 close (handoff emission, mandatory)"; do
-      if ! grep -qF "$header" "$SM"; then
-        HANDOFF_FAILS+=("SKILL.md|missing section '$header'")
+    # (1-3) Handoff-write prose: phase-N.md substring presence (one per phase).
+    for phaseN in 1 2 3; do
+      if ! grep -qF "phase-${phaseN}.md" "$SM"; then
+        HANDOFF_FAILS+=("SKILL.md|missing handoff-write reference 'phase-${phaseN}.md' — state/handoff-skipped")
       fi
     done
-    # Phase 2 close handoff-write instruction (inline prose, no subsection).
-    if ! grep -qF ".extract-ds-skill-scratch/handoffs/phase-2.md" "$SM"; then
-      HANDOFF_FAILS+=("SKILL.md|missing Phase 2 close handoff-write referencing .extract-ds-skill-scratch/handoffs/phase-2.md")
+
+    # (4) Hard-stop prose, Phase 1: section contains EXIT + validate:.
+    #     Section extracted via awk from "### Phase 1 close" to the next
+    #     heading of equal-or-higher level (## or ###).
+    p1_section=$(awk '/^### Phase 1 close/{flag=1; next} flag && /^(### |## )/{flag=0} flag' "$SM")
+    if [[ -z "$p1_section" ]]; then
+      HANDOFF_FAILS+=("SKILL.md|missing '### Phase 1 close' section — state/inline-phase-transition")
+    else
+      if ! grep -qF "EXIT" <<<"$p1_section"; then
+        HANDOFF_FAILS+=("SKILL.md|Phase 1 close section missing literal 'EXIT' cutoff token — state/inline-phase-transition")
+      fi
+      if ! grep -qF "validate:" <<<"$p1_section"; then
+        HANDOFF_FAILS+=("SKILL.md|Phase 1 close section missing 'validate:' resume keyword in cutoff message — state/inline-phase-transition")
+      fi
+    fi
+
+    # (5) Hard-stop prose, Phase 2: section contains EXIT + persist:.
+    p2_section=$(awk '/^### Phase 2 close/{flag=1; next} flag && /^(### |## )/{flag=0} flag' "$SM")
+    if [[ -z "$p2_section" ]]; then
+      HANDOFF_FAILS+=("SKILL.md|missing '### Phase 2 close' section — state/inline-phase-transition")
+    else
+      if ! grep -qF "EXIT" <<<"$p2_section"; then
+        HANDOFF_FAILS+=("SKILL.md|Phase 2 close section missing literal 'EXIT' cutoff token — state/inline-phase-transition")
+      fi
+      if ! grep -qF "persist:" <<<"$p2_section"; then
+        HANDOFF_FAILS+=("SKILL.md|Phase 2 close section missing 'persist:' resume keyword in cutoff message — state/inline-phase-transition")
+      fi
+    fi
+
+    # (6-7) Resume-parameter prose: validate: and persist: keywords appear
+    #       globally (covers the "Resume from a prior phase" top-of-skill
+    #       section, which describes the parameter shape itself).
+    if ! grep -qF "validate:" "$SM"; then
+      HANDOFF_FAILS+=("SKILL.md|missing 'validate:' resume keyword (Resume from a prior phase section) — state/inline-phase-transition")
+    fi
+    if ! grep -qF "persist:" "$SM"; then
+      HANDOFF_FAILS+=("SKILL.md|missing 'persist:' resume keyword (Resume from a prior phase section) — state/inline-phase-transition")
+    fi
+
+    # (8) Dryrun-label derivation: filename prefix pattern + cwd-derivation
+    #     reference. Both must appear so the label rules are documented.
+    if ! grep -qE "dryrun-[0-9]+" "$SM"; then
+      HANDOFF_FAILS+=("SKILL.md|missing 'dryrun-NN' filename-prefix pattern (Handoff filename labeling section) — state/handoff-skipped")
+    fi
+    if ! grep -qF ".claude/worktrees/dryrun-" "$SM"; then
+      HANDOFF_FAILS+=("SKILL.md|missing '.claude/worktrees/dryrun-' cwd-derivation reference — state/handoff-skipped")
     fi
   fi
-  # Per-phase template headers in the per-phase reference docs.
+  # (9-11) Per-phase template headers in the per-phase reference docs.
   for triple in "discovery.md|1" "validate.md|2" "persist.md|3"; do
     refname="${triple%%|*}"
     phaseN="${triple##*|}"
@@ -634,7 +689,7 @@ if [[ "$MODE" == "meta" ]]; then
     if [[ -f "$refpath" ]]; then
       header="## Handoff document — phase-${phaseN}.md template"
       if ! grep -qF "$header" "$refpath"; then
-        HANDOFF_FAILS+=("references/$refname|missing section '$header'")
+        HANDOFF_FAILS+=("references/$refname|missing section '$header' — state/handoff-skipped")
       fi
     fi
   done
@@ -646,7 +701,7 @@ if [[ "$MODE" == "meta" ]]; then
     for entry in "${HANDOFF_FAILS[@]}"; do
       file_part="${entry%%|*}"
       msg_part="${entry#*|}"
-      echo "  $file_part: $msg_part — see references/anti-patterns.md state/handoff-skipped"
+      echo "  $file_part: $msg_part"
     done
     FAILED=1
   fi

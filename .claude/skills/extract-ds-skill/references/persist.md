@@ -176,7 +176,7 @@ Then the conversation is done. Do NOT offer further actions; the user owns the n
 
 ## Handoff document — phase-3.md template
 
-After the closing message lands and the optional snapshot step resolves, write `.extract-ds-skill-scratch/handoffs/phase-3.md`. Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for **sibling agents** (demo runners, integration follow-ups, post-extraction reviewers), not for re-entering `/extract-ds-skill`. Apply the `/handoff` skill discipline: the sibling agent reads this brief, not a recap of the meta-skill or the produced skill's contents.
+After the closing message lands and the optional snapshot step resolves, write the phase-3 handoff. Resolve the filename per `SKILL.md` "Handoff filename labeling": under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-3.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-3.md`. Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for **sibling agents** (demo runners, integration follow-ups, post-extraction reviewers), not for re-entering `/extract-ds-skill`. Apply the `/handoff` skill discipline: the sibling agent reads this brief, not a recap of the meta-skill or the produced skill's contents.
 
 **Include (the as-shipped snapshot the sibling agent acts on):**
 
@@ -189,7 +189,7 @@ After the closing message lands and the optional snapshot step resolves, write `
   - `Run integration test <suite>` (if the consumer ships one)
   - `Snapshot to dry-runs/<date>-<label>/` (if not already done in the optional snapshot step above)
 - Dry-run snapshot status (`yes — written to dry-runs/<date>-<label>/`, `no — declined`, or `n/a — no dry-runs/ dir`)
-- Pickup prompt (one line: `Read .extract-ds-skill-scratch/handoffs/phase-3.md`) — NO `/extract-ds-skill` re-entry
+- Pickup prompt (one line: `Read .extract-ds-skill-scratch/handoffs/<resolved-filename>`, using the labeled filename verbatim) — NO `/extract-ds-skill` re-entry
 
 **Do NOT include:**
 
@@ -245,8 +245,8 @@ Exit code: 0.
 ## Pickup prompt (for the sibling agent)
 
 ```
-Read .extract-ds-skill-scratch/handoffs/phase-3.md
+Read .extract-ds-skill-scratch/handoffs/<resolved-filename>
 ```
 ```
 
-The template's role is to bound the shape, not the DS-specific contents. Fill the angle-bracketed placeholders from the closing message and the audit output; leave nothing as `<…>` in the written file. If a section is empty (e.g. zero `[VERIFY]` markers), state the empty state explicitly — don't omit the section.
+The template's role is to bound the shape, not the DS-specific contents. Fill the angle-bracketed placeholders from the closing message and the audit output; leave nothing as `<…>` in the written file. The `<resolved-filename>` in the pickup prompt is the labeled handoff filename per `SKILL.md` "Handoff filename labeling" (e.g. `dryrun-06-phase-3.md` under a `.claude/worktrees/dryrun-06/` cwd, or bare `phase-3.md` otherwise) — write the exact filename the handoff was saved as. If a section is empty (e.g. zero `[VERIFY]` markers), state the empty state explicitly — don't omit the section.

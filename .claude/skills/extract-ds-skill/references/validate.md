@@ -198,8 +198,18 @@ TOKEN_COVERAGE=<PASS|NOOP|FAIL> (consumed: <N>, covered: <M>)
 ## Pickup prompt (paste into the new session)
 
 ```
-/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-2.md
+/extract-ds-skill persist: .extract-ds-skill-scratch/handoffs/<resolved-filename>
 ```
 ```
 
-Re-write the handoff after each validate iteration — the proof-point and `[VERIFY]` tally drift between iterations, and a resumed session must see the LATEST state, not an earlier one.
+Re-write the handoff after each validate iteration — the proof-point and `[VERIFY]` tally drift between iterations, and a resumed session must see the LATEST state, not an earlier one. The `<resolved-filename>` in the pickup prompt is the labeled handoff filename per `SKILL.md` "Handoff filename labeling" (e.g. `dryrun-06-phase-2.md` under a `.claude/worktrees/dryrun-06/` cwd, or bare `phase-2.md` otherwise) — write the exact filename the handoff was saved as.
+
+### Resume entry — phase-2 → Phase 3
+
+When `/extract-ds-skill persist: <path>` is invoked, the skill performs the resume-entry procedure documented in `SKILL.md` "Resume from a prior phase" (read handoff, validate shape, cross-worktree label check, render summary, enter Phase 3). The one-line resume summary uses this exact format for phase-2 → Phase 3 resumes:
+
+```
+Resuming from phase-2 handoff — slug=<X>, scratch=<absolute-scratch-path>, <N> open [VERIFY] markers, TOKEN_COVERAGE=<PASS|NOOP|FAIL>
+```
+
+Substitute the values from the handoff's "Open [VERIFY] markers" section and the embedded `TOKEN_COVERAGE=...` line of the proof-point verbatim. After rendering the summary, if the handoff's status flag is `awaiting-approval`, surface the proof-point and the open `[VERIFY]` markers verbatim and ask `Approve to persist, or adjust?` — this is the same gate the prior session was at. On approval, enter Phase 3 directly (slug-collision check first, then scaffold per `references/persist.md`). If the handoff's status flag is already `approved` (the rare case where the prior session approved but exited before reaching Phase 3), enter Phase 3 directly without re-asking.

@@ -91,7 +91,15 @@ Each phase close MUST write `.extract-ds-skill-scratch/handoffs/phase-N.md` befo
 
 **Why:** Mid-extraction sessions are long. Phase 1 explores many sources; Phase 2 lifts CSS, mines tokens, fetches foundation docs, extracts component composition. By the Phase 2/3 gate, context-window blow-outs and accidental `/exit` are common. Without a handoff doc, the user's accepted decisions (slug, proposing set, `[VERIFY]` acceptances, headline rules) live ONLY in chat history — a fresh session re-enters Phase 1 from zero, wasting the explore-cost AND re-asking the user for confirmations they already gave. With the handoff, a new session reads the doc and resumes at the next phase boundary, skipping the recompute.
 
-**How to enforce:** `scripts/tests/run-tests.sh` runs a `HANDOFF_EMISSION` regex check that asserts (a) `SKILL.md` contains the three handoff-write instructions and the two resume-detect pre-checks, and (b) `references/discovery.md`, `references/validate.md`, and `references/persist.md` each contain a `## Handoff document — phase-N.md template` section header. `scripts/check-skill-docs.sh` meta-mode mirrors the same check, so the meta-skill self-audit catches drift if a future edit removes the handoff prose.
+**How to enforce:** `scripts/check-skill-docs.sh` meta-mode runs a `HANDOFF_EMISSION` regex check that asserts SKILL.md contains a handoff-write reference for each phase (`phase-1.md`, `phase-2.md`, `phase-3.md`), and that `references/discovery.md`, `references/validate.md`, and `references/persist.md` each contain a `## Handoff document — phase-N.md template` section header. `scripts/tests/run-tests.sh` exercises the same check against fixtures (Tests 26-29). Skipping the handoff write in any phase trips the per-phase substring assertion and the closing message points back at this rule.
+
+### state/inline-phase-transition
+
+After writing `.extract-ds-skill-scratch/handoffs/phase-1.md` (resp. `phase-2.md`), the meta-skill MUST print the cutoff message and EXIT the session. Do NOT enter the next phase inline in the same session. The only allowed inline transition is the user's explicit "continue inline" override at the cutoff gate. Phase 3 is exempt (it is terminal — there is no next phase to transition into).
+
+**Why:** The handoff doc exists to clear the context window between phases. A session that writes the handoff and then keeps running has spent disk bytes for zero context benefit: the chat is not dead, the user's decisions are still in scrollback, and Phase 2's heavier work (CSS lifting, WebFetch over foundation URLs, token grep-resolves) eats into context that should have been freed. The handoff helps only by accident — when the session does crash — and the named risk (context-window blow-out wasting Phase 1's explore-cost) is left unprotected during the most expensive phase. Skipping the handoff and writing-then-ignoring the handoff are siblings: both defeat the cutoff invariant.
+
+**How to enforce:** Same `HANDOFF_EMISSION` check as `state/handoff-skipped`. Phase 1 and Phase 2 close sections in SKILL.md must contain the literal `EXIT` token AND the next-phase resume keyword (`validate:` for Phase 1 close, `persist:` for Phase 2 close). The cutoff-message substring assertions guard against a future edit silently restoring inline transition.
 
 ## Rule slug namespaces
 
@@ -101,7 +109,7 @@ Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs 
 - `component/...` for component-level rules (Layer A) — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`.
 - `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
 - `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
-- `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`. Fire against the meta-skill's own session management (handoff emission, resume detection), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
+- `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
 
 Slug grammar:
 

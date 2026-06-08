@@ -15,11 +15,42 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 
 This scope block is quoted by downstream rules (Quick Triage step 1, Agent Stance bullet 3, Anti-fabrication "Do not" list, `references/component-extraction.md` Shape 3). Do not paraphrase or trim it when re-citing.
 
-The skill runs in three labeled phases. The single human gate sits at the boundary between Phase 2 and Phase 3. Phase 1 closes with a confirmation prompt; Phase 2 closes with an approval prompt; Phase 3 writes to disk.
+The skill runs in three labeled phases. The single human gate sits at the boundary between Phase 2 and Phase 3. Phase 1 closes with a confirmation prompt; Phase 2 closes with an approval prompt; Phase 3 writes to disk. Phase 1 and Phase 2 close with a hard stop (write handoff → cutoff message → EXIT); the user resumes in a FRESH Claude Code session via an explicit `validate:` / `persist:` resume parameter so the context window is cleared between phases.
+
+## Resume from a prior phase
+
+The skill recognizes two resume keywords parsed from the user's invocation. They are the only opt-in resume mechanism — there is NO file-existence auto-detection. A leftover handoff in `.extract-ds-skill-scratch/handoffs/` from a different DS extraction does NOT hijack a new run; the user resumes explicitly by naming the path.
+
+- `validate: <path-to-phase-1.md>` → skip Phase 1, read the handoff at the named path, enter Phase 2 directly.
+- `persist: <path-to-phase-2.md>` → skip Phase 2, read the handoff, enter Phase 3 directly.
+
+In both cases the path is mandatory. Invocations like `/extract-ds-skill validate:` (no path) abort with a clear error naming the missing argument.
+
+Resume entry procedure (run when either keyword is detected):
+
+1. Read the handoff file at the named path. If the file does not exist or is unreadable, abort with a clear error pointing at the path. NEVER silently fall back to Phase 1 from scratch — a silent fallback hides the fact that resume failed and produces "the user thinks they resumed; the agent runs from zero".
+2. Validate the handoff's shape minimally — the doc names a slug, a scratch directory path, and the phase it was written from. If the shape is invalid (e.g. the file is truncated, or names a phase that does not match the keyword's expected phase), abort with a clear error naming the offending file and the mismatch.
+3. Compare the handoff filename's dryrun-label prefix (if any) against the resuming session's cwd. If the handoff was written under one `dryrun-NN` worktree and the resuming session is in a different `dryrun-MM` worktree (or in no worktree), emit a one-line WARNING naming both numbers and continue. This is observability, not enforcement — the user may have intentionally moved a handoff across worktrees for debugging.
+4. Render a one-line resume summary back to the user. Format: `Resuming from phase-N handoff — slug=<X>, scratch=<path>, <phase-specific-detail>` (the per-phase detail is specified in `references/discovery.md` for phase-1 → Phase 2 resumes and `references/validate.md` for phase-2 → Phase 3 resumes).
+5. Enter the named phase directly. Do NOT render the prior phase's summary; do NOT re-ask the user for confirmations they already gave.
+
+If neither resume keyword is present in the invocation, run Phase 1 from scratch as today.
+
+## Handoff filename labeling
+
+Handoff filenames are prefixed with the dryrun version of the worktree they were written from, so cross-worktree mistakes are visible and parallel dryrun trials stay disambiguated even when they share a scratch location. The prefix is derived from the current working directory at handoff-write time.
+
+Derivation rules:
+
+1. Read cwd at the moment of handoff write.
+2. Match cwd against the regex `(.*/)?.claude/worktrees/dryrun-(\d+)(/|$)`.
+3. **If matched:** write to `.extract-ds-skill-scratch/handoffs/dryrun-<NN>-phase-<N>.md` (capture group 2 supplies the `<NN>`).
+4. **If not matched** (running from the repo root, or from a worktree with non-`dryrun-NN` naming): write to `.extract-ds-skill-scratch/handoffs/phase-<N>.md` (no prefix). The cutoff message mentions that no dryrun label was applied, so the user can rename manually if they intended one.
+5. The dryrun number is captured as plain digits — leading zeros are preserved if present in the worktree path (`dryrun-05` → `dryrun-05-phase-1.md`, not `dryrun-5-phase-1.md`).
+
+The label is observability, not enforcement — it makes cross-worktree mistakes visible (via the warning in resume entry step 3 above) but does NOT block them.
 
 ## Phase 1: Discovery summary
-
-**Resume check first.** Before running discovery, check whether `.extract-ds-skill-scratch/handoffs/phase-1.md` exists at the project root. If it does, read it instead of running discovery — a prior session captured the decisions. Render a one-line resume summary back to the user (`Resuming <slug> from phase-1 handoff — <N> components proposing, <K> foundation URLs accepted`) and enter Phase 2 directly. The convention is to resume in the same worktree where the handoff was written; if you are in a different worktree, the file will be absent and discovery proceeds normally. The handoff template lives in `references/discovery.md` (`## Handoff document — phase-1.md template`).
 
 Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, docs:foundation, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
 
@@ -66,13 +97,34 @@ No blockers. Confirm or adjust? (Reply "go" to accept defaults and begin extract
 
 ### Phase 1 close (handoff emission, mandatory)
 
-After the user confirms (with "go" or adjustments) and BEFORE entering Phase 2, run `mkdir -p .extract-ds-skill-scratch/handoffs/` and write `.extract-ds-skill-scratch/handoffs/phase-1.md` from the template in `references/discovery.md` (`## Handoff document — phase-1.md template`). The doc captures ONLY the decisions surfaced in the discovery summary — slug, ref project + entry, proposing set (as approved by the user), DS package versions + paths, accepted foundation URLs, the three headline rules verbatim with their `file:line` cites. Do NOT include the discovery exploration, the raw npm/curl/grep outputs, or the per-component deliberation — those are recoverable from the codebase and the meta-skill itself.
+After the user confirms (with "go" or adjustments), run `mkdir -p .extract-ds-skill-scratch/handoffs/` and write the phase-1 handoff from the template in `references/discovery.md` (`## Handoff document — phase-1.md template`). Resolve the handoff filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-1.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc captures ONLY the decisions surfaced in the discovery summary — slug, ref project + entry, proposing set (as approved by the user), DS package versions + paths, accepted foundation URLs, the three headline rules verbatim with their `file:line` cites. Do NOT include the discovery exploration, the raw npm/curl/grep outputs, or the per-component deliberation — those are recoverable from the codebase and the meta-skill itself.
 
-Tell the user once: `Phase 1 handoff written to .extract-ds-skill-scratch/handoffs/phase-1.md — a future session can resume from there if this one dies.` Then enter Phase 2.
+After the handoff is written, **print the cutoff message and EXIT**. Do NOT enter Phase 2 inline. The cutoff message uses the resolved labeled filename verbatim in both the "Handoff written to" line and the resume command:
+
+```
+Phase 1 complete. Handoff written to
+.extract-ds-skill-scratch/handoffs/<resolved-filename>.
+
+To enter Phase 2 (validation), start a FRESH Claude Code session in
+this same directory and run:
+
+    /extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/<resolved-filename>
+
+Starting fresh clears the context window so Phase 2's heavier work
+(reference-project CSS lifting, WebFetch over foundation URLs, token
+grep-resolves, exemplar lifts) has room to breathe. The handoff
+captures your decisions so the new session won't re-ask anything.
+
+If you'd rather continue in THIS session despite the context cost,
+reply "continue inline" and I'll enter Phase 2 here. Default is the
+fresh-session pickup.
+```
+
+When the handoff was written without a dryrun-label (cwd did not match `.claude/worktrees/dryrun-NN/`), append a one-line note to the cutoff message: `No dryrun label was applied (cwd is not under .claude/worktrees/dryrun-NN/). Rename the handoff manually if you intended a label.`
+
+The "continue inline" override is the only allowed inline transition out of Phase 1. The default is EXIT; the override is opt-in. Per `references/anti-patterns.md` `state/inline-phase-transition`, writing the handoff and then entering Phase 2 inline (without the override) defeats the cutoff and wastes the handoff.
 
 ## Phase 2: Validate the extraction in a scratch workspace
-
-**Resume check first.** Before running validation, check whether `.extract-ds-skill-scratch/handoffs/phase-2.md` exists. If it does, read it instead of running validation — a prior session completed Phase 2 and is waiting at the approval gate. Render a one-line resume summary (`Resuming <slug> from phase-2 handoff — proof-point: <verbatim line>, <N> open [VERIFY] markers`), surface the open `[VERIFY]` markers verbatim, and ask the user to approve or send back to iterate (same gate as if Phase 2 had just finished). On approval, enter Phase 3 directly. The handoff template lives in `references/validate.md` (`## Handoff document — phase-2.md template`).
 
 Triggered only after explicit user confirmation from Phase 1. Goal: prove the extraction grounds in real source before any file is written to `.claude/skills/<slug>/`. Everything in this phase lives in `.extract-ds-skill-scratch/` (local, gitignored). Nothing is written to `.claude/skills/<slug>/` yet - iteration is cheap and partial state never lands in the user's project.
 
@@ -84,9 +136,36 @@ If an `[example:project]` source is in scope from Phase 1, run the reference-pro
 
 The proof point surfaced before the gate is a single line of the form: "N props verified against source, M tokens grep-resolved, K assets grep-resolved, F foundation-rules extracted (X cited, Y `[VERIFY]`), 0 hallucinations" alongside any open `[VERIFY]` markers as a numbered tally. Omit the `F foundation-rules` segment when no `[docs:foundation]` URL was in scope. When a reference project IS in scope, append the wiring line (`Wiring extracted from <ref>@<entry> (<framework>, N lines, K CSS files lifted, M tokens consumed, M covered)`) and the `TOKEN_COVERAGE=PASS|NOOP|FAIL` tally line immediately after — see `references/validate.md` for the full proof-point format. If the tally is non-zero, the agent describes each unresolved marker and asks whether to drop the rule, escalate to a second-pass source read, or accept it as a known limitation.
 
-After the proof-point line is emitted (and any `[VERIFY]` tally is surfaced), BEFORE waiting for approval, write `.extract-ds-skill-scratch/handoffs/phase-2.md` from the template in `references/validate.md` (`## Handoff document — phase-2.md template`). The doc embeds the proof-point line verbatim, lists the scratch artefacts Phase 3 will materialize (`wiring-extracted.md`, `examples/*.md`, `foundations/*.md`, `tokens-extracted.md`), records the token-coverage tally, and notes each `[VERIFY]` marker with its user-acceptance status. Do NOT duplicate the lifted CSS or the extracted prose — those live on disk in scratch and the handoff references them by path. Re-write the handoff after each validate iteration (the proof-point and `[VERIFY]` tally drift between iterations).
+After the proof-point line is emitted (and any `[VERIFY]` tally is surfaced), BEFORE waiting for approval, write the phase-2 handoff from the template in `references/validate.md` (`## Handoff document — phase-2.md template`). Resolve the filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-2.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-2.md`. The doc embeds the proof-point line verbatim, lists the scratch artefacts Phase 3 will materialize (`wiring-extracted.md`, `examples/*.md`, `foundations/*.md`, `tokens-extracted.md`), records the token-coverage tally, and notes each `[VERIFY]` marker with its user-acceptance status. Do NOT duplicate the lifted CSS or the extracted prose — those live on disk in scratch and the handoff references them by path. Re-write the handoff after each validate iteration (the proof-point and `[VERIFY]` tally drift between iterations).
 
-Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval before Phase 3.
+Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval, then proceed to the Phase 2 close cutoff below.
+
+### Phase 2 close (handoff emission, mandatory)
+
+After the user approves the proof-point (the phase-2 handoff has already been written and re-written across iterations per the paragraph above), **print the cutoff message and EXIT**. Do NOT enter Phase 3 inline. The cutoff message uses the resolved labeled filename verbatim in both the "Handoff written to" line and the resume command:
+
+```
+Phase 2 complete. Handoff written to
+.extract-ds-skill-scratch/handoffs/<resolved-filename>.
+
+To enter Phase 3 (persist), start a FRESH Claude Code session in
+this same directory and run:
+
+    /extract-ds-skill persist: .extract-ds-skill-scratch/handoffs/<resolved-filename>
+
+Starting fresh clears the context window so Phase 3's slug-collision
+check, scaffolder write, and post-emit check-skill-docs.sh run have
+room to breathe. The handoff captures the proof-point and your
+[VERIFY] decisions so the new session won't re-validate or re-ask.
+
+If you'd rather continue in THIS session despite the context cost,
+reply "continue inline" and I'll enter Phase 3 here. Default is the
+fresh-session pickup.
+```
+
+When the handoff was written without a dryrun-label, append the same note as in Phase 1 close (`No dryrun label was applied (cwd is not under .claude/worktrees/dryrun-NN/). Rename the handoff manually if you intended a label.`).
+
+The "continue inline" override is the only allowed inline transition out of Phase 2. The default is EXIT. Per `references/anti-patterns.md` `state/inline-phase-transition`, writing the handoff and then entering Phase 3 inline (without the override) defeats the cutoff.
 
 ### Worked example — Phase 2 proof-point line (illustrative)
 
@@ -286,11 +365,11 @@ If the user replies "no" (or anything other than a label/yes), skip silently. Th
 
 ## Phase 3 close (handoff emission, mandatory)
 
-After the closing message lands and the optional snapshot step resolves (yes or no), write `.extract-ds-skill-scratch/handoffs/phase-3.md` from the template in `references/persist.md` (`## Handoff document — phase-3.md template`). Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for sibling agents (demo runners, integration follow-ups, post-extraction reviewers) to act on.
+After the closing message lands and the optional snapshot step resolves (yes or no), write the phase-3 handoff from the template in `references/persist.md` (`## Handoff document — phase-3.md template`). Resolve the filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-3.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-3.md`. Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for sibling agents (demo runners, integration follow-ups, post-extraction reviewers) to act on. There is no cutoff and no EXIT — the session ending here is natural (the work is done), not enforced by an invariant.
 
-The doc captures: the produced skill's absolute path, the `check-skill-docs.sh` tally, any remaining `[VERIFY]` markers from the closing message, and suggested follow-up actions for the sibling agent (typecheck the consumer app, render a demo, run integration tests against the produced skill). The pickup prompt is `Read .extract-ds-skill-scratch/handoffs/phase-3.md` — no `/extract-ds-skill` skill to re-enter, just a brief.
+The doc captures: the produced skill's absolute path, the `check-skill-docs.sh` tally, any remaining `[VERIFY]` markers from the closing message, and suggested follow-up actions for the sibling agent (typecheck the consumer app, render a demo, run integration tests against the produced skill). The pickup prompt is `Read .extract-ds-skill-scratch/handoffs/<resolved-filename>` — no `/extract-ds-skill` skill to re-enter, just a brief.
 
-Tell the user once: `Phase 3 handoff written to .extract-ds-skill-scratch/handoffs/phase-3.md — sibling agents (demo runner, integration tests) can pick up from there.`
+Tell the user once, using the resolved labeled filename verbatim: `Phase 3 handoff written to .extract-ds-skill-scratch/handoffs/<resolved-filename> — sibling agents (demo runner, integration tests) can pick up from there.`
 
 ## Slug-naming heuristics
 

@@ -225,8 +225,18 @@ _Written by /extract-ds-skill at <ISO date>. Read by the next session to skip di
 ## Pickup prompt (paste into the new session)
 
 ```
-/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-1.md
+/extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/<resolved-filename>
 ```
 ```
 
-The template's role is to bound the doc's shape, not its DS-specific contents. Fill the angle-bracketed placeholders from the discovery summary the user just confirmed; leave nothing as `<…>` in the written file.
+The template's role is to bound the doc's shape, not its DS-specific contents. Fill the angle-bracketed placeholders from the discovery summary the user just confirmed; leave nothing as `<…>` in the written file. The `<resolved-filename>` in the pickup prompt is the labeled handoff filename per `SKILL.md` "Handoff filename labeling" (e.g. `dryrun-06-phase-1.md` under a `.claude/worktrees/dryrun-06/` cwd, or bare `phase-1.md` otherwise) — write the exact filename the handoff was saved as, not the placeholder.
+
+### Resume entry — phase-1 → Phase 2
+
+When `/extract-ds-skill validate: <path>` is invoked, the skill performs the resume-entry procedure documented in `SKILL.md` "Resume from a prior phase" (read handoff, validate shape, cross-worktree label check, render summary, enter Phase 2). The one-line resume summary uses this exact format for phase-1 → Phase 2 resumes:
+
+```
+Resuming from phase-1 handoff — slug=<X>, scratch=<absolute-scratch-path>, <M> components proposing, <K> foundation URLs accepted
+```
+
+Substitute the values from the handoff's "Decisions" section verbatim. The `<M>` count comes from the proposing-set bullet list length; `<K>` comes from the foundation-docs bullet count (0 if no foundation URLs were accepted). After rendering the summary, enter Phase 2 directly — do NOT re-render the Phase 1 discovery summary, do NOT re-ask the user for the proposing set or the headline rules. Those are settled by the handoff.

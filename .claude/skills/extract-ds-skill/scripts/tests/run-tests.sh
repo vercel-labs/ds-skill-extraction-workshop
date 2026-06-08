@@ -399,6 +399,18 @@ assert "fail-handoff-emission exits non-zero with FAIL tally" \
   1 "HANDOFF_EMISSION=FAIL" \
   "state/handoff-skipped"
 
+# Test 29: fail-inline-phase-transition fixture — SKILL.md carries the
+# three-phase structure, the per-phase handoff-write prose (phase-N.md
+# mentions), and the dryrun-label labeling section, so the
+# state/handoff-skipped checks pass. What it lacks is the EXIT + validate:
+# / persist: cutoff prose in Phase 1/2 close and the resume-parameter
+# keywords globally. HANDOFF_EMISSION must report FAIL and the failure
+# messages must cite state/inline-phase-transition.
+assert "fail-inline-phase-transition exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-inline-phase-transition/extract-ds-skill" \
+  1 "HANDOFF_EMISSION=FAIL" \
+  "state/inline-phase-transition"
+
 # Test 28: pass-fixture (pass-no-hardcoded-paths) without three-phase structure
 # does NOT emit a HANDOFF_EMISSION tally — the SKILL.md portion is guarded on
 # "## Phase 1: Discovery summary" so minimal meta-mode fixtures skip the check
