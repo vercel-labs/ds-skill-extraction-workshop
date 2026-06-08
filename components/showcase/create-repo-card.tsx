@@ -1,8 +1,7 @@
 "use client";
 
-import { RepoIcon } from "@primer/octicons-react";
+import { MarkGithubIcon, RepoIcon } from "@primer/octicons-react";
 
-import { Avatar } from "@/ds/components/Avatar";
 import { Button } from "@/ds/components/Button";
 import { Checkbox } from "@/ds/components/Checkbox";
 import { Flash } from "@/ds/components/Flash";
@@ -26,12 +25,8 @@ export function CreateRepoCard() {
       }}
     >
       <Stack direction="vertical" gap="normal">
-        <Stack direction="horizontal" gap="normal" align="center">
-          <Avatar
-            src="https://avatars.githubusercontent.com/u/583231?v=4"
-            size={40}
-            alt="octocat"
-          />
+        <Stack direction="horizontal" gap="normal" align="start">
+          <MarkGithubIcon size={32} />
           <Stack direction="vertical" gap="condensed">
             <Stack direction="horizontal" gap="condensed" align="center">
               <RepoIcon />

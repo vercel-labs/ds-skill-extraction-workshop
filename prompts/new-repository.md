@@ -25,7 +25,6 @@ Use ONLY the components in `ds/components/`:
 
 **Form composition** (`create-repo-card.tsx`):
 
-- `Avatar` (header avatar beside the title)
 - `Flash` (account context callout — NOT `Banner`; use `variant="default"`)
 - `FormControl` (wraps every field; `required` on repository name)
 - `TextInput` (`block`, `leadingVisual={RepoIcon}`, placeholder `awesome-project`)
@@ -38,6 +37,7 @@ Use ONLY the components in `ds/components/`:
 
 - `PlusIcon`, `DownloadIcon`, `TrashIcon`, `GitBranchIcon`, `HeartIcon` (showcase)
 - `RepoIcon` (repository name `leadingVisual` and card title)
+- `MarkGithubIcon` (card header mark — `size={20}`)
 
 File structure:
 
@@ -61,7 +61,7 @@ Requirements:
 **Composition section** (`create-repo-card.tsx`):
 
 - Card surface: a token-styled `<div>` with `backgroundColor: var(--bgColor-default)`, `border: 1px solid var(--borderColor-default)`, `borderRadius: var(--borderRadius-large)`, `boxShadow: var(--shadow-resting-medium)` — not hand-tuned px colours.
-- **Header:** horizontal `Stack` with `Avatar` (40px, octocat URL from reference) beside a vertical `Stack` containing `RepoIcon` + `Heading` "Create a new repository" and muted `Text` subtitle.
+- **Header:** horizontal `Stack` with `MarkGithubIcon size={20}` beside a vertical `Stack` containing `RepoIcon` + `Heading` "Create a new repository" and muted `Text` subtitle.
 - **Info callout:** `<Flash variant="default">You are creating this repository in your personal account.</Flash>`.
 - **Repository name:** `FormControl required` → `FormControl.Label`, `TextInput block leadingVisual={RepoIcon}`, `FormControl.Caption` help text.
 - **Description:** `FormControl` → `Textarea block rows={3} placeholder="Optional description" resize="vertical"`.
@@ -99,7 +99,7 @@ Phase 2 targets the create-repository surface, not the issues list. The wrapper 
 | `Stack`, `Heading`, `Text` | Page layout and section chrome |
 | `Button`, `IconButton` | Showcase buttons + form footer |
 | `Label`, `CounterLabel` | Showcase pills and counters |
-| `Avatar` | Card header |
+| `Avatar` | (unused this screen — card header uses the `MarkGithubIcon` octicon) |
 | `Flash` | Account context callout (not `Banner`) |
 | `FormControl` | Wraps every field |
 | `TextInput`, `Textarea`, `Select`, `Checkbox` | Form fields |
@@ -108,6 +108,6 @@ Each wrapper ships as `ds/components/<Name>.tsx`. Headline rules live in `*.docs
 
 **Not wrapped** (import directly):
 
-- `@primer/octicons-react` — `PlusIcon`, `DownloadIcon`, `TrashIcon`, `GitBranchIcon`, `HeartIcon`, `RepoIcon`
+- `@primer/octicons-react` — `PlusIcon`, `DownloadIcon`, `TrashIcon`, `GitBranchIcon`, `HeartIcon`, `RepoIcon`, `MarkGithubIcon`
 
 Re-run `extract-ds-skill` against the updated `ds/components/` before Phase 2 so `.claude/skills/ds/` reflects the new inventory.
