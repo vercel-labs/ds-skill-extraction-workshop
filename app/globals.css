@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+html,
+body {
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+  min-height: 100%;
+}

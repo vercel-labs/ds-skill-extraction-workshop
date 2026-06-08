@@ -1,5 +1,5 @@
 import "./globals.css";
-import "@primer/primitives/dist/css/functional/themes/dark.css";
+import "@primer/primitives/dist/css/functional/themes/light.css";
 import "@primer/primitives/dist/css/functional/size/size.css";
 import "@primer/primitives/dist/css/functional/typography/typography.css";
 
@@ -10,8 +10,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      data-color-mode="dark"
-      data-dark-theme="dark"
+      data-color-mode="light"
+      data-light-theme="light"
       suppressHydrationWarning
     >
       <body>
