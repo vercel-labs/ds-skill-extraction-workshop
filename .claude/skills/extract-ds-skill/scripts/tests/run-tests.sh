@@ -446,6 +446,14 @@ else
   PASS=$((PASS + 1))
 fi
 
+# Test 29: reexport-tier-present fixture — produced skill carrying the new
+# `## Other re-exports` section in components.md must pass the post-emit shape
+# check. Locks the Change-D-part-2 contract from PRD-extraction-completeness:
+# a populated re-export tier is a valid shape, not a regression.
+assert "reexport-tier-present fixture passes shape checks" \
+  "$FIXTURES/reexport-tier-present/produced-skill" \
+  0 "CHECK_RESULT=PASS"
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]

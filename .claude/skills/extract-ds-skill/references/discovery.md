@@ -181,6 +181,7 @@ Phase 1 closes by writing `.extract-ds-skill-scratch/handoffs/phase-1.md`. The d
 - DS package names, versions, and `node_modules/` paths (resolved during inspection)
 - Foundation URLs accepted, with the depth-1 crawl tree per accepted root
 - The 1-3 headline rule candidates VERBATIM with their `file:line` cites
+- Re-exports outside the proposing set (one line per wrapper file under `ds/components/*.tsx` that was NOT included in the proposing set) — filename + the upstream symbol it re-exports, derived from the wrapper's `import { Foo as DSFoo } from '<package>'` statement. Omitted entirely when the proposing set covers every wrapper.
 - cwd convention reminder ("if this resumed session is not in `.claude/worktrees/dryrun-NN/`, the dry-run worktree where the handoff was written, ask the user where to land outputs")
 - Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-1.md`)
 
@@ -216,6 +217,16 @@ _Written by /extract-ds-skill at <ISO date>. Read by the next session to skip di
   1. "<rule-1>" (`<file>:<line>`)
   2. "<rule-2>" (`<file>:<line>`)
   3. "<rule-3>" (`<file>:<line>`)
+
+## Re-exports outside proposing set
+
+<N> thin re-exports (`ds/components/*.tsx` minus the proposing set above). Phase 3 materializes these as the `## Other re-exports` section per `references/persist.md`:
+
+- `<wrapper-file-1>.tsx` — re-exports `<UpstreamSymbol1>` from `<package-1>`
+- `<wrapper-file-2>.tsx` — re-exports `<UpstreamSymbol2>` from `<package-2>`
+- …
+
+(Omit this entire section — heading and all — when every wrapper is in the proposing set. An empty `## Re-exports outside proposing set` heading is forbidden.)
 
 ## Resume context
 

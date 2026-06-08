@@ -705,6 +705,46 @@ if [[ "$MODE" == "meta" ]]; then
     done
     FAILED=1
   fi
+
+  # 12. SHAPE_7_PRESENT (meta-skill self-mode only). The seventh Geist rule
+  #     shape (Anti-substitution) must appear as a section in
+  #     references/component-extraction.md. Without it, source prose like
+  #     "use X, not Y" or "experimental Y reserved for..." falls through the
+  #     first six shapes and is silently dropped during Phase 2 rule
+  #     extraction — the defect documented by the
+  #     component/anti-substitution-dropped Layer C slug in anti-patterns.md.
+  #
+  #     Guarded on the file's presence so partial meta-mode test fixtures
+  #     (which ship only SKILL.md) skip the check rather than fail it. The
+  #     check IS unconditional against the live meta-skill, which always
+  #     ships references/component-extraction.md.
+  COMP_EXTRACTION="$SKILL_PATH/references/component-extraction.md"
+  if [[ -f "$COMP_EXTRACTION" ]]; then
+    if grep -qE '^### Shape 7 — Anti-substitution' "$COMP_EXTRACTION"; then
+      echo "SHAPE_7_PRESENT=PASS"
+    else
+      echo "SHAPE_7_PRESENT=FAIL"
+      echo "  references/component-extraction.md: missing '### Shape 7 — Anti-substitution' section — anti-substitution prose ('use X, not Y') would fall through the six existing shapes and drop during Phase 2 extraction"
+      FAILED=1
+    fi
+  fi
+
+  # 13. OTHER_REEXPORTS_CONTRACT (meta-skill self-mode only). The produced
+  #     skill template must document the '## Other re-exports' section as a
+  #     required-section bullet, so Phase 3 materializes the unannotated
+  #     re-export tier surfaced by the Phase 1 discovery handoff. Absence
+  #     trips the component/reexport-tier-invisible Layer C slug. Same
+  #     partial-skeleton-skip posture as SHAPE_7_PRESENT above.
+  SKILL_TEMPLATE="$SKILL_PATH/references/skill-template.md"
+  if [[ -f "$SKILL_TEMPLATE" ]]; then
+    if grep -qE '^- \*\*Other re-exports\*\*' "$SKILL_TEMPLATE"; then
+      echo "OTHER_REEXPORTS_CONTRACT=PASS"
+    else
+      echo "OTHER_REEXPORTS_CONTRACT=FAIL"
+      echo "  references/skill-template.md: missing '- **Other re-exports**' required-section bullet — re-exports outside the proposing set would disappear from the produced components.md (component/reexport-tier-invisible)"
+      FAILED=1
+    fi
+  fi
 fi
 
 if [[ $FAILED -eq 0 ]]; then echo "CHECK_RESULT=PASS"; exit 0

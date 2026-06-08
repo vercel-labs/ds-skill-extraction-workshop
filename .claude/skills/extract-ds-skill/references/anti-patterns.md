@@ -101,12 +101,28 @@ After writing `.extract-ds-skill-scratch/handoffs/phase-1.md` (resp. `phase-2.md
 
 **How to enforce:** Same `HANDOFF_EMISSION` check as `state/handoff-skipped`. Phase 1 and Phase 2 close sections in SKILL.md must contain the literal `EXIT` token AND the next-phase resume keyword (`validate:` for Phase 1 close, `persist:` for Phase 2 close). The cutoff-message substring assertions guard against a future edit silently restoring inline transition.
 
+### component/anti-substitution-dropped
+
+Anti-substitution prose ("use X, not Y", "experimental Y reserved for...", "prefer X over Y") in source documentation must land in the produced skill as a Shape 7 warning under the IN-SCOPE component's reference file. The warning lands on the trap target (the in-scope component), not on the out-of-set peer the source names — readers reach for the trap target, so that is where the guardrail must fire.
+
+**Why:** Anti-substitution sentences silently fall through Shapes 1-6 (none of the existing six rule shapes matches "use X, not Y" prose). The rule reads as a non-rule and is dropped during Phase 2 rule extraction, surfacing in the produced skill as a missing guardrail. Downstream agents then route to the out-of-set peer because nothing told them not to — the exact failure mode the source author tried to prevent.
+
+**How to apply:** Phase 2 self-audit during component extraction. When source carries Shape 7 trigger vocabulary (the "Anti-substitution prose" heuristic in `references/component-extraction.md`) but no Shape 7 warning landed in the produced reference file, re-classify the prose per Shape 7 and append the warning before persist. No deterministic script gate — Layer C, warn-only.
+
+### component/reexport-tier-invisible
+
+Re-exports outside the proposing set (`ds/components/*.tsx` minus the user-confirmed proposing set) must materialize in the produced skill as a `## Other re-exports` section per `references/skill-template.md` + `references/persist.md`. The section ships even when it contains one entry — its absence reads as "every wrapper is in the proposing set," which is a different claim than "the wrappers exist but live under their upstream types."
+
+**Why:** Phase 1's discovery handoff enumerates re-exports outside the proposing set under `## Re-exports outside proposing set` (per `references/discovery.md`), but no Phase 2 → Phase 3 step materializes the unannotated tier. Without the `## Other re-exports` section in the produced `components.md` (or `_other-reexports.md` in per-file mode), downstream agents asking for a wrapper not in the routing table find nothing — the wrapper is invisible to the skill even though it exists in the DS.
+
+**How to apply:** Phase 3 self-audit during persist. When the Phase 1 handoff carries an `## Re-exports outside proposing set` section with one or more entries but the produced `components.md` (or `_other-reexports.md`) has no `## Other re-exports` section, materialize the section per `references/persist.md` Persist-map "Other re-exports" bullet before closing. No deterministic script gate — Layer C, warn-only. The closing-message tally surfaces the count (`M re-exports under Other re-exports`) so a zero-where-handoff-was-nonzero reads as a missed materialization.
+
 ## Rule slug namespaces
 
 Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
 
 - `token/...` for token violations (Layer B) — examples: `token/hex-literal`, `token/ad-hoc-spacing`, `token/ad-hoc-font-size`, `token/ad-hoc-duration`, `token/ad-hoc-shadow`.
-- `component/...` for component-level rules (Layer A) — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`.
+- `component/...` for component-level rules (mostly Layer A) — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`. Layer C `component/...` slugs also exist for meta-skill extraction-completeness discipline that fires per-component (e.g. `component/anti-substitution-dropped`, `component/reexport-tier-invisible`) — the Layer is named in each slug's subsection body, not in the namespace.
 - `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
 - `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
 - `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.

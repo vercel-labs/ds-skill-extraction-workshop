@@ -54,6 +54,7 @@ Apply the universal-coverage rule: every component file ships a Best Practices s
 Split rules:
 
 - Components: ≥10 components → one file per component under `references/components/`. <10 components → single `references/components.md` with one `## <ComponentName>` section per component.
+- Other re-exports: if the Phase 1 discovery handoff surfaced re-exports outside the proposing set (the `N thin re-exports` line under `## Re-exports outside proposing set`), materialize the `## Other re-exports` section per `references/skill-template.md`. The source list is the discovery handoff's enumeration of wrapper files (`ds/components/*.tsx` minus the proposing set). For each unannotated wrapper, read the wrapper file to extract the upstream import (typical shape: `import { Foo as DSFoo } from '<package>'`), then point at `<package>/dist/<Foo>/types.d.ts` (or equivalent — derive the upstream types path from the wrapper's import statement, do not assume `dist/`). Destination follows the components split: per-file mode writes `references/components/_other-reexports.md`; single-file mode writes a `## Other re-exports` section at the bottom of `references/components.md`. Omit the section entirely when the proposing set covers every wrapper — no empty heading.
 - Tokens: one family (e.g. color only) → single `references/tokens.md`. Multiple families → `references/tokens/<family>.md` per family (color, space, type, motion). `references/tokens.md` holds per-token entries (name + value + family + use-when prose); prose-rule subsections from foundation pages move to `references/foundations/<page>.md` per the Foundations split rule below.
 - Foundations: one file per accepted+crawled foundation URL surfaced by the discovery crawl (see `references/foundation-extraction.md`, Per-URL iteration contract), plus an `index.md` sub-index. Basename derivation: apply the **slug map below** to the URL's last path segment; unmapped slugs fall through to the raw last segment. Basenames are derived from the URLs the user passed and CAN collide across runs against different DSes (rare; the scaffolder surfaces the colliding name in its output). When no foundation URL was passed, omit `references/foundations/` entirely — empty `references/foundations/index.md` is a worse failure mode than an absent directory. The slug map ships as part of the meta-skill at `scripts/scaffold.sh` (encoded as a bash case statement) and is documented as prose below so the agent can predict the destination filename before scaffolder time.
 
@@ -89,11 +90,15 @@ Template:
 ```
 Skill saved as `<slug>` at `<persist-target>/<slug>/`.
 
+Persisted N components in the proposing set, M re-exports under Other re-exports, K rules total, J `[VERIFY]` markers.
+
 Try it:
 - "Build a <screen-level prompt 1>"
 - "Create a <screen-level prompt 2>"
 - "Design a <screen-level prompt 3>"
 ```
+
+The tally's `M re-exports under Other re-exports` segment is omitted when no `## Other re-exports` section was materialized (proposing set covered every wrapper). When present, M is the count of one-line entries written into that section per the Persist map's "Other re-exports" bullet above.
 
 Screen-level prompts force the agent to compose multiple components against real layout constraints. Component shopping lists ("show me a Button") prove nothing the validation gate did not already prove.
 

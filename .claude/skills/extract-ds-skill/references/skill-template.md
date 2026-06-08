@@ -77,9 +77,16 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   | <route-a>: <one-line summary> | references/examples/<route-a>.md | composition exemplar lifted from <reference-project>/app/<route-a>/page.tsx |
   | <route-b>: <one-line summary> | references/examples/<route-b>.md | composition exemplar lifted from <reference-project>/app/<route-b>/page.tsx |
   | <showcase-name>: <one-line summary> | references/examples/<showcase-name>.md | composition exemplar lifted from <reference-project>/components/showcase/<showcase-name>.tsx |
+  | user asks for a component not in the routing table above | references/components.md `## Other re-exports` (single-file) OR references/components/_other-reexports.md (per-file) | thin wrappers — props live in the upstream types file named under each entry |
   ```
 
   A reference project that ships zero exemplars omits all five exemplar rows; the routing table carries only the per-component rows.
+- **Other re-exports** — when the source DS wraps and re-exports more components than the proposing set, list the unannotated wrappers under this section in `references/components.md` (single-file mode) or in `references/components/_other-reexports.md` (per-file mode, ≥10 proposing components). One line per re-export:
+  - `<ComponentName>` — `import { <ComponentName> } from '<barrel-path>'`. Props: see `<upstream-types-path>/<ComponentName>.d.ts`.
+
+  This section tells the agent that the wrapper exists in the consumer surface and points at the upstream types as the prop source-of-truth. Do NOT extract per-prop entries — these components carry no DS-author-elevated rules; the upstream types are sufficient. Do NOT extract `### Best Practices`, `### Composition examples`, or any other per-component subsection — the absence of a `.docs.tsx`-style annotation IS the signal that no DS-elevated rules exist.
+
+  If the source DS has zero re-exports outside the proposing set, omit the section entirely. Do NOT write an empty `## Other re-exports` heading — empty sections are a worse failure mode than absence (they imply enumeration was attempted and produced nothing, which is not true).
 - **Hard rules** — do-not-invent list + `[VERIFY]` convention. State plainly: any prop, variant, token, or asset the agent cannot ground in source gets a literal `[VERIFY]` marker inline. Mark unverifiable facts `[VERIFY]`. Report blockers instead of guessing.
 - **Final checks** — closing summary the agent emits after generating UI: cite each component used to its source file, list any `[VERIFY]` markers it had to leave, name the screen-level prompt it just built.
 
