@@ -35,6 +35,8 @@
       "Bash(npx biome *)",
       "Bash(npx --no biome *)",
       "Bash(npm view *)",
+      "Bash(curl -sL *)",
+      "Bash(curl -s *)",
       "Bash(timeout * pnpm *)",
       "Bash(timeout * npx *)",
 
@@ -42,6 +44,8 @@
       "Bash(node -p *)",
       "Bash(node --version)",
       "Bash(bash --version)",
+      "Bash(python3 -c *)",
+      "Bash(python3 --version)",
 
       "Bash(mkdir -p .extract-ds-skill-scratch*)",
       "Bash(rm -rf .extract-ds-skill-scratch*)",
@@ -109,7 +113,13 @@
 
       "Read(.claude/skills/**)",
       "Write(.claude/skills/**)",
-      "Edit(.claude/skills/**)"
+      "Edit(.claude/skills/**)",
+
+      "Read(.claude/worktrees/**)",
+
+      "Read(dry-runs/**)",
+      "Write(dry-runs/**)",
+      "Edit(dry-runs/**)"
     ]
   }
 }
