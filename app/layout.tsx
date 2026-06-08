@@ -1,7 +1,4 @@
 import "./globals.css";
-import "@primer/primitives/dist/css/functional/themes/dark.css";
-import "@primer/primitives/dist/css/functional/size/size.css";
-import "@primer/primitives/dist/css/functional/typography/typography.css";
 
 import type { ReactNode } from "react";
 import { Providers } from "./providers";
