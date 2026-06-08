@@ -1,0 +1,19 @@
+# Phase 1: Discovery (fixture)
+
+## Handoff document — phase-1.md template
+
+**Template shape:**
+
+```markdown
+# Phase 1 handoff — <slug>
+
+## Decisions (irrecoverable from codebase)
+
+- **Slug**: `<slug>` → `.claude/skills/<slug>/`
+- **Proposing set** (<M> components, as approved):
+  - <Component1>, <Component2>
+
+## Resume context
+
+- Phase 2 entry: load the validate reference doc.
+```

@@ -101,6 +101,22 @@ After writing `.extract-ds-skill-scratch/handoffs/phase-1.md` (resp. `phase-2.md
 
 **How to enforce:** Same `HANDOFF_EMISSION` check as `state/handoff-skipped`. Phase 1 and Phase 2 close sections in SKILL.md must contain the literal `EXIT` token AND the next-phase resume keyword (`validate:` for Phase 1 close, `persist:` for Phase 2 close). The cutoff-message substring assertions guard against a future edit silently restoring inline transition.
 
+### state/handoff-missing-component-shape
+
+The Phase 1 handoff MUST carry a `## Components proposed` section listing each component in the proposing set with the one-line description shown to the user in the discovery summary. The section is required whenever the proposing set is non-empty (the `## Decisions` block names the set; `## Components proposed` records its shape).
+
+**Why:** The discovery summary shows the user a one-liner per proposed component, but a handoff that records component *names* only forces Phase 2 — running in a fresh session — to re-read each component from `node_modules/<package>` to recover shape. That duplicates Phase 1's inspection work and risks a divergent interpretation of the same component. Persisting the one-liners carries shape across the session boundary for free (the text already exists; it is re-emitted, not regenerated).
+
+**How to enforce:** `scripts/check-skill-docs.sh` meta-mode runs a `HANDOFF_COMPLETENESS` check against two targets: the fenced template anchor in `references/discovery.md`, and any emitted handoff under `.extract-ds-skill-scratch/handoffs/` (scanned whole-file, skipped when absent). It hard-fails when a `## Decisions` heading is present but `## Components proposed` is absent. `scripts/tests/run-tests.sh` exercises the pass and fail branches against fixtures (`handoff-with-components`, `fail-handoff-missing-components`) plus a live-meta assert. The `## Known exclusions` companion section (emitted only when the proposing set is a strict subset, N − M > 0) is template discipline documented here, not a separate hard grep — its absence when N = M is correct, so it carries no gate.
+
+### state/handoff-out-of-scope-deferred
+
+When foundation docs are crawled in Phase 1, each sub-page that may fall outside the meta-skill's charter (tokens / assets / component descriptions / component APIs) MUST be fetched and classified `[in-scope]` or `[out-of-scope: sibling-<topic>-skill]` BEFORE the handoff is written. The handoff carries the verdict per sub-page. Hedged "route to a sibling skill in Phase 2 if confirmed" language is forbidden.
+
+**Why:** Verification belongs in Phase 1, when the foundation docs are first crawled and the page is already fetched. Deferring the decision to Phase 2 with an "if confirmed" hedge means the resuming session inherits an open question instead of a decision — it must re-fetch the page to classify it, or worse, extract out-of-scope prose (tone, copy, localization) into the DS skill. A Phase-1 verdict makes the boundary auditable and keeps Phase 2 free of re-discovery.
+
+**How to enforce:** Same `HANDOFF_COMPLETENESS` check. It hard-fails when the substring `if confirmed` appears in the fenced template anchor of `references/discovery.md` or in any emitted handoff under `.extract-ds-skill-scratch/handoffs/`. Prose outside the template fence may discuss the banned hedge (the rule must name what it forbids); only fenced template content is scanned in `discovery.md`. `scripts/tests/run-tests.sh` exercises the fail branch via the `fail-handoff-if-confirmed` fixture and the pass branch via `foundation-out-of-scope` (tagged sub-pages, no hedge) plus the live-meta assert.
+
 ### component/anti-substitution-dropped
 
 Anti-substitution prose ("use X, not Y", "experimental Y reserved for...", "prefer X over Y") in source documentation must land in the produced skill as a Shape 7 warning under the IN-SCOPE component's reference file. The warning lands on the trap target (the in-scope component), not on the out-of-set peer the source names — readers reach for the trap target, so that is where the guardrail must fire.
@@ -125,7 +141,7 @@ Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs 
 - `component/...` for component-level rules (mostly Layer A) — examples: `component/button-inactive-vs-disabled`, `component/textinput-requires-formcontrol`, `component/button-no-aria-label-with-text`. Layer C `component/...` slugs also exist for meta-skill extraction-completeness discipline that fires per-component (e.g. `component/anti-substitution-dropped`, `component/reexport-tier-invisible`) — the Layer is named in each slug's subsection body, not in the namespace.
 - `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
 - `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
-- `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
+- `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`, `state/handoff-missing-component-shape`, `state/handoff-out-of-scope-deferred`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters, handoff-template completeness), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
 
 Slug grammar:
 

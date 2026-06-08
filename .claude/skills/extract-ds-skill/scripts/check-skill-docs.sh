@@ -706,6 +706,76 @@ if [[ "$MODE" == "meta" ]]; then
     FAILED=1
   fi
 
+  # 11b. HANDOFF_COMPLETENESS (meta-skill self-mode only). The Phase 1 handoff
+  #     must carry component shape and a non-hedged out-of-scope verdict. Two
+  #     hard fails, applied to two targets:
+  #       1. The template anchor in references/discovery.md — scanned against
+  #          the FENCED code blocks only (the ```...``` blocks) so prose that
+  #          legitimately discusses the banned hedge is not flagged.
+  #       2. Any emitted handoff under .extract-ds-skill-scratch/handoffs/
+  #          (relative to cwd — the worktree root during a real run) — scanned
+  #          whole-file (an emitted handoff is the document, not a template in a
+  #          fence). Skipped silently when the dir is absent (fixtures, fresh
+  #          checkout, or before any Phase 1 run).
+  #     The two fails:
+  #       (a) state/handoff-missing-component-shape — a `## Decisions` heading
+  #           but no `## Components proposed` heading. Phase 2 would inherit
+  #           component names without shape and re-read node_modules.
+  #       (b) state/handoff-out-of-scope-deferred — the substring `if confirmed`.
+  #           Foundation sub-page scope must be a Phase 1 verdict, not a hedge
+  #           deferred to Phase 2.
+  #     The template scan is guarded on references/discovery.md presence so
+  #     partial meta-mode fixtures (SKILL.md only) skip rather than fail. See
+  #     references/anti-patterns.md state/handoff-missing-component-shape and
+  #     state/handoff-out-of-scope-deferred, and PRD-phase-1-handoff-completeness.md.
+  HC_FAILS=()
+  DISCOVERY_MD="$SKILL_PATH/references/discovery.md"
+  if [[ -f "$DISCOVERY_MD" ]]; then
+    # Extract only lines inside fenced code blocks (toggle on any ``` line).
+    FENCED="$(awk '
+      /^```/ { in_fence = !in_fence; next }
+      in_fence { print }
+    ' "$DISCOVERY_MD")"
+
+    if grep -qE '^##[[:space:]]+Decisions([[:space:]]|$)' <<<"$FENCED" \
+       && ! grep -qE '^##[[:space:]]+Components proposed([[:space:]]|$)' <<<"$FENCED"; then
+      HC_FAILS+=("references/discovery.md|handoff template has a '## Decisions' block but no '## Components proposed' section — Phase 2 would inherit component names without shape and re-read node_modules (state/handoff-missing-component-shape)")
+    fi
+
+    if grep -qF "if confirmed" <<<"$FENCED"; then
+      HC_FAILS+=("references/discovery.md|handoff template anchor contains the hedge 'if confirmed' — foundation sub-page scope must be a Phase 1 verdict, tagged [in-scope]/[out-of-scope: sibling-<topic>-skill], not deferred to Phase 2 (state/handoff-out-of-scope-deferred)")
+    fi
+  fi
+
+  # Emitted handoffs: scan each .extract-ds-skill-scratch/handoffs/*.md whole.
+  # The `## Decisions` guard naturally scopes the component-shape check to
+  # Phase-1-shaped handoffs (Phase 2 handoffs have no `## Decisions` block).
+  HANDOFF_DIR=".extract-ds-skill-scratch/handoffs"
+  if [[ -d "$HANDOFF_DIR" ]]; then
+    for hf in "$HANDOFF_DIR"/*.md; do
+      [[ -e "$hf" ]] || continue
+      if grep -qE '^##[[:space:]]+Decisions([[:space:]]|$)' "$hf" \
+         && ! grep -qE '^##[[:space:]]+Components proposed([[:space:]]|$)' "$hf"; then
+        HC_FAILS+=("$hf|emitted handoff has a '## Decisions' block but no '## Components proposed' section — Phase 2 inherits component names without shape and re-reads node_modules (state/handoff-missing-component-shape)")
+      fi
+      if grep -qF "if confirmed" "$hf"; then
+        HC_FAILS+=("$hf|emitted handoff contains the hedge 'if confirmed' — foundation sub-page scope must be a Phase 1 verdict, tagged [in-scope]/[out-of-scope: sibling-<topic>-skill] (state/handoff-out-of-scope-deferred)")
+      fi
+    done
+  fi
+
+  if [[ ${#HC_FAILS[@]} -eq 0 ]]; then
+    echo "HANDOFF_COMPLETENESS=PASS"
+  else
+    echo "HANDOFF_COMPLETENESS=FAIL"
+    for entry in "${HC_FAILS[@]}"; do
+      file_part="${entry%%|*}"
+      msg_part="${entry#*|}"
+      echo "  $file_part: $msg_part"
+    done
+    FAILED=1
+  fi
+
   # 12. SHAPE_7_PRESENT (meta-skill self-mode only). The seventh Geist rule
   #     shape (Anti-substitution) must appear as a section in
   #     references/component-extraction.md. Without it, source prose like

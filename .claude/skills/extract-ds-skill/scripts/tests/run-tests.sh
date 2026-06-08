@@ -57,6 +57,38 @@ assert() {
   fi
 }
 
+# Like assert(), but runs the check from a given working directory. The emitted-
+# handoff scan in HANDOFF_COMPLETENESS resolves .extract-ds-skill-scratch/handoffs/
+# relative to cwd (the worktree root during a real run), so exercising that path
+# requires controlling cwd. Usage:
+#   assert_cwd <name> <cwd> <skill-path> <expected-exit> <tally-grep> [fail-substring]
+assert_cwd() {
+  local name="$1" cwd="$2" fixture="$3" want_exit="$4" tally="$5" fail_sub="${6:-}"
+  local out got_exit=0
+  out="$(cd "$cwd" && bash "$CHECK" "$fixture" 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qE "^${tally}$" <<<"$out"; then
+    err+=$'\n  tally line not found: '"$tally"
+  fi
+  if [[ -n "$fail_sub" ]] && ! grep -qF "$fail_sub" <<<"$out"; then
+    err+=$'\n  expected failure substring not found: '"$fail_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 # Test 1: pass-fixture — every hardcoded path lives inside a labeled
 # illustrative block. NO_HARDCODED_PATHS must report PASS and the script
 # must exit 0.
@@ -453,6 +485,116 @@ fi
 assert "reexport-tier-present fixture passes shape checks" \
   "$FIXTURES/reexport-tier-present/produced-skill" \
   0 "CHECK_RESULT=PASS"
+
+# ---------- HANDOFF_COMPLETENESS fixtures (meta-mode) ----------
+#
+# The Phase 1 handoff must carry component shape (`## Components proposed`) and a
+# non-hedged out-of-scope verdict (no `if confirmed`). The check scans the fenced
+# template anchor in references/discovery.md AND any emitted handoff under
+# .extract-ds-skill-scratch/handoffs/ (whole-file, skipped when absent). See
+# PRD-phase-1-handoff-completeness.md and references/anti-patterns.md
+# (state/handoff-missing-component-shape, state/handoff-out-of-scope-deferred).
+
+# Test 32: pass — template carries `## Components proposed`.
+assert "handoff-with-components exits 0 with PASS tally" \
+  "$FIXTURES/handoff-with-components/extract-ds-skill" \
+  0 "HANDOFF_COMPLETENESS=PASS"
+
+# Test 33: pass — template carries the optional `## Known exclusions` section
+# alongside `## Components proposed`. Locks the optional section as a valid shape.
+assert "handoff-with-exclusions exits 0 with PASS tally" \
+  "$FIXTURES/handoff-with-exclusions/extract-ds-skill" \
+  0 "HANDOFF_COMPLETENESS=PASS"
+
+# Test 34: pass — foundation sub-page tagged [out-of-scope: sibling-copy-skill]
+# with no "if confirmed" hedge.
+assert "foundation-out-of-scope exits 0 with PASS tally" \
+  "$FIXTURES/foundation-out-of-scope/extract-ds-skill" \
+  0 "HANDOFF_COMPLETENESS=PASS"
+
+# Test 35: fail — `## Decisions` present but `## Components proposed` absent.
+# Tally must FAIL, exit non-zero, message must name the slug.
+assert "fail-handoff-missing-components exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-handoff-missing-components/extract-ds-skill" \
+  1 "HANDOFF_COMPLETENESS=FAIL" \
+  "state/handoff-missing-component-shape"
+
+# Test 36: fail — template anchor contains the "if confirmed" hedge.
+# Tally must FAIL, exit non-zero, message must name the slug.
+assert "fail-handoff-if-confirmed exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-handoff-if-confirmed/extract-ds-skill" \
+  1 "HANDOFF_COMPLETENESS=FAIL" \
+  "state/handoff-out-of-scope-deferred"
+
+# Test 37: live meta-skill self-check — the real references/discovery.md handoff
+# template satisfies both completeness gates. Regression guard for anyone editing
+# the handoff template and dropping component shape or reintroducing the hedge.
+assert "live extract-ds-skill HANDOFF_COMPLETENESS PASSES" \
+  "$META_SKILL_ROOT" \
+  0 "HANDOFF_COMPLETENESS=PASS"
+
+# ---------- HANDOFF_COMPLETENESS: emitted-handoff scan (cwd-relative) ----------
+#
+# The gate also scans actual emitted handoffs under
+# .extract-ds-skill-scratch/handoffs/ (resolved relative to cwd). These tests
+# point the check at the live meta-skill (clean template) but from a temp cwd
+# holding a planted handoff, so the only FAIL source is the emitted document.
+# Handoff bodies are placeholder-only — no design system is named.
+EMIT_TMP="$(mktemp -d)"
+
+# Test 38: emitted handoff has `## Decisions` but no `## Components proposed`.
+mkdir -p "$EMIT_TMP/missing/.extract-ds-skill-scratch/handoffs"
+cat >"$EMIT_TMP/missing/.extract-ds-skill-scratch/handoffs/phase-1.md" <<'EOF'
+# Phase 1 handoff — <slug>
+
+## Decisions (irrecoverable from codebase)
+
+- **Slug**: `<slug>`
+EOF
+assert_cwd "emitted handoff missing components fails the gate" \
+  "$EMIT_TMP/missing" "$META_SKILL_ROOT" \
+  1 "HANDOFF_COMPLETENESS=FAIL" \
+  "state/handoff-missing-component-shape"
+
+# Test 39: emitted handoff carries the `if confirmed` hedge (with components).
+mkdir -p "$EMIT_TMP/hedge/.extract-ds-skill-scratch/handoffs"
+cat >"$EMIT_TMP/hedge/.extract-ds-skill-scratch/handoffs/phase-1.md" <<'EOF'
+# Phase 1 handoff — <slug>
+
+## Decisions (irrecoverable from codebase)
+
+- **Slug**: `<slug>`
+- **Foundation docs**: `<root-url>` — sub-pages: <slug> (route to a sibling skill in Phase 2 if confirmed)
+
+## Components proposed
+
+- **<Component1>** — <one-line description>
+EOF
+assert_cwd "emitted handoff with 'if confirmed' fails the gate" \
+  "$EMIT_TMP/hedge" "$META_SKILL_ROOT" \
+  1 "HANDOFF_COMPLETENESS=FAIL" \
+  "state/handoff-out-of-scope-deferred"
+
+# Test 40: well-formed emitted handoff — components present, no hedge → PASS.
+# Proves the emitted-handoff scan does not false-positive on a valid document.
+mkdir -p "$EMIT_TMP/ok/.extract-ds-skill-scratch/handoffs"
+cat >"$EMIT_TMP/ok/.extract-ds-skill-scratch/handoffs/phase-1.md" <<'EOF'
+# Phase 1 handoff — <slug>
+
+## Decisions (irrecoverable from codebase)
+
+- **Slug**: `<slug>`
+- **Foundation docs**: `<root-url>` — sub-pages: <slug> [in-scope], <slug> [out-of-scope: sibling-<topic>-skill]
+
+## Components proposed
+
+- **<Component1>** — <one-line description>
+EOF
+assert_cwd "well-formed emitted handoff passes the gate" \
+  "$EMIT_TMP/ok" "$META_SKILL_ROOT" \
+  0 "HANDOFF_COMPLETENESS=PASS"
+
+rm -rf "$EMIT_TMP"
 
 echo
 echo "PASSED=$PASS FAILED=$FAIL"

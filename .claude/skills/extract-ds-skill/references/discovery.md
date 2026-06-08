@@ -91,12 +91,15 @@ The agent runs this loop against every URL in the accepted block — never again
 4. **Cap at 12 sub-pages per root.** If more than 12 survive the dedup, keep the first 12 in document order and emit a single `log()` line: `crawl truncated for <root>: kept 12 of <N>, dropped <list-of-dropped-slugs>`. Never silently truncate — the log line is the contract.
 5. **No recursion.** Depth-1 only. If a sub-page surfaces a useful grandchild, the user adds that grandchild's parent as another root in a follow-up invocation.
 6. **No cross-hostname follow.** If a sub-page link points at a different host than the root, drop it silently — cross-domain crawl is out of scope.
+7. **Classify scope per sub-page, BEFORE the handoff is written.** For each surviving sub-page whose slug suggests a non-scope topic (e.g. `content`, `voice`, `tone`, `writing`, `localization`), `WebFetch` the page and classify it against the meta-skill's charter (tokens / assets / component descriptions / component APIs vs everything else — see **Scope routing during discovery**). Tag every sub-page `[in-scope]` or `[out-of-scope: sibling-<topic>-skill]`. This is a Phase 1 decision: the handoff carries the verdict, never a hedged "route to a sibling skill in Phase 2 if confirmed". Sub-pages whose slug clearly names an in-scope topic need no extra fetch — tag them `[in-scope]` from the crawl.
 
-The agent assembles the per-root sub-page list into the accepted line of the Foundation docs block (abbreviated to 6 + `+N more` per the budget note), then proceeds to the rest of the discovery summary. Phase 2 will iterate the full `accepted_roots ∪ crawled_sub_pages` set without re-fetching the roots — see `references/foundation-extraction.md`.
+The agent assembles the per-root sub-page list (with each sub-page's `[in-scope]` / `[out-of-scope: …]` tag) into the accepted line of the Foundation docs block (abbreviated to 6 + `+N more` per the budget note), then proceeds to the rest of the discovery summary. Phase 2 will iterate the full `accepted_roots ∪ crawled_sub_pages` set without re-fetching the roots, extracting only the `[in-scope]` sub-pages — see `references/foundation-extraction.md`.
 
 ### Scope routing during discovery
 
 In scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting. When you encounter a copy/naming/casing rule during extraction (e.g. "Title Case the label", "placeholder is action-oriented"), recognize it, route it - mention it in the discovery summary as a candidate for a sibling copy skill - but do NOT extract it into this DS skill.
+
+The same boundary classifies foundation sub-pages during the depth-1 crawl (Crawl rules step 7). A foundation sub-page is `[in-scope]` when its prose contracts tokens / assets / component descriptions / component APIs; it is `[out-of-scope: sibling-<topic>-skill]` when its subject is the out-of-scope set above (a `content`/`voice`/`tone`/`writing`/`localization` page routes to `sibling-copy-skill`, etc.). Classify in Phase 1 when the page is first fetched — do not defer the decision to Phase 2 with "if confirmed" language. Sub-classification into a specific sibling-skill type is best-effort; `[out-of-scope: sibling-<topic>-skill]` lets the consumer interpret the routing.
 
 ## Worked example — extraction against a public-DS-shaped target (illustrative)
 
@@ -178,8 +181,10 @@ Phase 1 closes by writing `.extract-ds-skill-scratch/handoffs/phase-1.md`. The d
 - Slug and target path
 - Reference project URL + entry file + framework
 - Proposing set, final (the M from `Components found (N), proposing (M)` after the user pruned/extended)
+- Per-component one-liners for the proposing set — the SAME one-line description shown to the user in the discovery summary, re-emitted verbatim. No new content is generated here; the summary text is persisted so a resuming session carries component shape without re-reading each component from `node_modules`. Lands in the `## Components proposed` section of the template.
+- Known exclusions, when the proposing set is a strict subset (N − M > 0) — one line per excluded category with a one-line rationale. When Phase 1 proposed M < N or the user pruned the slate, ask "what's the rationale for the cut?" and record the answer as a category note. Omitted entirely when the slate is accepted as-proposed (N = M). Lands in the `## Known exclusions` section of the template.
 - DS package names, versions, and `node_modules/` paths (resolved during inspection)
-- Foundation URLs accepted, with the depth-1 crawl tree per accepted root
+- Foundation URLs accepted, with the depth-1 crawl tree per accepted root, each sub-page tagged `[in-scope]` or `[out-of-scope: sibling-<topic>-skill]` per the scope classification done during the crawl (see **Scope routing during discovery**). The handoff carries the classification as a decision — never hedged "if confirmed" prose deferred to Phase 2.
 - The 1-3 headline rule candidates VERBATIM with their `file:line` cites
 - Re-exports outside the proposing set (one line per wrapper file under `ds/components/*.tsx` that was NOT included in the proposing set) — filename + the upstream symbol it re-exports, derived from the wrapper's `import { Foo as DSFoo } from '<package>'` statement. Omitted entirely when the proposing set covers every wrapper.
 - cwd convention reminder ("if this resumed session is not in `.claude/worktrees/dryrun-NN/`, the dry-run worktree where the handoff was written, ask the user where to land outputs")
@@ -211,12 +216,30 @@ _Written by /extract-ds-skill at <ISO date>. Read by the next session to skip di
   - `<pkg-1>@<version>` (path: `<resolved-node_modules-path>`)
   - `<pkg-2>@<version>` (path: `<resolved-node_modules-path>`)
 - **Foundation docs** (<K> accepted):
-  - `<root-url-1>` [docs:foundation] — crawled, accepted sub-pages: <slug>, <slug>, …
-  - `<root-url-2>` [docs:foundation] — crawled, accepted sub-pages: <slug>, <slug>, …
+  - `<root-url-1>` [docs:foundation] — crawled, sub-pages: <slug> [in-scope], <slug> [in-scope], <slug> [out-of-scope: sibling-<topic>-skill]
+  - `<root-url-2>` [docs:foundation] — crawled, sub-pages: <slug> [in-scope], <slug> [out-of-scope: sibling-<topic>-skill]
 - **Headline rules** (verbatim):
   1. "<rule-1>" (`<file>:<line>`)
   2. "<rule-2>" (`<file>:<line>`)
   3. "<rule-3>" (`<file>:<line>`)
+
+## Components proposed
+
+- **<Component1>** — <one-line description from discovery summary>
+- **<Component2>** — <one-line description from discovery summary>
+- …
+
+(One bullet per component in the proposing set, carrying the same one-liner shown to the user in the discovery summary. Required whenever the proposing set is non-empty — a resuming session reads component shape from here instead of re-reading `node_modules`.)
+
+## Known exclusions
+
+The proposing set is <M> of <N> components found. Excluded categories:
+- **<category-1>** (<count> components, e.g. <Component>, <Component>): <one-line rationale>
+- **<category-2>** (<count> components): <one-line rationale>
+
+Consumer of the produced skill should expect coverage gaps in these areas. If a reproduction prompt requires excluded components, run a second extraction with an expanded slate.
+
+(Omit this entire section — heading and all — when the slate is accepted as-proposed with N = M. Emit only when N − M > 0. Same empty-section discipline as `## Re-exports outside proposing set` below: no empty heading.)
 
 ## Re-exports outside proposing set
 
@@ -251,3 +274,5 @@ Resuming from phase-1 handoff — slug=<X>, scratch=<absolute-scratch-path>, <M>
 ```
 
 Substitute the values from the handoff's "Decisions" section verbatim. The `<M>` count comes from the proposing-set bullet list length; `<K>` comes from the foundation-docs bullet count (0 if no foundation URLs were accepted). After rendering the summary, enter Phase 2 directly — do NOT re-render the Phase 1 discovery summary, do NOT re-ask the user for the proposing set or the headline rules. Those are settled by the handoff.
+
+Carry the component shapes from the handoff's `## Components proposed` section into Phase 2 directly — the per-component one-liners ARE the recovered shape. Do NOT re-read each component from `node_modules` to re-derive what the handoff already records. If the handoff carries a `## Known exclusions` section, treat those categories as deliberately out of scope for this run: do not extract them, and surface them to the consumer as known coverage gaps rather than re-proposing them.
