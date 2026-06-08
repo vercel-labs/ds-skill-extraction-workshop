@@ -596,6 +596,56 @@ assert_cwd "well-formed emitted handoff passes the gate" \
 
 rm -rf "$EMIT_TMP"
 
+# ---------- SHELL_INVARIANTS fixtures (produced-mode) ----------
+#
+# The SHELL_INVARIANTS produced-mode check promotes Phase 2's shell-invariant
+# extraction floor to a post-emit gate. Setup is descriptive (read once at
+# greenfield wiring time); `## Hard rules` is the contract checked at every
+# emit. When Setup ships a wiring construct (provider mount, `### Companion CSS`
+# subheading, or `### Foundation wiring` subheading), the produced SKILL.md
+# must emit at least one Hard Rule whose body matches shell vocabulary
+# (body|root|html|provider|wrap|theme|color-scheme|surface) AND references a
+# token shape (`var(--...)` or the `<surface-*>` placeholder). Plus a cross-
+# check: each cited `shell/<slug>` resolves to a row in produced anti-patterns.md.
+# See PRD-shell-invariants.md and references/anti-patterns.md Layer C
+# `shell/unpainted-body`, `shell/mode-attribute-no-theme-import`,
+# `shell/provider-missing-content-wrap`.
+
+# Test 41: pass — Setup ships root-entry-file + Companion CSS; Hard Rules has
+# rules matching shell vocab + surface token; produced anti-patterns.md has
+# Layer B rows for the cited shell/<slug>s. SHELL_INVARIANTS must PASS.
+assert "pass-skill-with-shell-invariants exits 0 with PASS tally" \
+  "$FIXTURES/pass-skill-with-shell-invariants/produced-skill" \
+  0 "SHELL_INVARIANTS=PASS"
+
+# Test 42: pass — Setup ships only a `### Foundation wiring` subheading (no
+# reference-project code block, no Companion CSS). Shell-invariant Hard Rule
+# is still promoted; cited shell/<slug> resolves in anti-patterns.md.
+# SHELL_INVARIANTS must PASS — the foundation-wiring-only path produces the
+# same invariant coverage as the reference-project path.
+assert "pass-skill-with-foundation-only-wiring exits 0 with PASS tally" \
+  "$FIXTURES/pass-skill-with-foundation-only-wiring/produced-skill" \
+  0 "SHELL_INVARIANTS=PASS"
+
+# Test 43: fail — Setup ships a complete root-entry-file + Companion CSS
+# (trigger fires) but `## Hard rules` contains zero lines matching shell vocab
+# + token shape. SHELL_INVARIANTS must FAIL and the count-assertion message
+# must name the three pre-seeded shell/ slugs so the user knows which to
+# promote.
+assert "fail-skill-shell-invariants-absent exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-skill-shell-invariants-absent/produced-skill" \
+  1 "SHELL_INVARIANTS=FAIL" \
+  "shell/unpainted-body"
+
+# Test 44: fail — Setup sets a `data-*-color-scheme` attribute on `<html>` in
+# the root-entry-file code block; Hard Rules cites `shell/mode-attribute-no-
+# theme-import` but no Layer B row appears in produced anti-patterns.md.
+# Cross-check must FAIL and name the unresolved slug.
+assert "fail-skill-mode-attribute-orphan exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-skill-mode-attribute-orphan/produced-skill" \
+  1 "SHELL_INVARIANTS=FAIL" \
+  "shell/mode-attribute-no-theme-import"
+
 echo
 echo "PASSED=$PASS FAILED=$FAIL"
 [[ "$FAIL" -eq 0 ]]

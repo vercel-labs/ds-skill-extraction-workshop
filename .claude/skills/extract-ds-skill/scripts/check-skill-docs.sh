@@ -438,6 +438,133 @@ if [[ "$MODE" == "produced" ]]; then
     echo "TOKEN_COVERAGE=NOOP (--ds-package-root not provided)"
   fi
 
+  # 12. SHELL_INVARIANTS (produced-skill mode only). Setup is descriptive
+  #     ("here is how it is wired") and is read once at greenfield wiring time;
+  #     `## Hard rules` is the gate that fires at every emit. When Setup ships
+  #     ANY of (a) a root-entry-file code block with a provider mount, (b) a
+  #     `### Companion CSS` subheading, (c) a `### Foundation wiring`
+  #     subheading, the produced SKILL.md MUST emit at least one Hard Rule
+  #     whose body names body/root/provider/wrap/theme/color-scheme/surface
+  #     vocabulary AND references a token shape (`var(--name)` or the
+  #     `<surface-*>` placeholder when the rule is a template fragment). The
+  #     gate prevents the canonical "card painted, body unpainted" mode-
+  #     mismatch bug: a downstream agent editing an existing consumer-app
+  #     shell never re-grounds Setup invariants, so any invariant living only
+  #     in Setup prose is invisible at emit time. See references/anti-patterns.md
+  #     Layer C `shell/unpainted-body`, `shell/mode-attribute-no-theme-import`,
+  #     `shell/provider-missing-content-wrap`, references/validate.md (Shell-
+  #     invariant extraction step), and references/skill-template.md (Hard
+  #     rules bullet).
+  #
+  #     The awk walker tracks Setup + Hard rules section state, detects trigger
+  #     constructs anywhere in Setup (provider mount in any code fence, Companion
+  #     CSS / Foundation wiring subheadings), and counts Hard-rule lines outside
+  #     fences that match shell vocab + token shape. Cross-check resolves each
+  #     cited `shell/<slug>` against the produced anti-patterns.md — same
+  #     resolution discipline as the existing token/* / component/* cross-check
+  #     in Section 4 SLUG_RESOLUTION. The meta-skill's own anti-patterns.md
+  #     Layer C definitions are documentation for the slug registry, not a
+  #     fallback resolution target — a reader of the produced skill must find
+  #     each cited slug in that skill's own anti-patterns.md.
+  SI_AWK_OUT="$(awk '
+    BEGIN {
+      in_setup = 0; setup_depth = 0
+      in_hardrules = 0; hardrules_depth = 0
+      in_fence = 0
+      setup_present = 0
+      trigger_provider = 0
+      trigger_companion_css = 0
+      trigger_foundation_wiring = 0
+      shell_count = 0
+    }
+    function heading_depth(line,    n) {
+      n = 0
+      while (substr(line, n+1, 1) == "#") n++
+      return n
+    }
+    /^```/ {
+      in_fence = !in_fence
+      next
+    }
+    !in_fence && /^#+[[:space:]]+/ {
+      depth = heading_depth($0)
+      if (in_setup && depth <= setup_depth) { in_setup = 0; setup_depth = 0 }
+      if (in_hardrules && depth <= hardrules_depth) { in_hardrules = 0; hardrules_depth = 0 }
+      title = $0
+      sub(/^#+[[:space:]]+/, "", title)
+      sub(/[[:space:]]+$/, "", title)
+      if (!in_setup && title == "Setup") {
+        in_setup = 1; setup_depth = depth; setup_present = 1
+      }
+      if (!in_hardrules && title == "Hard rules") {
+        in_hardrules = 1; hardrules_depth = depth
+      }
+      if (in_setup) {
+        if (title ~ /^Companion CSS/) trigger_companion_css = 1
+        if (title ~ /^Foundation wiring/) trigger_foundation_wiring = 1
+      }
+      next
+    }
+    in_setup {
+      if (match($0, /<[A-Z][A-Za-z0-9]*Provider([^A-Za-z0-9]|$)/)) trigger_provider = 1
+    }
+    !in_fence && in_hardrules {
+      has_shell = ($0 ~ /(body|root|html|provider|mount|wrap|theme|colorMode|color-scheme|surface)/)
+      has_token = ($0 ~ /var\(--[a-zA-Z0-9_-]+\)/) || ($0 ~ /<surface[a-zA-Z0-9_-]*>/)
+      if (has_shell && has_token) shell_count++
+    }
+    END {
+      trigger = (trigger_provider || trigger_companion_css || trigger_foundation_wiring) ? 1 : 0
+      printf "setup_present=%d trigger=%d shell_count=%d\n", setup_present, trigger, shell_count
+    }
+  ' "$SKILL_MD")"
+
+  SI_SETUP_PRESENT=0
+  SI_TRIGGER=0
+  SI_COUNT=0
+  for kv in $SI_AWK_OUT; do
+    case "$kv" in
+      setup_present=*) SI_SETUP_PRESENT="${kv#setup_present=}" ;;
+      trigger=*)       SI_TRIGGER="${kv#trigger=}" ;;
+      shell_count=*)   SI_COUNT="${kv#shell_count=}" ;;
+    esac
+  done
+
+  # Cross-check: each cited shell/<slug> resolves to a row in the produced
+  # anti-patterns.md. Same resolution discipline as the existing token/* and
+  # component/* cross-checks (Section 4 SLUG_RESOLUTION) — the produced
+  # skill's anti-patterns.md is the canonical resolution target so a reader
+  # of the produced skill can find the rule without grepping the meta-skill
+  # repo. The meta-skill's anti-patterns.md Layer C definitions are
+  # documentation for the slug registry, not a fallback resolution target.
+  SHELL_UNRESOLVED=()
+  while IFS= read -r slug; do
+    [[ -z "$slug" ]] && continue
+    [[ -f "$ANTI" ]] && grep -qF "$slug" "$ANTI" && continue
+    SHELL_UNRESOLVED+=("$slug")
+  done < <(grep -rhoE '\bshell/[a-z0-9][a-z0-9-]*' "$SKILL_PATH" 2>/dev/null | sort -u)
+
+  SHELL_INVARIANTS_FAIL=0
+  SHELL_INVARIANTS_REASONS=()
+  if [[ "$SI_TRIGGER" -eq 1 && "$SI_COUNT" -eq 0 ]]; then
+    SHELL_INVARIANTS_FAIL=1
+    SHELL_INVARIANTS_REASONS+=("Setup section ships a wiring construct (provider mount, Companion CSS subheading, or Foundation wiring subheading) but '## Hard rules' contains no line matching shell vocabulary (body|root|html|provider|wrap|theme|color-scheme|surface) AND a token shape (var(--...) or <surface-*>) — promote at least one shell invariant per references/validate.md (Shell-invariant extraction step); see shell/unpainted-body, shell/mode-attribute-no-theme-import, shell/provider-missing-content-wrap")
+  fi
+  if [[ ${#SHELL_UNRESOLVED[@]} -gt 0 ]]; then
+    SHELL_INVARIANTS_FAIL=1
+    SHELL_INVARIANTS_REASONS+=("cited shell/<slug> did not resolve to a row in produced anti-patterns.md: ${SHELL_UNRESOLVED[*]}")
+  fi
+
+  if [[ "$SHELL_INVARIANTS_FAIL" -eq 0 ]]; then
+    echo "SHELL_INVARIANTS=PASS"
+  else
+    echo "SHELL_INVARIANTS=FAIL"
+    for r in "${SHELL_INVARIANTS_REASONS[@]}"; do
+      echo "  $r"
+    done
+    FAILED=1
+  fi
+
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,

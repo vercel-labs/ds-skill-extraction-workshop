@@ -27,4 +27,8 @@ export default function RootLayout({ children }) {
 |---|---|---|
 | button asks | references/components/button.md | per-component file |
 
+## Hard rules
+
+- `<ThemeProvider>` MUST wrap children, not render as a sibling. Provider context only reaches descendants, so any token-derived `var(--<surface-default>)` resolution depends on the wrap.
+
 In scope: tokens, assets, component descriptions, component APIs.

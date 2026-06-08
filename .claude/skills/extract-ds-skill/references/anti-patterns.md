@@ -75,7 +75,7 @@ Repeating the same WHY clause across rows in the same axis is correct — the fa
 
 Layer A and Layer B describe rules the *produced* skill ships — guidance for the agent that USES the skill. Layer C describes rules the *meta-skill itself* obeys while producing a skill. They live in this file because the audit surface is the same (slug registry, `check-skill-docs.sh` enforcement), but the failure mode is upstream: a Layer C violation is the meta-skill shipping a broken produced skill, not the produced skill mis-guiding the agent.
 
-Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line naming the script and the gate. Slugs use the `wiring/` and `state/` namespaces (the only Layer C namespaces today; more will be added when more meta-skill rules surface).
+Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line (or `How to apply:` for warn-only rules) naming the script and the gate. Layer C subsections use three namespaces today: `wiring/` and `state/` for rules that fire against the meta-skill's own output during a run, and `shell/` for rules whose authoritative definition lives here (the slug registry) but whose runtime fire-site is Layer A + Layer B in the produced skill. More will be added when more meta-skill rules surface.
 
 ### wiring/css-prose-summary
 
@@ -133,6 +133,30 @@ Re-exports outside the proposing set (`ds/components/*.tsx` minus the user-confi
 
 **How to apply:** Phase 3 self-audit during persist. When the Phase 1 handoff carries an `## Re-exports outside proposing set` section with one or more entries but the produced `components.md` (or `_other-reexports.md`) has no `## Other re-exports` section, materialize the section per `references/persist.md` Persist-map "Other re-exports" bullet before closing. No deterministic script gate — Layer C, warn-only. The closing-message tally surfaces the count (`M re-exports under Other re-exports`) so a zero-where-handoff-was-nonzero reads as a missed materialization.
 
+### shell/unpainted-body
+
+Whenever Phase 2 lifts a body-paint construct into the Setup section of the produced SKILL.md — either a `style={{ backgroundColor: "var(--<surface-default>)" }}` prop on the provider's base-surface component in the root entry file, OR a `body { background-color: var(--<surface-default>); ... }` rule in one of the lifted Companion CSS blocks — the produced SKILL.md MUST include a Hard Rule pairing the body/root paint with a surface token. The Hard Rule cites this slug.
+
+**Why:** Setup is descriptive ("here is how it is wired") and is read once at greenfield wiring time. A downstream agent editing an existing consumer app's `layout.tsx` or `globals.css` never re-reads Setup because the shell is already "wired" — and an unpainted body underneath token-painted components renders as the canonical "card painted, body unpainted" mode-mismatch bug. Hard Rules are checked at every emit; promoting the invariant from Setup prose to a Hard Rule makes the gate fire on every shell-touching run.
+
+**How to apply:** Phase 2 promotes the body-paint construct from `.extract-ds-skill-scratch/wiring-extracted.md` into `.extract-ds-skill-scratch/shell-invariants.md` per `references/validate.md` (Shell-invariant extraction step). Phase 3 materializes the entry into the produced SKILL.md `## Hard rules` section (per `references/skill-template.md` Hard rules bullet) AND a Layer B Bad/Good/Why row in the produced `references/anti-patterns.md` under the `shell/` namespace. `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` re-verifies post-emit that the produced SKILL.md contains at least one Hard Rule referencing the body/root vocabulary AND a surface token (`var(--<name>)` or `<surface-*>` placeholder).
+
+### shell/mode-attribute-no-theme-import
+
+Whenever Phase 2 lifts a mode attribute on `<html>` into the Setup section of the produced SKILL.md (`data-*-color-scheme="<mode>"`, `class="dark"`, or any other DS-named mode attribute on the root element), the produced SKILL.md MUST include a Hard Rule pairing the attribute with the required theme CSS imports. The Hard Rule cites this slug.
+
+**Why:** A mode attribute sets the token-resolution context — telling the DS which theme's values to read for functional tokens like `var(--<surface-default>)`. Without the matching theme CSS file imported, the functional tokens fall back to their root defaults, so the attribute "toggles" but the values do not. A downstream agent setting `data-*-color-scheme="dark"` without importing the dark-theme CSS file silently ships a page that claims dark mode but renders light values — a different shell/token mismatch from the unpainted-body case.
+
+**How to apply:** Phase 2 promotes the mode attribute + theme-import pairing from `.extract-ds-skill-scratch/wiring-extracted.md` into `.extract-ds-skill-scratch/shell-invariants.md`. Phase 3 materializes the entry into the produced SKILL.md `## Hard rules` section AND a Layer B Bad/Good/Why row in the produced `references/anti-patterns.md` under the `shell/` namespace. `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` re-verifies post-emit; the cross-check resolves the cited `shell/mode-attribute-no-theme-import` slug against the produced anti-patterns.md Layer B section or this Layer C definition.
+
+### shell/provider-missing-content-wrap
+
+Whenever Phase 2 lifts a provider mount into the Setup section of the produced SKILL.md (any `<XxxProvider>...</XxxProvider>` topmost element in the root entry file), the produced SKILL.md MUST include a Hard Rule stating the provider wraps children, not renders as a sibling. The Hard Rule cites this slug.
+
+**Why:** React provider context only reaches descendants. A sibling provider — `<Provider />` next to `{children}` — gives every descendant the DS default theme regardless of the configured one. The Setup code fence shows the wrap shape, but an agent re-shaping the root layout (adding a new top-level component, refactoring providers) can silently flatten the tree. Promoting "provider wraps children" to a Hard Rule makes the gate fire on every layout-touching run.
+
+**How to apply:** Phase 2 promotes the provider mount from `.extract-ds-skill-scratch/wiring-extracted.md` into `.extract-ds-skill-scratch/shell-invariants.md`. Phase 3 materializes the entry into the produced SKILL.md `## Hard rules` section AND a Layer B Bad/Good/Why row in the produced `references/anti-patterns.md` under the `shell/` namespace. `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` re-verifies post-emit; the cross-check resolves the cited `shell/provider-missing-content-wrap` slug.
+
 ## Rule slug namespaces
 
 Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
@@ -142,11 +166,12 @@ Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs 
 - `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
 - `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
 - `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`, `state/handoff-missing-component-shape`, `state/handoff-out-of-scope-deferred`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters, handoff-template completeness), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
+- `shell/...` for produced-skill rules about app-shell wiring contracts (Layer A in produced SKILL.md `## Hard rules`; Layer B in produced `references/anti-patterns.md` Bad/Good/Why table). Examples: `shell/unpainted-body`, `shell/mode-attribute-no-theme-import`, `shell/provider-missing-content-wrap`. Fire against the downstream consumer app's root layout / providers / globals.css, NOT against the meta-skill's own output. Distinct from `token/` because the failure mode is "no body-paint rule at all" or "wiring step skipped," not "wrong token name." Distinct from `wiring/` because `wiring/` rules fire against the meta-skill's own output discipline; `shell/` rules fire against the produced skill's downstream consumer surface. The Layer C subsections for the three pre-seeded slugs in this file are the meta-skill's authoritative registry; the produced skill carries the same slugs as Layer A Hard Rules and Layer B Bad/Good/Why rows.
 
 Slug grammar:
 
 - Lowercase, hyphen-separated.
-- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
+- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`, `shell/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
 - One slug per concept. If the same trap fires in two component files, the slug is identical in both — the slug names the rule, not its location.
 - Slugs are stable. Renaming a slug breaks every finding that cites it, so renames go through `coverage-gaps.md` first.
 - Slugs are unique across the skill. Slug collisions are surfaced by `check-skill-docs.sh` and ASK the user to rename one (same convention as the persist-time slug-collision rule).
@@ -176,6 +201,16 @@ If the user's DS exposes motion tokens (detected during Phase 1 token scan), the
 - `token/ad-hoc-duration` (motion) — Bad: `transition: <ms>`, Good: `transition: var(--<duration-token>)`, Why: ad-hoc duration breaks motion coherence.
 
 If a token axis is absent from the DS (e.g. no motion tokens, no elevation tokens), the corresponding row is omitted — the rule does not belong in the table if the Good cell cannot resolve to a real token. Inventing a token name to fill a row is a fabrication; drop the row instead.
+
+### Pre-seeded `shell/` rows (promoted from Phase 2 shell-invariant extraction)
+
+When Phase 2 lifts any wiring construct into the Setup section per `references/validate.md` (Shell-invariant extraction step), Phase 3 scaffolds the matching `shell/<slug>` row(s) below with the DS-specific token names discovered during Phase 1 filling the placeholders. Each row corresponds to one Layer C definition above. Same column contract as the token rows (Bad / Good / Why), same code-fenced cells, same one-clause Why:
+
+- `shell/unpainted-body` (shell, when Setup ships a body-paint construct) — Bad: `@import "<css-framework>";` alone in `globals.css` (no body bg rule); Good: same line + `body { background-color: var(--<surface-default>); color: var(--<text-default>); }`; Why: token-painted components float on the browser-default surface because nothing paints the shell.
+- `shell/mode-attribute-no-theme-import` (shell, when Setup ships a mode attribute on `<html>`) — Bad: `<html data-*-color-scheme="dark">` with only the light-theme CSS imported; Good: import the matching theme file (e.g. `@import "<ds-themes>/dark.css";`) alongside the attribute; Why: the mode attribute sets the token-resolution context but unimported theme files leave functional tokens at their fallback values.
+- `shell/provider-missing-content-wrap` (shell, when Setup ships a provider mount) — Bad: `<Provider />` rendered as a sibling of `{children}`; Good: `<Provider><BaseSurface>{children}</BaseSurface></Provider>`; Why: provider context only reaches descendants, so a sibling provider gives every descendant the DS default theme regardless of the configured one.
+
+Omission rule mirrors the motion/elevation convention above: if the DS lacks a given construct (no provider, only CSS imports; no mode attribute, only OS-preference auto-detection; no body-paint contract because the DS ships its own root surface component), the corresponding row is omitted. Inventing a step to fill a row is a fabrication; drop the row instead.
 
 ## Audit hooks
 

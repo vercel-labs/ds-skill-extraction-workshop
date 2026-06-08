@@ -62,6 +62,65 @@ Sequence:
 
 The step writes to scratch only; no foundation rule lands in `.claude/skills/<slug>/` until Phase 3.
 
+## Shell-invariant extraction step
+
+Runs whenever Phase 2 has lifted ANY verbatim wiring into scratch — either through the Reference-project extraction step above (root-entry-file code block in `.extract-ds-skill-scratch/wiring-extracted.md`, plus its `## Companion CSS file (verbatim) — <path>` blocks), or through the Foundation-docs wiring fallback (a `### Foundation wiring` snippet lifted from a foundation page), or both. Skip this entire section when no wiring was lifted (no reference project AND no foundation wiring snippet); the produced skill's Setup section will be empty and `## Hard rules` carries only the universal `[VERIFY]` + do-not-invent contract.
+
+The step is descriptive→prescriptive promotion: Setup ships the wiring as "here is how it is wired" prose adjacent to a code fence; this step extracts the **invariants the wiring establishes** so they fire at every emit, not only when the agent first wires a greenfield app. A downstream agent that already has the consumer-app shell in place never re-reads Setup — so any invariant that only lives in Setup prose is invisible at emit time.
+
+Sequence:
+
+1. **Enumerate wiring steps from scratch.** Walk the lifted material in `.extract-ds-skill-scratch/wiring-extracted.md` (root-entry-file snippet + every Companion CSS block + any Foundation wiring snippet). For each construct present in the lifted material, write a one-line step description in `.extract-ds-skill-scratch/shell-invariants.md`. Constructs to enumerate, when each is present:
+
+   - **Provider mount** — the topmost provider element wrapping the page tree (e.g. `<XxxProvider>...</XxxProvider>` in the root entry file). Step phrasing: "The `<XxxProvider>` MUST wrap children, not render as a sibling."
+   - **Content wrap inside the provider** — the base-surface component the provider's children render into (e.g. `<BaseSurface>{children}</BaseSurface>`). Step phrasing: "The base-surface wrap inside the provider MUST receive children."
+   - **Body/root paint via `style` prop on the provider's base-surface component** — when the lifted snippet sets `style={{ backgroundColor: "var(--<surface-default>)" }}` (or equivalent) on the base-surface element. Step phrasing: "The base-surface element MUST paint with the DS's surface token via the `style` prop."
+   - **Body/root paint via globals.css body rule** — when one of the Companion CSS files contains a `body { background-color: var(--<surface-default>); ... }` rule (or the equivalent `html, body { ... }`). Step phrasing: "`globals.css` MUST paint the body/root with the DS's surface token."
+   - **Mode attribute on `<html>`** — when the lifted root-entry-file snippet sets `data-*-color-scheme`, `class="dark"`, or any other DS-named mode attribute on `<html>`. Step phrasing: "The mode attribute on `<html>` MUST be paired with the matching theme CSS import."
+   - **Theme CSS imports matched to the mode attribute** — every theme file the DS ships per mode (light, dark, contrast) that the Companion CSS lifts as `@import "<ds-themes>/<mode>.css";`. Step phrasing: "The theme CSS imports MUST cover every mode the app declares via the mode attribute."
+   - **Root font loading** — when the lifted snippet wires a font (e.g. `<NextFont>` className on `<html>`, or `@import` of a font CSS file) that the DS prescribes. Step phrasing: "The DS-prescribed root font MUST load on the root element."
+
+   Omit any construct the lifted material does not contain. Inventing a step to fill a row is a fabrication; the produced skill ships only the invariants its real DS surfaces.
+
+2. **Pair each step with its visual failure mode.** For each enumerated step, write the user-visible symptom that fires when the step is omitted from the downstream consumer app. Failure-mode phrasing is concrete ("page renders dark text on browser-default white", "card paints in DS surface but body is unpainted", "provider context never reaches descendants"), not abstract ("theming breaks").
+
+   Worked failure-mode lines (illustrative — substitute the DS's actual surface token and mode-attribute name from Phase 1 discovery):
+
+   - Provider mount as sibling instead of wrap → "Provider context never reaches descendants; every child renders with the DS default theme regardless of the configured one."
+   - Body/root paint omitted → "Token-painted components float on the browser-default white surface; the page renders 'card painted, body unpainted' — the canonical mode-mismatch bug."
+   - Mode attribute set without matching theme import → "The mode attribute sets the token-resolution context but the unimported theme file leaves functional tokens at their fallback values; the mode toggles but the values do not."
+   - Theme import set without the mode attribute → "The theme file loads but the resolution context never switches; the DS default mode renders regardless of OS or user preference."
+   - Root font omitted → "Components render in the browser-default font; type-scale tokens still resolve but the type system's measure/leading/x-height assumptions break."
+
+3. **Promote each (step, failure-mode) pair to three sites.** Each pair lands in three places when Phase 3 materializes the scratch:
+
+   1. **`## Hard rules` row in the produced SKILL.md** — per the contract extension in `references/skill-template.md` (Hard rules bullet). Each rule paraphrases the step + names the failure mode + cites the relevant `shell/<slug>` from `references/anti-patterns.md`. Example shape: `The body/root MUST paint with \`var(--<surface-default>)\` via either the \`<BaseSurface style>\` prop OR \`body { background-color: ... }\` in \`globals.css\`. A token-painted component on an unpainted shell is the canonical mode-mismatch bug — see \`references/anti-patterns.md\` \`shell/unpainted-body\`.`
+   2. **Layer B Bad/Good/Why row in the produced `references/anti-patterns.md`** — under the `shell/<slug>` namespace per Change B in `references/anti-patterns.md`. The DS-specific token name (e.g. `var(--mantine-color-body)`, `var(--ds-surface-default)`) fills the Good cell; the placeholder vocabulary in the pre-seeded template is replaced with the actual DS-discovered token.
+   3. **`Final checks` self-check entry in the produced SKILL.md** — per the contract extension in `references/skill-template.md` (Final checks bullet). The agent confirms shell parity after generating UI: page/root paints with a surface token, mode attribute matches imported theme files, provider wraps children.
+
+4. **Stash extracted shell invariants in the scratch workspace.** Write the enumeration to `.extract-ds-skill-scratch/shell-invariants.md` per the per-step skeleton (step, failure-mode, target Hard Rule slug). Phase 3 reads this file when materializing the produced SKILL.md `## Hard rules` section and the Layer B rows under `references/anti-patterns.md`.
+
+   Output contract for `.extract-ds-skill-scratch/shell-invariants.md`:
+
+   ```markdown
+   # Shell invariants (Phase 2 → Phase 3 handoff)
+
+   _Promoted from .extract-ds-skill-scratch/wiring-extracted.md. Phase 3 materializes each step into the produced SKILL.md \`## Hard rules\` section, a \`references/anti-patterns.md\` Layer B row under the \`shell/\` namespace, and a \`Final checks\` self-check entry._
+
+   ## <slug> (e.g. shell/unpainted-body)
+
+   - **Step:** <one-line step description, e.g. "The base-surface element MUST paint with the DS's surface token via the \`style\` prop.">
+   - **Failure mode:** <user-visible symptom when step is omitted>
+   - **Lifted from:** <wiring-extracted.md anchor: root-entry-file | Companion CSS — <path> | Foundation wiring>
+   - **DS-specific token (fills Layer B Good cell):** `var(--<actual-discovered-token>)` (or `[VERIFY: token not grep-resolved]` if Phase 1 surfaced the construct but the token did not grep-resolve)
+
+   ## <next slug>
+
+   ...
+   ```
+
+The step writes to scratch only; no Hard Rule, Layer B row, or Final checks self-check lands in `.claude/skills/<slug>/` until Phase 3. The audit hook `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` (see `references/anti-patterns.md` Layer C `shell/<slug>` definitions and Change D) re-verifies post-emit that the produced SKILL.md ships at least one Hard Rule referencing the body/root/provider vocabulary AND a surface token — the post-emit floor for the contract this step establishes.
+
 ## Proof point (updated for foundation + reference-project extraction)
 
 The wait-gate proof point gains one line when a foundation URL is in scope, and another line when a reference project is in scope. Without either, the proof point is unchanged from the SKILL.md worked example. With both, both lines are added between the assets line and the hallucinations line.
@@ -151,6 +210,7 @@ Phase 2 closes by writing `.extract-ds-skill-scratch/handoffs/phase-2.md` BEFORE
   - `.extract-ds-skill-scratch/examples/*.md` (count, names)
   - `.extract-ds-skill-scratch/foundations/*.md` (count, names)
   - `.extract-ds-skill-scratch/tokens-extracted.md` (size, last-modified)
+  - `.extract-ds-skill-scratch/shell-invariants.md` (size, last-modified — present only when Phase 2 lifted wiring; omit the bullet when absent)
 - `[VERIFY]` marker list — each marker with file:line + the one-line reason, plus user-acceptance status (`pending`, `accepted as known limitation`, `flagged for redo`)
 - Approval-pending flag (`status: awaiting-approval`)
 - Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-2.md`)
@@ -160,6 +220,7 @@ Phase 2 closes by writing `.extract-ds-skill-scratch/handoffs/phase-2.md` BEFORE
 - The lifted CSS bodies (they live in `wiring-extracted.md` on disk)
 - The extracted component prose (lives in scratch `examples/*.md`)
 - The extracted token/foundation rules (live in scratch `foundations/*.md` + `tokens-extracted.md`)
+- The enumerated shell invariants (live in `shell-invariants.md` on disk; Phase 3 reads the per-slug blocks directly)
 - The Phase 3 materialization procedure (lives in `references/persist.md`, loaded fresh by the resuming session)
 - The token-coverage script details (live in `scripts/check-token-coverage.sh`, called fresh on any iteration)
 
@@ -182,6 +243,7 @@ TOKEN_COVERAGE=<PASS|NOOP|FAIL> (consumed: <N>, covered: <M>)
 - `.extract-ds-skill-scratch/examples/` — <K> files: <name>, <name>, …
 - `.extract-ds-skill-scratch/foundations/` — <F> files: <name>, <name>, …
 - `.extract-ds-skill-scratch/tokens-extracted.md` — <byte-size>, modified <ISO date>
+- `.extract-ds-skill-scratch/shell-invariants.md` — <byte-size>, modified <ISO date> (omit this bullet when no wiring was lifted in Phase 2)
 
 ## Open [VERIFY] markers
 
