@@ -3,111 +3,61 @@ role: user
 phase: 2
 ---
 
-Build a GitHub-style "Create a new repository" screen from the attached design. For this task, edit `app/page.tsx` and add nested showcase components under `components/showcase/` (mirror `Downloads/import-design-system`).
+This UI must be built with Primer React (`@primer/react`).
 
-Use ONLY the components in `ds/components/`:
+Build a GitHub-style "Create a new repository" screen from the attached design. Edit `app/page.tsx` and add nested showcase components under `components/showcase/` (mirror `Downloads/import-design-system`).
 
-**Layout & typography** (page chrome and section headings):
+## File structure
 
-- `Stack` (vertical/horizontal layout, gap, padding, justify, align, wrap)
-- `Heading` (section titles and card title)
-- `Text` (muted subtitles and the branch "main" label)
-
-**Buttons & actions** (`component-showcase.tsx`):
-
-- `Button` (primary, default, danger, invisible variants; `leadingVisual` for icon buttons)
-- `IconButton` (heart icon-only control — `aria-label` required)
-
-**Feedback & metadata** (`component-showcase.tsx`):
-
-- `Label` (status pills: `accent`, `success`, `attention`, `danger`, `done`)
-- `CounterLabel` (plain + `scheme="primary"`)
-
-**Form composition** (`create-repo-card.tsx`):
-
-- `Flash` (account context callout — NOT `Banner`; use `variant="default"`)
-- `FormControl` (wraps every field; `required` on repository name)
-- `TextInput` (`block`, `leadingVisual={RepoIcon}`, placeholder `awesome-project`)
-- `Textarea` (`block`, `rows={3}`, `resize="vertical"`)
-- `Select` with `Select.Option` (Public / Private)
-- `Checkbox` (`defaultChecked`; label follows the checkbox inside `FormControl`)
-- `Button` (footer: invisible Cancel + primary Create repository)
-
-**Icons** — import from `@primer/octicons-react` (not `ds/components/`):
-
-- `PlusIcon`, `DownloadIcon`, `TrashIcon`, `GitBranchIcon`, `HeartIcon` (showcase)
-- `RepoIcon` (repository name `leadingVisual` and card title)
-- `MarkGithubIcon` (card header mark — `size={20}`)
-
-File structure:
-
-- `app/page.tsx` — `"use client"`; stacks the two showcase sections with section headings.
+- `app/page.tsx` — `"use client"`. Stacks two showcase sections, each with a medium section heading and a muted subtitle: "Components" and "Composition".
 - `components/showcase/component-showcase.tsx` — the **Components** block.
 - `components/showcase/create-repo-card.tsx` — the **Composition** card.
 
-Requirements:
+## Components section
 
-**`app/page.tsx`:**
+A horizontal row of buttons demonstrating the full action palette:
 
-- Import and render `<ComponentShowcase />` then `<CreateRepoCard />` inside a vertical `Stack` with `gap="spacious"`.
-- Each section gets a medium `Heading` ("Components", "Composition") and a muted `Text` subtitle matching the reference copy.
+- A primary "New repository" with a plus icon.
+- A default "Clone" with a download icon.
+- A destructive "Delete" with a trash icon.
+- A ghost "Cancel".
+- An icon-only "Star" heart button.
 
-**Components section** (`component-showcase.tsx`):
+A second row of feedback and metadata:
 
-- **Buttons row:** `Button variant="primary" leadingVisual={PlusIcon}` ("New repository"), `Button variant="default" leadingVisual={DownloadIcon}` ("Clone"), `Button variant="danger" leadingVisual={TrashIcon}` ("Delete"), `Button variant="invisible"` ("Cancel"), `IconButton icon={HeartIcon} aria-label="Star" variant="default"`.
-- **Labels & counters row:** five `Label` pills (`enhancement` → `variant="accent"`, `approved` → `success`, `needs review` → `attention`, `bug` → `danger`, `resolved` → `done`), then `GitBranchIcon` + `Text` "main", then `CounterLabel` "12" and `CounterLabel scheme="primary"` "3".
-- Pass icon **components** to `leadingVisual` / `icon` — never JSX elements (`leadingVisual={PlusIcon}`, not `leadingVisual={<PlusIcon />}`).
+- Five status pills covering label semantics — `enhancement`, `approved`, `needs review`, `bug`, `resolved`. Pick the visual treatment that matches each meaning.
+- A branch indicator: a branch icon next to muted text "main".
+- Two counter badges: one neutral "12", one accented "3".
 
-**Composition section** (`create-repo-card.tsx`):
+## Composition section
 
-- Card surface: a token-styled `<div>` with `backgroundColor: var(--bgColor-default)`, `border: 1px solid var(--borderColor-default)`, `borderRadius: var(--borderRadius-large)`, `boxShadow: var(--shadow-resting-medium)` — not hand-tuned px colours.
-- **Header:** horizontal `Stack` with `MarkGithubIcon size={20}` beside a vertical `Stack` containing `RepoIcon` + `Heading` "Create a new repository" and muted `Text` subtitle.
-- **Info callout:** `<Flash variant="default">You are creating this repository in your personal account.</Flash>`.
-- **Repository name:** `FormControl required` → `FormControl.Label`, `TextInput block leadingVisual={RepoIcon}`, `FormControl.Caption` help text.
-- **Description:** `FormControl` → `Textarea block rows={3} placeholder="Optional description" resize="vertical"`.
-- **Visibility:** `FormControl` → `Select` with Public and Private options.
-- **README:** `FormControl` with `Checkbox defaultChecked` before `FormControl.Label`, plus `FormControl.Caption`.
-- **Footer:** horizontal `Stack justify="end"` with invisible Cancel then primary Create repository.
+A card surface containing a header, an info callout, three form fields, a checkbox, and a footer action row.
 
-**Behaviour and constraints:**
+**Header:** a small GitHub mark icon beside a vertical stack with a repo icon, the title "Create a new repository", and a muted subtitle ("A repository contains all project files, including the revision history.").
+
+**Info callout:** a default-tone informational message — "You are creating this repository in your personal account."
+
+**Form fields** (each properly labelled, with help text where noted):
+
+- **Repository name** (required) — single-line input with a leading repo icon, placeholder `awesome-project`, and a caption: "Great repository names are short and memorable."
+- **Description** (optional) — multi-line textarea, 3 rows, vertically resizable, placeholder "Optional description".
+- **Visibility** — select with Public and Private options.
+- **Initialize with README** — checkbox, checked by default, with a caption beneath: "This is where you can write a long description for your project."
+
+**Footer:** a right-aligned row with a ghost Cancel button followed by a primary Create repository button.
+
+The card uses the design system's surface tokens for background, border, radius, and shadow. Do not hand-pick colours or px values.
+
+## Behaviour and constraints
 
 - Both showcase files are `"use client"`.
-- Use mock/default field values inline — no API calls, no new dependencies beyond `@primer/octicons-react` (already a peer of `@primer/react`).
-- Every interactive input (`TextInput`, `Textarea`, `Select`, `Checkbox`) MUST live inside `FormControl` per the extracted skill's a11y rules.
-- Muted secondary text uses `color: "var(--fgColor-muted)"` — never a gray hex.
-- Do not pass `aria-label` to any `Button` that already renders visible text. `IconButton` MUST have `aria-label`.
-- Follow whatever rules the `extract-ds-skill` output put in `.claude/skills/ds/` (or `extracted-skill/` in dry-run snapshots).
+- Use mock/default values inline — no API calls, no new dependencies.
+- All form inputs must be accessibly labelled. Icon-only controls must have accessible names.
+- Muted secondary text uses the design system's muted-foreground token, not a hex.
+- Follow whatever rules `extract-ds-skill` put in `.claude/skills/ds/` (or `extracted-skill/` in dry-run snapshots).
 
-**Out of scope for this prompt:**
+## Out of scope
 
-- `ColorPalette`, `TypeScale`, or other foundation showcases from the full import-design-system starter page.
-- Real GitHub API integration, org/account switching, or repository name availability checks.
+- Foundation showcases (color palette, type scale) from the broader starter page.
+- Real GitHub API integration, org/account switching, repository name availability checks.
 - Marketing copy beyond the strings named above.
-
-## `ds/components/` inventory (source of truth)
-
-Phase 2 targets the create-repository surface, not the issues list. The wrapper set in `ds/components/` was replaced to match `Downloads/import-design-system` — only particles this screen needs.
-
-**Removed** (issues-page set — no longer in `ds/components/`):
-
-- `PageHeader`, `Banner`, `DataTable`, `SelectPanel`, `ActionMenu`, `ActionList`
-
-**Added** (14 wrappers — thin re-exports from `@primer/react`):
-
-| Wrapper | Role in this screen |
-|---------|---------------------|
-| `Stack`, `Heading`, `Text` | Page layout and section chrome |
-| `Button`, `IconButton` | Showcase buttons + form footer |
-| `Label`, `CounterLabel` | Showcase pills and counters |
-| `Avatar` | (unused this screen — card header uses the `MarkGithubIcon` octicon) |
-| `Flash` | Account context callout (not `Banner`) |
-| `FormControl` | Wraps every field |
-| `TextInput`, `Textarea`, `Select`, `Checkbox` | Form fields |
-
-Each wrapper ships as `ds/components/<Name>.tsx`. Headline rules live in `*.docs.tsx` where applicable: `Button`, `IconButton`, `FormControl`, `Flash`.
-
-**Not wrapped** (import directly):
-
-- `@primer/octicons-react` — `PlusIcon`, `DownloadIcon`, `TrashIcon`, `GitBranchIcon`, `HeartIcon`, `RepoIcon`, `MarkGithubIcon`
-
-Re-run `extract-ds-skill` against the updated `ds/components/` before Phase 2 so `.claude/skills/ds/` reflects the new inventory.
