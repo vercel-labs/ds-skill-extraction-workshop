@@ -1,5 +1,16 @@
 {
   "permissions": {
+    "deny": [
+      "Read(ds/**)",
+      "Read(./ds/**)",
+      "Edit(ds/**)",
+      "Write(ds/**)",
+      "Bash(cat ds/*)",
+      "Bash(cat ./ds/*)",
+      "Bash(* ds/*)",
+      "Bash(* ./ds/*)",
+      "Bash(cd ds*)"
+    ],
     "allow": [
       "Skill(extract-ds-skill)",
       "Skill(do-work)",
