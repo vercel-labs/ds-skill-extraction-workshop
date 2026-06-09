@@ -52,7 +52,6 @@ next-env.d.ts
 .extract-ds-skill-scratch/
 
 # planning/PRD scratch — these are session artefacts, not deliverables
-PRD-*.md
-/PRD-*.md
+/PRDs
 
 .pnpm-store
