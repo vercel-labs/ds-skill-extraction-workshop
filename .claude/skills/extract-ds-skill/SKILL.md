@@ -1,6 +1,6 @@
 ---
 name: extract-ds-skill
-description: Extract a Claude Code design-system skill from a real DS source. Use when the user wants to turn a design system (component library, token set, asset package) into an installable skill at .claude/skills/<slug>/ in their project. Triggers: 'make a skill from <DS>', 'extract a DS skill', 'turn primer/geist/material/<DS> into a skill'. Scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting - route copy rules to a separate copy skill, do not extract them here. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient for any phase past initial discovery framing.
+description: Extract a Claude Code design-system skill from a real DS source. Use when the user wants to turn a design system (component library, token set, asset package) into an installable skill at .claude/skills/<slug>/ in their project. Triggers: 'make a skill from <DS>', 'extract a DS skill', 'turn mantine/geist/material/<DS> into a skill'. Scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting - route copy rules to a separate copy skill, do not extract them here. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient for any phase past initial discovery framing.
 ---
 
 ## Mission (what a DS skill IS)
@@ -15,44 +15,114 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 
 This scope block is quoted by downstream rules (Quick Triage step 1, Agent Stance bullet 3, Anti-fabrication "Do not" list, `references/component-extraction.md` Shape 3). Do not paraphrase or trim it when re-citing.
 
-The skill runs in three labeled phases. The single human gate sits at the boundary between Phase 2 and Phase 3. Phase 1 closes with a confirmation prompt; Phase 2 closes with an approval prompt; Phase 3 writes to disk.
+The skill runs in three labeled phases. The single human gate sits at the boundary between Phase 2 and Phase 3. Phase 1 closes with a confirmation prompt; Phase 2 closes with an approval prompt; Phase 3 writes to disk. Phase 1 and Phase 2 close with a hard stop (write handoff → cutoff message → EXIT); the user resumes in a FRESH Claude Code session via an explicit `validate:` / `persist:` resume parameter so the context window is cleared between phases.
+
+## Resume from a prior phase
+
+The skill recognizes two resume keywords parsed from the user's invocation. They are the only opt-in resume mechanism — there is NO file-existence auto-detection. A leftover handoff in `.extract-ds-skill-scratch/handoffs/` from a different DS extraction does NOT hijack a new run; the user resumes explicitly by naming the path.
+
+- `validate: <path-to-phase-1.md>` → skip Phase 1, read the handoff at the named path, enter Phase 2 directly.
+- `persist: <path-to-phase-2.md>` → skip Phase 2, read the handoff, enter Phase 3 directly.
+
+In both cases the path is mandatory. Invocations like `/extract-ds-skill validate:` (no path) abort with a clear error naming the missing argument.
+
+Resume entry procedure (run when either keyword is detected):
+
+1. Read the handoff file at the named path. If the file does not exist or is unreadable, abort with a clear error pointing at the path. NEVER silently fall back to Phase 1 from scratch — a silent fallback hides the fact that resume failed and produces "the user thinks they resumed; the agent runs from zero".
+2. Validate the handoff's shape minimally — the doc names a slug, a scratch directory path, and the phase it was written from. If the shape is invalid (e.g. the file is truncated, or names a phase that does not match the keyword's expected phase), abort with a clear error naming the offending file and the mismatch.
+3. Compare the handoff filename's dryrun-label prefix (if any) against the resuming session's cwd. If the handoff was written under one `dryrun-NN` worktree and the resuming session is in a different `dryrun-MM` worktree (or in no worktree), emit a one-line WARNING naming both numbers and continue. This is observability, not enforcement — the user may have intentionally moved a handoff across worktrees for debugging.
+4. Render a one-line resume summary back to the user. Format: `Resuming from phase-N handoff — slug=<X>, scratch=<path>, <phase-specific-detail>` (the per-phase detail is specified in `references/discovery.md` for phase-1 → Phase 2 resumes and `references/validate.md` for phase-2 → Phase 3 resumes).
+5. Enter the named phase directly. Do NOT render the prior phase's summary; do NOT re-ask the user for confirmations they already gave.
+
+If neither resume keyword is present in the invocation, run Phase 1 from scratch as today.
+
+## Handoff filename labeling
+
+Handoff filenames are prefixed with the dryrun version of the worktree they were written from, so cross-worktree mistakes are visible and parallel dryrun trials stay disambiguated even when they share a scratch location. The prefix is derived from the current working directory at handoff-write time.
+
+Derivation rules:
+
+1. Read cwd at the moment of handoff write.
+2. Match cwd against the regex `(.*/)?.claude/worktrees/dryrun-(\d+)(/|$)`.
+3. **If matched:** write to `.extract-ds-skill-scratch/handoffs/dryrun-<NN>-phase-<N>.md` (capture group 2 supplies the `<NN>`).
+4. **If not matched** (running from the repo root, or from a worktree with non-`dryrun-NN` naming): write to `.extract-ds-skill-scratch/handoffs/phase-<N>.md` (no prefix). The cutoff message mentions that no dryrun label was applied, so the user can rename manually if they intended one.
+5. The dryrun number is captured as plain digits — leading zeros are preserved if present in the worktree path (`dryrun-05` → `dryrun-05-phase-1.md`, not `dryrun-5-phase-1.md`).
+
+The label is observability, not enforcement — it makes cross-worktree mistakes visible (via the warning in resume entry step 3 above) but does NOT block them.
 
 ## Phase 1: Discovery summary
 
-Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
+Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, docs:foundation, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
 
-The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[storybook]` / `[private-blocker]`), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
+The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), foundation docs block if any (N URLs accepted or rejected per-URL, tagged `[docs:foundation]`, with each accepted root's depth-1 crawl tree shown abbreviated; omitted entirely if the user did not provide any foundation URL), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
 
 Inspect-but-do-not-enumerate is the rule. Read enough to know what each source contains (package exports, top-level folders, docs index, example apps); do not list every component, token, or icon yet. The full enumeration happens in Phase 2, against the pruned set the user confirms.
 
-Worked example of a Phase 1 summary (illustrative; substitute real cites for the DS you are extracting):
+### Worked example — Phase 1 summary against a public-DS-shaped target (illustrative)
+
+The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same summary contract applies to whichever DS the user passes. Substitute real cites for the DS you are extracting.
 
 ```
-Proposed skill: `primer-react` -> .claude/skills/primer-react/
-DS: Primer React - GitHub's component library for building consistent, accessible UI.
+Proposed skill: `mantine` -> .claude/skills/mantine/
+DS: Mantine - React component library with 100+ customizable components and accessible defaults.
 
-Components found (38), proposing (4):
-- TextInput - single-line text entry with built-in validation slots
-- Button - primary/invisible/danger action trigger with icon + loading states
-- Checkbox - controlled boolean input, pairs with FormControl for label/caption
-- FormControl - wraps an input + label + caption + validation; required-for-a11y composition
+Components found (147), proposing (4):
+- TextInput - single-line text entry with label, description, and error slots
+- Button - filled/outline/subtle action trigger with loading state and left/right section slots
+- Checkbox - controlled boolean input, accepts label and description inline
+- InputWrapper - wraps an input + label + description + error; pairs with custom inputs that need a11y labeling
 
-Tokens detected: ~180 across color (primer/primitives), space (4px grid), type (functional scale).
-Assets detected: 0 icons in this package (octicons ship separately, out of scope for v1).
+Tokens detected: ~150 across color (theme colors 0-9 + functional), space (xs/sm/md/lg/xl), type (h1-h6 + functional).
+Assets detected: 0 icons in this package (@tabler/icons-react ships separately, out of scope for v1).
+
+Foundation docs:
+- accepted: https://mantine.dev/styles/colors/ [docs:foundation] — crawled, found 4 sub-pages: dark-mode, functional, primary, theme-object
+- accepted: https://ui.shadcn.com/docs/theming [docs:foundation] — crawled, found 3 sub-pages: dark-mode, css-variables, conventions
 
 Headline rule candidates:
-- "Use `disabled={isLoading}` on submit buttons, not `inactive` - `inactive` is a non-interactive visual state, screen readers still announce it as actionable" (Button.docs.tsx:142)
-- "Wrap every TextInput / Checkbox in `<FormControl>`; bare inputs lose label association and fail axe" (FormControl.docs.tsx:31)
+- "Use `loading` prop on Button for loading states, not a custom spinner inside `children` - the loading prop handles disabled coordination and ARIA announcements" (Button.tsx:88)
+- "Wrap custom inputs in `<InputWrapper>`; bare inputs without a wrapper lose label association and fail axe" (InputWrapper.tsx:31)
 - "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204)
 
 Sources used:
-- github.com/primer/react @ v37.x [code, joint-read]
-- primer.style/react [docs]
+- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- mantine.dev/styles/colors/ [docs:foundation] (+4 crawled)
+- ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
 
 Out-of-scope rules surfaced (route to sibling copy skill): "button labels are Title Case", "placeholder text is action-oriented".
 
 No blockers. Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 ```
+
+### Phase 1 close (handoff emission, mandatory)
+
+After the user confirms (with "go" or adjustments), run `mkdir -p .extract-ds-skill-scratch/handoffs/` and write the phase-1 handoff from the template in `references/discovery.md` (`## Handoff document — phase-1.md template`). Resolve the handoff filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-1.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc captures ONLY the decisions surfaced in the discovery summary — slug, ref project + entry, proposing set (as approved by the user), DS package versions + paths, accepted foundation URLs, the three headline rules verbatim with their `file:line` cites. Do NOT include the discovery exploration, the raw npm/curl/grep outputs, or the per-component deliberation — those are recoverable from the codebase and the meta-skill itself.
+
+After the handoff is written, **print the cutoff message and EXIT**. Do NOT enter Phase 2 inline. The cutoff message uses the resolved labeled filename verbatim in both the "Handoff written to" line and the resume command:
+
+```
+Phase 1 complete. Handoff written to
+.extract-ds-skill-scratch/handoffs/<resolved-filename>.
+
+To enter Phase 2 (validation), start a FRESH Claude Code session in
+this same directory and run:
+
+    /extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/<resolved-filename>
+
+Starting fresh clears the context window so Phase 2's heavier work
+(reference-project CSS lifting, WebFetch over foundation URLs, token
+grep-resolves, exemplar lifts) has room to breathe. The handoff
+captures your decisions so the new session won't re-ask anything.
+
+If you'd rather continue in THIS session despite the context cost,
+reply "continue inline" and I'll enter Phase 2 here. Default is the
+fresh-session pickup.
+```
+
+When the handoff was written without a dryrun-label (cwd did not match `.claude/worktrees/dryrun-NN/`), append a one-line note to the cutoff message: `No dryrun label was applied (cwd is not under .claude/worktrees/dryrun-NN/). Rename the handoff manually if you intended a label.`
+
+The "continue inline" override is the only allowed inline transition out of Phase 1. The default is EXIT; the override is opt-in. Per `references/anti-patterns.md` `state/inline-phase-transition`, writing the handoff and then entering Phase 2 inline (without the override) defeats the cutoff and wastes the handoff.
 
 ## Phase 2: Validate the extraction in a scratch workspace
 
@@ -60,23 +130,62 @@ Triggered only after explicit user confirmation from Phase 1. Goal: prove the ex
 
 Load `references/validate.md` for the deterministic typecheck + grep-resolves protocol. The validation runs `scripts/validate.sh` against the scratch workspace. It typechecks the extracted component contracts against the DS package's published types, greps every cited token name against the source token file, greps every cited icon/asset name against the asset package, and counts `[VERIFY]` markers.
 
-The proof point surfaced before the gate is a single line of the form: "N props verified against source, M tokens grep-resolved, K assets grep-resolved, 0 hallucinations" alongside any open `[VERIFY]` markers as a numbered tally. If the tally is non-zero, the agent describes each unresolved marker and asks whether to drop the rule, escalate to a second-pass source read, or accept it as a known limitation.
+If any `[docs:foundation]` URLs are in scope from Phase 1, run the foundation-docs extraction step in addition. Load `references/foundation-extraction.md`, then **iterate** over the union of accepted root URLs and crawled sub-pages from Phase 1 (one WebFetch per URL, never re-fetch). For each URL, classify candidate rules into the five shapes (token-pairing, mode-aware, contrast-minimum, semantic-role, fallback-element), grep-resolve every cited CSS variable against the installed token package (`node_modules/<ds-package>/dist/css/`), mark unresolved cites `[VERIFY]`, and stash the per-URL output to `.extract-ds-skill-scratch/foundations/<slug>.md` (slug per the persist map in `references/persist.md`). One bad URL logs `[VERIFY: WebFetch failed for <url>]` as the file body and the loop continues — failure on a single page does not abort the run. No foundation file lands in `.claude/skills/<slug>/` until Phase 3. Skip this paragraph entirely when no foundation URL is in scope; the baseline typecheck + grep-resolves contract is the full Phase 2. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md` when one is in scope, or from the verbatim docs setup snippet otherwise.
 
-Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval before Phase 3.
+If an `[example:project]` source is in scope from Phase 1, run the reference-project extraction step in addition. Load `references/reference-project.md` for the framework auto-detection, the five-step extraction recipe (provider, CSS imports, root-element attrs, bonus composition, **recursive companion-CSS lift**), and the scratch output contract. Step 5 of the recipe lifts the verbatim full contents of every CSS file the entry file imports (depth 3, within `app/`/`src/`) — not just the import lines — so the produced `SKILL.md` Setup section ships paste-ready wiring instead of prose summaries. After the lift completes, run `bash scripts/check-token-coverage.sh <ds-pkg-root> .extract-ds-skill-scratch/` as a Phase 2 hard gate: the script collects every `var(--X)` consumed in the produced code-block surfaces, locates each token's defining CSS file in the DS package, and asserts the file appears as an `@import` line in one of the lifted Companion CSS blocks. A FAIL exit blocks the wait-for-approval gate; the per-var `MISSING: ...` report surfaces verbatim to the user, who either accepts the gap or loops back to discovery. PASS / NOOP (Tailwind-style apps) proceeds.
 
-Worked example of the Phase 2 proof-point line (the agent prints this verbatim before the wait-gate):
+The proof point surfaced before the gate is a single line of the form: "N props verified against source, M tokens grep-resolved, K assets grep-resolved, F foundation-rules extracted (X cited, Y `[VERIFY]`), 0 hallucinations" alongside any open `[VERIFY]` markers as a numbered tally. Omit the `F foundation-rules` segment when no `[docs:foundation]` URL was in scope. When a reference project IS in scope, append the wiring line (`Wiring extracted from <ref>@<entry> (<framework>, N lines, K CSS files lifted, M tokens consumed, M covered)`) and the `TOKEN_COVERAGE=PASS|NOOP|FAIL` tally line immediately after — see `references/validate.md` for the full proof-point format. If the tally is non-zero, the agent describes each unresolved marker and asks whether to drop the rule, escalate to a second-pass source read, or accept it as a known limitation.
+
+After the proof-point line is emitted (and any `[VERIFY]` tally is surfaced), BEFORE waiting for approval, write the phase-2 handoff from the template in `references/validate.md` (`## Handoff document — phase-2.md template`). Resolve the filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-2.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-2.md`. The doc embeds the proof-point line verbatim, lists the scratch artefacts Phase 3 will materialize (`wiring-extracted.md`, `examples/*.md`, `foundations/*.md`, `tokens-extracted.md`, and `shell-invariants.md` when Phase 2 lifted wiring per the Shell-invariant extraction step in `references/validate.md`), records the token-coverage tally, and notes each `[VERIFY]` marker with its user-acceptance status. Do NOT duplicate the lifted CSS or the extracted prose — those live on disk in scratch and the handoff references them by path. Re-write the handoff after each validate iteration (the proof-point and `[VERIFY]` tally drift between iterations).
+
+Iterate in `.extract-ds-skill-scratch/` until the user is satisfied. Re-run `scripts/validate.sh` after each iteration. Do not touch `.claude/skills/<slug>/` during iteration. Wait for explicit user approval, then proceed to the Phase 2 close cutoff below.
+
+### Phase 2 close (handoff emission, mandatory)
+
+After the user approves the proof-point (the phase-2 handoff has already been written and re-written across iterations per the paragraph above), **print the cutoff message and EXIT**. Do NOT enter Phase 3 inline. The cutoff message uses the resolved labeled filename verbatim in both the "Handoff written to" line and the resume command:
+
+```
+Phase 2 complete. Handoff written to
+.extract-ds-skill-scratch/handoffs/<resolved-filename>.
+
+To enter Phase 3 (persist), start a FRESH Claude Code session in
+this same directory and run:
+
+    /extract-ds-skill persist: .extract-ds-skill-scratch/handoffs/<resolved-filename>
+
+Starting fresh clears the context window so Phase 3's slug-collision
+check, scaffolder write, and post-emit check-skill-docs.sh run have
+room to breathe. The handoff captures the proof-point and your
+[VERIFY] decisions so the new session won't re-validate or re-ask.
+
+If you'd rather continue in THIS session despite the context cost,
+reply "continue inline" and I'll enter Phase 3 here. Default is the
+fresh-session pickup.
+```
+
+When the handoff was written without a dryrun-label, append the same note as in Phase 1 close (`No dryrun label was applied (cwd is not under .claude/worktrees/dryrun-NN/). Rename the handoff manually if you intended a label.`).
+
+The "continue inline" override is the only allowed inline transition out of Phase 2. The default is EXIT. Per `references/anti-patterns.md` `state/inline-phase-transition`, writing the handoff and then entering Phase 3 inline (without the override) defeats the cutoff.
+
+### Worked example — Phase 2 proof-point line (illustrative)
+
+The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same proof-point contract applies to whichever DS the user passes.
 
 ```
 Validation complete.
-- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, FormControl: 2)
+- 14 props verified against source (Button: 6, TextInput: 4, Checkbox: 2, InputWrapper: 2)
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
+- 6 foundation-rules extracted (5 cited, 1 [VERIFY])
+- Wiring extracted from github.com/<owner>/<reference-project>@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
+- TOKEN_COVERAGE=PASS
 - 0 hallucinations
-- 2 open [VERIFY] markers:
+- 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
-  2. FormControl.md:18 - validation slot signature absent from public types; inferred from docs
+  2. InputWrapper.md:18 - validation slot signature absent from public types; inferred from docs
+  3. tokens.md:74 - `--mantine-color-blue-6` cited by foundation URL but no grep-resolve in @mantine/core@7.x
 
-Approve to persist? (Reply "go" to write to .claude/skills/primer-react/.)
+Approve to persist? (Reply "go" to write to .claude/skills/mantine/.)
 ```
 
 ## Phase 3: Persist the skill
@@ -91,15 +200,18 @@ The persist target is `.claude/skills/<slug>/` in the attendee's project (per-pr
 
 ## Source-role taxonomy
 
-Every source the user points at falls into one of seven roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
+Every source the user points at falls into one of ten roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
 
 - **Design-system code** (`[code]`) - the package source, types file, and component implementations. Highest authority. Joint-read with docs; wins on conflict.
 - **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. octicons, geist-icons). Treat exports as the inventory; do not invent names.
 - **Product/example app** (`[code]`) - a real consumer of the DS. The single best source for wiring (provider mount, font setup, globals CSS, install scripts). Copy wiring verbatim from here when available.
+- **Reference project** (`[example:project]`) - a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Phase 2 auto-detects the framework (Vite / Next.js App / Next.js Pages / CRA), reads the root entry file, and lifts the provider mount + CSS imports + root-element attributes verbatim per `references/reference-project.md`. Opt-in. When omitted and a `[docs:foundation]` URL is in scope, the Setup section falls back to the verbatim docs setup snippet.
 - **Internal AGENTS/CLAUDE files** (`[code]`) - guidance the DS team has already written for agents. Inherit liberally; cite by `file:line`.
-- **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures.
+- **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures. Cited, not extracted.
+- **Docs:foundation** (`[docs:foundation]`) - prose foundations pages on the DS docs site that are EXTRACTED into `token/*` rules, not just cited. **N URLs per call**, opt-in; each accepted root is crawled depth-1 within its path prefix per `references/discovery.md` (Crawl rules). Phase 2 iterates the union of accepted+crawled URLs via WebFetch, extracts five prose rule shapes per `references/foundation-extraction.md` (token-pairing, mode-aware, contrast-minimum, semantic-role, fallback-element), and materializes them one file per source URL under `references/foundations/<slug>.md` (slug per the persist map). Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md`, or from the verbatim docs setup snippet as a fallback.
 - **Storybook** (`[storybook]`) - canonical variant examples. Useful for composition examples; not always authoritative on prop names if the stories lag the package.
 - **Figma** (`[figma]`) - design-time source. Use for tokens and visual rules; never for prop names or API contracts.
+- **Private/inaccessible** (`[private-blocker]`) - soft blocker. Log, proceed, may become available later.
 
 ## Six rule shapes (extraction recognition)
 
@@ -141,6 +253,8 @@ Progressive disclosure is the contract. Load each reference file only at the gat
 | About to write the first file under `.claude/skills/<slug>/` in Phase 3 | `references/persist.md` + `references/skill-template.md` | Slug-collision check, file layout, SKILL.md contract |
 | After closing message, considering the optional `dry-runs/` snapshot prompt | `references/persist.md` (`## Optional: dry-run snapshot`) | Conditional on `dry-runs/` existing at project root; prompt shape, copy + RUBRIC stub |
 | Extracting a single component into `references/components/<name>.md` | `references/component-extraction.md` | 8-section component-file checklist, six rule shapes, Shape 3 routing |
+| Extracting rules from each `[docs:foundation]` URL (root or crawled sub-page) into `references/foundations/<page>.md` plus the produced SKILL.md Setup section | `references/foundation-extraction.md` | Per-URL iteration contract, six foundation rule shapes, per-rule subsection skeleton, CSS-variable grep-resolve, Setup-injection contract |
+| Lifting wiring from an `[example:project]` reference project into `.extract-ds-skill-scratch/wiring-extracted.md`, AND lifting composition exemplars from the same reference project into `.extract-ds-skill-scratch/examples/<basename>.md` | `references/reference-project.md` | Framework auto-detection (Vite / Next.js App / Next.js Pages / CRA), 5-step lift recipe (provider + CSS imports + root-attrs + bonus composition + **recursive companion-CSS file lift, depth 3, verbatim contents**), framework-adaptation note, fallback-to-docs path, AND composition exemplar extraction (two globs — `app/**/page.tsx` and `components/showcase/*.tsx` — one scratch file per match, per-file "What to copy" pattern bullets). The companion-CSS lift is what makes the produced Setup section paste-ready; `scripts/check-token-coverage.sh` is the Phase 2 hard gate that asserts the lifted `@import` set covers every `var(--X)` consumed by produced exemplars. |
 | Writing a `Bad \| Good \| Why` block, or any cross-cutting anti-pattern | `references/anti-patterns.md` | Column grammar, code-fence rule, cross-component duplication |
 | Asked "why did you inherit X from Y?" by a maintainer | `references/inheritance.md` | Source-by-source inherit / do-not-inherit ledger |
 | Hitting a known gap (Hallmark progressive-disclosure tiers, stamp pattern, refresh verb) | `references/coverage-gaps.md` | ~150-200 instruction-budget caveat, deferred work |
@@ -180,6 +294,8 @@ Required loads (non-negotiable):
 - Encourage raw CSS values when tokens exist. A skill that opens the door to raw hex codes loses the design-system contract on the first prompt.
 - Include examples that do not compile against public APIs. Every example file in `references/components/*.md` must be runnable against the published package.
 - Put the full design system manual in SKILL.md. SKILL.md routes; references carry the manual.
+- Invent example files. If the reference project ships zero composition exemplars (no `app/**/page.tsx`, no `components/showcase/*.tsx`), the produced skill ships zero example files. Empty `references/examples/` is the correct empty state — never fabricate a composition exemplar to fill the directory.
+- Summarize companion CSS files as prose in the produced Setup section, or cross-ref `references/foundations/<page>.md` for "the verbatim CSS". The CSS files surfaced by step 5 of the reference-project extraction recipe ship verbatim into `### Companion CSS — <path>` subheadings in SKILL.md Setup. Foundation files document rules, not wiring. Registered as `wiring/css-prose-summary` in `references/anti-patterns.md` Layer C; enforced by `scripts/check-token-coverage.sh` (Phase 2 hard gate) and `scripts/check-skill-docs.sh` check #11 `TOKEN_COVERAGE` (Phase 3 post-emit, opt-in via `--ds-package-root`).
 
 ## Reflexive audit (the skill IS the rubric)
 
@@ -192,6 +308,7 @@ Three layered mechanisms operate during and after extraction. There is no separa
 3. Every rule is in scope (tokens/assets/components/APIs). Any copy/voice/casing rule surfaced during extraction is recorded in the discovery summary as a candidate for a sibling copy skill, not extracted here. The scope guardrail block is quoted by this rule.
 4. Every routing-table row in the new SKILL.md resolves to a file the scaffolder is about to write. Phantom rows (rows pointing at files the scaffolder will not produce) are the most common consistency bug; the pre-emit tick is the cheapest place to catch them.
 5. Every rule slug in the new SKILL.md follows the registry pattern (`component/<name>-<rule>`, `token/<name>-<rule>`, `asset/<name>-<rule>`). Hyphenated, namespaced, one slug per concept.
+6. Every `references/examples/<name>.md` file lifts from a real file in the reference project (an `app/**/page.tsx` or a `components/showcase/*.tsx`), and the routing table contains one row per example file plus the index row. If the reference project ships zero exemplars, `references/examples/` is omitted and the routing table carries no example rows — the empty state is a real state, not an omission to backfill.
 
 If any tick fails, fix in `.extract-ds-skill-scratch/` and re-run the tick-list before calling `scripts/scaffold.sh`. This is a visible chain-of-thought step, not a hidden one. The agent pastes the tick-list back into the message so a human reviewing the transcript can verify the audit ran.
 
@@ -237,7 +354,7 @@ If a `dry-runs/` directory exists at the project root, after the closing message
 The prompt has exactly one question and offers a default label. Worked example:
 
 > A `dry-runs/` directory exists in this project. Snapshot this run to `dry-runs/<YYYY-MM-DD>-<label>/`?
-> Default label: `<slug>-<short-tag>` (e.g. `ds-pivot-1`, `primer-react-baseline`).
+> Default label: `<slug>-<short-tag>` (e.g. `ds-pivot-1`, `acme-ui-baseline`).
 > Reply with a label, "yes" to accept the default, or "no" to skip.
 
 If the user accepts, copy `.claude/skills/<slug>/` to `dry-runs/<date>-<label>/extracted-skill/`, write a `README.md` mirroring the existing baseline shape (one paragraph of context, "What's here" list, "Diff against earlier runs" snippet, "Known limitations" list), and write a stub `RUBRIC.md` by copying the body of `dry-runs/TEMPLATE.md` and pre-filling the fields the agent run itself produced (components, validation proof point, `check-skill-docs.sh` exit code, `[VERIFY]` tally). Leave the operator-observable fields (timings, UX confusion, Phase 4/5) blank.
@@ -246,14 +363,22 @@ Detail and mechanics in `references/persist.md` (`## Optional: dry-run snapshot`
 
 If the user replies "no" (or anything other than a label/yes), skip silently. This is a single-question gate, not a multi-step interaction; if the user is unsure, the snapshot can be created manually after the fact with `cp -R .claude/skills/<slug>/ dry-runs/<date>-<label>/extracted-skill/`.
 
+## Phase 3 close (handoff emission, mandatory)
+
+After the closing message lands and the optional snapshot step resolves (yes or no), write the phase-3 handoff from the template in `references/persist.md` (`## Handoff document — phase-3.md template`). Resolve the filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-3.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-3.md`. Distinct from Phase 1/2 handoffs: Phase 3 has no next phase to resume into — this doc is a snapshot for sibling agents (demo runners, integration follow-ups, post-extraction reviewers) to act on. There is no cutoff and no EXIT — the session ending here is natural (the work is done), not enforced by an invariant.
+
+The doc captures: the produced skill's absolute path, the `check-skill-docs.sh` tally, any remaining `[VERIFY]` markers from the closing message, and suggested follow-up actions for the sibling agent (typecheck the consumer app, render a demo, run integration tests against the produced skill). The pickup prompt is `Read .extract-ds-skill-scratch/handoffs/<resolved-filename>` — no `/extract-ds-skill` skill to re-enter, just a brief.
+
+Tell the user once, using the resolved labeled filename verbatim: `Phase 3 handoff written to .extract-ds-skill-scratch/handoffs/<resolved-filename> — sibling agents (demo runner, integration tests) can pick up from there.`
+
 ## Slug-naming heuristics
 
 The slug is the directory name under `.claude/skills/`. It is also the trigger word the user types when invoking the skill. Pick it carefully.
 
-- Kebab-case, short. `primer-react`, `geist`, `acme-ui`. Not `PrimerReact`, not `primer_react`, not `our-internal-design-system-v2-final`.
-- Match the package name when possible. If the DS publishes as `@primer/react`, slug is `primer-react`. If it publishes as `geist`, slug is `geist`.
+- Kebab-case, short. `mantine`, `geist`, `acme-ui`. Not `AcmeUI`, not `acme_ui`, not `our-internal-design-system-v2-final`.
+- Match the package name when possible. If the DS publishes as `<scope>/<pkg>` (e.g. `<scope>/react`), the slug is `<scope>-react`; if it publishes as a bare name (e.g. `geist`), the slug matches the bare name.
 - If the package name collides with a generic word (`ui`, `components`, `design`), prefix with the org or product (`acme-ui`, `vercel-design`).
-- If the user has multiple sibling skills (DS + copy + a11y), the slug should disambiguate: `primer-react` for the DS skill, `primer-copy` for the sibling.
+- If the user has multiple sibling skills (DS + copy + a11y), the slug should disambiguate: `acme-ui` for the DS skill, `acme-copy` for the sibling.
 - Slug collisions are a hard ASK. Never silently suffix `-2`, `-new`, `-v2`, or a date.
 
 ## The single human gate (clarification)
@@ -311,7 +436,7 @@ Six architectural choices were locked on 2026-05-31. Recording them here so the 
 - **Deterministic validation (typecheck + grep-resolves), no visual probe.** Catches what the model cannot catch about its own output. The proof point is "N props verified, 0 hallucinations" - a number the user can audit at a glance. A visual probe would catch render bugs the typecheck misses, but at the cost of time, flakiness, and a runtime dependency. Deferred to coverage-gaps.md.
 - **Skill files only (no runnable starter).** The hands-on deliverable is the skill files. A separate starter repo (built in Task #9) provides the runnable Next app the freshly extracted skill is exercised against. Splitting deliverables keeps the meta-skill's surface small and the demo's surface bounded.
 - **Auto-discover + prune component scope.** The meta-skill scans the package's public exports and proposes the full set; the user prunes. Hand-picking would have been faster on stage but would have read as rehearsed theatre. The "Components found (38), proposing (4)" line is the workshop-credibility primitive.
-- **Headline rules discovered independently.** The meta-skill does not hard-code "use `disabled` not `inactive`" for Primer. If dry-runs show the extraction misses the rule, the prompts in this file are tuned until it lands. Hard-coding is detectable; the audience can smell it.
+- **Headline rules discovered independently.** The meta-skill does not hard-code DS-specific rules (e.g. "use `disabled` not `inactive`" for one DS, "use `loading` prop not custom spinner" for another). If dry-runs show the extraction misses the rule, the prompts in this file are tuned until it lands. Hard-coding is detectable; the audience can smell it.
 - **No Hallmark stamp pattern.** The v0 onboarding flow does not stamp. The product-copywriting skill does not stamp (git blame is provenance). `check-skill-docs.sh` does not need stamps as a falsifiability check. Adding a stamp because Hallmark does would be cargo-cult. Deferred to `references/coverage-gaps.md` for a future re-extract verb that genuinely needs source provenance.
 
 ## Operating envelope (what good output looks like)

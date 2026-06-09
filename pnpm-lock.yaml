@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@primer/octicons-react':
+        specifier: 19.28.0
+        version: 19.28.0(react@19.2.4)
       '@primer/primitives':
         specifier: 11.9.0
         version: 11.9.0

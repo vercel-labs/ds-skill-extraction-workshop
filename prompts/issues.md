@@ -3,23 +3,18 @@ role: user
 phase: 2
 ---
 
+This UI must be built with Primer React (`@primer/react`).
+
 Build a GitHub-style issues page for a repository. For this task, edit page.tsx on the root of the app folder.
 
-Use ONLY the components in `ds/components/`:
+## Page anatomy
 
-- `PageHeader` (page chrome)
-- `Banner` (one status message)
-- `DataTable` (issues list)
-- `SelectPanel` (filter)
-- `ActionMenu` (row-level actions)
-- `ActionList` (inside `ActionMenu.Overlay`)
+- **Page header**: repo name as the title, a parent-link breadcrumb back to the org, one primary "New issue" action, and an underline nav row with tabs for Code / Issues / Pull requests / Actions. Issues is the active tab.
+- **Banner** near the top announcing a security advisory the user must act on.
+- **Label filter** above the table: multi-select, with at least 4 options (bug, enhancement, docs, good-first-issue).
+- **Issues table**: at least 5 rows with columns: title (row header), status, author, comments count, updated (relative time). Sortable; default sort by updated descending.
+- **Row action menu**: a kebab on each row offering Pin, Lock, Transfer, Delete. Delete is destructive.
 
-Requirements:
+## Constraints
 
-- The page header shows the repo name as the title, a parent-link breadcrumb back to the org, one primary "New issue" action, and an underline-nav row with tabs for Code / Issues / Pull requests / Actions. Issues is the active tab.
-- One banner near the top announcing a security advisory the user must act on.
-- A sortable table of at least 5 issues with columns: title (row header), status, author, comments count, updated (relative time). Sort by updated, descending.
-- One `SelectPanel` above the table for filtering by label, with multi-select enabled and at least 4 labels (bug, enhancement, docs, good-first-issue).
-- Each row ends with a kebab `ActionMenu` offering: Pin, Lock, Transfer, Delete (Delete is destructive).
-
-Wire the whole thing as a single `app/issues.tsx`. Use mock data inline. Do not introduce new dependencies. Follow whatever rules the `extract-ds-skill` output put in `extracted-skill/`.
+Wire the whole thing as a single `app/issues.tsx`. Use mock data inline. Do not introduce new dependencies. Follow whatever rules `extract-ds-skill` put in `.claude/skills/ds/`.

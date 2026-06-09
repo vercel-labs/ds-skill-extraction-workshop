@@ -8,9 +8,9 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 
 ---
 
-## Six rule shapes (Geist taxonomy)
+## Seven rule shapes (Geist taxonomy + anti-substitution)
 
-Every behavioral rule worth extracting maps to one of six shapes. Classify the rule first, then extract using the per-shape recipe. If a rule does not fit any shape, it is probably not a rule — it is either prose framing or out-of-scope copy.
+Every behavioral rule worth extracting maps to one of seven shapes. Classify the rule first, then extract using the per-shape recipe. If a rule does not fit any shape, it is probably not a rule — it is either prose framing or out-of-scope copy.
 
 ### Shape 1 — Component-selection
 
@@ -18,6 +18,15 @@ Every behavioral rule worth extracting maps to one of six shapes. Classify the r
 - **Find in:** component docs (`.mdx`, `README.md`), Storybook story descriptions, cross-linked "See also" sections.
 - **Extract:** a paragraph under `### When to use` in the component's reference file. Wrap each sibling component name in a peer-component link: `[Combobox](./combobox.md)`. Keep the original threshold language verbatim ("under ~10 items", "past 3 options") — fuzzy thresholds are load-bearing.
 - **Worked example (from Geist `select.mdx`):** "Pick `<Select>` for short, fixed lists (under ~10 items) where typing adds nothing; switch to [Combobox](./combobox.md) once filtering helps." The threshold (`~10`), the comparator component, and the trigger condition (`filtering helps`) all survive the extraction unchanged.
+
+### Shape 7 — Anti-substitution
+
+- **Looks like:** prose that names a peer component as the wrong choice for the current surface, often hedged with "experimental", "deprecated", "preview", "reserved for". Triggers: `"use X, not Y"`, `"do not reach for Y"`, `"do not substitute Y"`, `"Y is the wrong choice when..."`, `"Y is reserved for..."`, `"only reach for Y when..."`.
+- **Find in:** component annotation files (`.docs.tsx`, `*.docs.mdx`, `<BestPractices>` blocks), README "When NOT to use" sections, ADRs that record a deliberate avoidance.
+- **Extract:** bullet under `### Best Practices` (flat mode) or `### When to use` (subsectioned mode) in the IN-SCOPE component's reference file. The anti-substitution rule belongs to the in-scope component because that is where the trap fires — at consume-time the agent reaches for the wrong peer, not for the right one. Preserve the avoided peer's name in backticks even when the peer is outside the proposing set (no peer-component link — there is no peer reference file to link to). Preserve the DS-author's hedge ("experimental", "reserved for") verbatim.
+- **Worked example (illustrative, DS-agnostic):** source annotation on `<Notice>` says "Use `Notice` for simple inline messages. Reach for experimental `Modal` only when you need title + dismiss actions — this card uses `Notice`, not `Modal`." Extracted into `notice.md` under `### Best Practices`: "Do not substitute the experimental `Modal` for inline messages — `Modal` is reserved for title + dismiss surfaces; `Notice` is the right choice here. (notice.docs.tsx:<line>)" The avoided peer (`Modal`) is in backticks, not a link. The hedge ("experimental", "reserved for") is preserved. The citation points at the annotation file the rule was lifted from.
+
+The shape is distinct from Shape 1 (positive peer-graph routing) because the trigger and the extraction target differ: Shape 1 lands a peer-graph link to another in-scope component file; Shape 7 lands a plain-backtick warning naming an out-of-scope peer. Misclassifying Shape 7 as Shape 1 produces a broken link to a non-existent peer file; misclassifying Shape 7 as Shape 2 (prop-usage) loses the peer name entirely.
 
 ### Shape 2 — Prop-usage
 
@@ -55,7 +64,7 @@ Every behavioral rule worth extracting maps to one of six shapes. Classify the r
 
 ---
 
-## Rules-only-in-prose detection (five heuristics)
+## Rules-only-in-prose detection (six heuristics)
 
 Most behavioral rules do not live in types or test names. They live in prose — README paragraphs, `<BestPractices>` bullets, Storybook story descriptions. These heuristics surface them.
 
@@ -64,6 +73,7 @@ Most behavioral rules do not live in types or test names. They live in prose —
 - **Fuzzy thresholds** — "under ~10 items", "for fewer than 5 options", "past 3 tabs". The threshold is the rule. Preserve verbatim, do not round.
 - **Cross-component anti-patterns** — "X next to Y produces Z", "do not put X inside Y". These are Shape 1 expressed as a trap; extract into both X's and Y's reference files (see cross-component duplication below).
 - **Runtime-validator complements** — a runtime warning or dev-mode assertion the type system cannot enforce. "Throws in dev if children include another `<Modal>`", "warns if `aria-label` is set on a Button that renders text". Shape 2 or Shape 4.
+- **Anti-substitution prose** — sentences containing `"not <PeerComponent>"`, `"do not reach for <PeerComponent>"`, `"<PeerComponent> is reserved for..."`, `"only reach for <PeerComponent> when..."`. These are Shape 7. The avoided peer is almost always outside the proposing set (experimental, deprecated, upstream-only) — that is precisely why the DS author wrote the rule.
 
 ---
 
