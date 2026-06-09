@@ -26,7 +26,7 @@ export function CreateRepoCard() {
     >
       <Stack direction="vertical" gap="normal">
         <Stack direction="horizontal" gap="normal" align="start">
-          <MarkGithubIcon size={32} />
+          <MarkGithubIcon size={20} />
           <Stack direction="vertical" gap="condensed">
             <Stack direction="horizontal" gap="condensed" align="center">
               <RepoIcon />
