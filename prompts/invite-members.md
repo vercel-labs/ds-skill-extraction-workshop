@@ -28,6 +28,7 @@ A medium page title "Invite members to vercel-labs" with a muted subtitle ("Invi
 
 ## Behaviour and constraints
 
+- Do **not** commit or stage anything — leave the working tree dirty for review.
 - The app must follow the user's system colour preference: render correctly in **both light and dark mode**, including the page background behind the card — not just the card surface itself.
 - Use mock/default values inline — no API calls, no new dependencies.
 - All form inputs accessibly labelled; icon-only controls have accessible names.

@@ -39,6 +39,7 @@ Next to the pair, a compact metadata cluster: a neutral counter badge "14" besid
 
 ## Behaviour and constraints
 
+- Do **not** commit or stage anything — leave the working tree dirty for review.
 - The app must follow the user's system colour preference: render correctly in **both light and dark mode**, including the page background behind the card — not just the card surface itself.
 - Use mock/default values inline — no API calls, no new dependencies.
 - All form inputs accessibly labelled; icon-only controls have accessible names.
