@@ -12,7 +12,10 @@
       "Read(./.claude/skills/primer-react/**)",
       "Bash(* .claude/skills/primer-react/*)",
       "Bash(* ./.claude/skills/primer-react/*)",
-      "Skill(primer-react)"
+      "Skill(primer-react)",
+      "Skill(ds)",
+      "Skill(shadcn)",
+      "Read(/Users/diegodemiguel/.claude/skills/ds/**)"
     ]
   }
 }

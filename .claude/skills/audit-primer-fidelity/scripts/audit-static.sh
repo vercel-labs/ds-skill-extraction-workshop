@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # audit-static.sh <run-dir> [<run-dir> ...]
-# Deterministic tier of audit-ds-fidelity. Emits greppable KEY=... lines.
+# Deterministic tier of audit-primer-fidelity. Emits greppable KEY=... lines.
 # Checks: raw color/px values, unresolved CSS @imports and JS package imports,
 # leftover [VERIFY] markers. Exit 0 always (findings are data, not errors).
 set -u
