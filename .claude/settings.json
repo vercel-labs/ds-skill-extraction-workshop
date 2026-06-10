@@ -14,6 +14,8 @@
       "Bash(bash .claude/skills/extract-ds-skill/scripts/inspect.sh *)",
       "Bash(bash .claude/skills/extract-ds-skill/scripts/check-skill-docs.sh *)",
       "Bash(bash .claude/skills/do-work/scripts/*)",
+      "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
+      "Bash(cat *)",
       "Bash(bash .claude/skills/extract-ds-skill/scripts/*)",
       "Bash(cd .claude/skills/extract-ds-skill && bash scripts/*)",
       "Bash(cd .claude/skills/do-work && bash scripts/*)",
