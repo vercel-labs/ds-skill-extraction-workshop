@@ -2,13 +2,18 @@
   "permissions": {
     "deny": [
       "Edit(ds/**)",
-      "Write(ds/**)"
+      "Write(ds/**)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git -C * add *)",
+      "Bash(git -C * commit *)",
+      "Bash(git -C * push *)"
     ],
     "allow": [
       "Skill(extract-ds-skill)",
       "Skill(do-work)",
       "Skill(update-config)",
-
       "Bash(bash .claude/skills/extract-ds-skill/scripts/scaffold.sh *)",
       "Bash(bash .claude/skills/extract-ds-skill/scripts/validate.sh *)",
       "Bash(bash .claude/skills/extract-ds-skill/scripts/inspect.sh *)",
@@ -19,7 +24,6 @@
       "Bash(bash .claude/skills/extract-ds-skill/scripts/*)",
       "Bash(cd .claude/skills/extract-ds-skill && bash scripts/*)",
       "Bash(cd .claude/skills/do-work && bash scripts/*)",
-
       "Bash(pnpm install *)",
       "Bash(pnpm install)",
       "Bash(pnpm typecheck *)",
@@ -45,21 +49,18 @@
       "Bash(curl -s *)",
       "Bash(timeout * pnpm *)",
       "Bash(timeout * npx *)",
-
       "Bash(node -e *)",
       "Bash(node -p *)",
       "Bash(node --version)",
       "Bash(bash --version)",
       "Bash(python3 -c *)",
       "Bash(python3 --version)",
-
       "Bash(mkdir -p .extract-ds-skill-scratch*)",
       "Bash(rm -rf .extract-ds-skill-scratch*)",
       "Bash(ls .extract-ds-skill-scratch*)",
       "Bash(cat .extract-ds-skill-scratch/*)",
       "Bash(cat > .extract-ds-skill-scratch/*)",
       "Bash(cat >> .extract-ds-skill-scratch/*)",
-
       "Bash(ls *)",
       "Bash(ls)",
       "Bash(grep *)",
@@ -80,12 +81,10 @@
       "Bash(test *)",
       "Bash(true)",
       "Bash(false)",
-
       "Bash(for *)",
       "Bash(while *)",
       "Bash(if *)",
       "Bash(case *)",
-
       "Bash(git status *)",
       "Bash(git status)",
       "Bash(git diff *)",
@@ -99,34 +98,25 @@
       "Bash(git check-ignore *)",
       "Bash(git worktree list *)",
       "Bash(git worktree list)",
-
       "Bash(gh api *)",
       "Bash(gh repo view *)",
       "Bash(gh release view *)",
-
       "WebSearch",
       "WebFetch",
-
       "Read(//tmp/**)",
       "Read(//private/tmp/**)",
-
       "Read(node_modules/**)",
       "Read(**/node_modules/@primer/**)",
-
       "Read(.extract-ds-skill-scratch/**)",
       "Write(.extract-ds-skill-scratch/**)",
       "Edit(.extract-ds-skill-scratch/**)",
-
       "Read(.claude/skills/**)",
       "Write(.claude/skills/**)",
       "Edit(.claude/skills/**)",
-
       "Read(.claude/worktrees/**)",
-
       "Read(dry-runs/**)",
       "Write(dry-runs/**)",
       "Edit(dry-runs/**)",
-
       "Write(app/**)",
       "Edit(app/**)",
       "Write(components/**)",
