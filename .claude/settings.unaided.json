@@ -51,6 +51,8 @@
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
       "Bash(pnpm test *)",
       "Bash(pnpm test)",
+      "Bash(pnpm typecheck *)",
+      "Bash(node -e *)",
       "Bash(cat *)",
       "Write(app/**)",
       "Edit(app/**)",
