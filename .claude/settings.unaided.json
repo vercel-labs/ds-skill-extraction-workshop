@@ -21,7 +21,13 @@
       "Bash(git push *)",
       "Bash(git -C * add *)",
       "Bash(git -C * commit *)",
-      "Bash(git -C * push *)"
+      "Bash(git -C * push *)",
+      "Read(.extract-ds-skill-scratch/**)",
+      "Read(./.extract-ds-skill-scratch/**)",
+      "Bash(cat .extract-ds-skill-scratch/*)",
+      "Bash(* .extract-ds-skill-scratch/*)",
+      "Bash(* ./.extract-ds-skill-scratch/*)",
+      "Bash(cd .extract-ds-skill-scratch*)"
     ],
     "allow": [
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
