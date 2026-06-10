@@ -18,6 +18,8 @@
       "Read(//Users/diegodemiguel/.claude/skills/ds/**)"
     ],
     "allow": [
+      "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
+      "Bash(cat *)",
       "Write(app/**)",
       "Edit(app/**)",
       "Write(components/**)",
