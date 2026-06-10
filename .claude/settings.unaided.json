@@ -15,7 +15,13 @@
       "Skill(primer-react)",
       "Skill(ds)",
       "Skill(shadcn)",
-      "Read(//Users/diegodemiguel/.claude/skills/ds/**)"
+      "Read(//Users/diegodemiguel/.claude/skills/ds/**)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git -C * add *)",
+      "Bash(git -C * commit *)",
+      "Bash(git -C * push *)"
     ],
     "allow": [
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
