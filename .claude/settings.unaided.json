@@ -48,6 +48,7 @@
       "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/*)"
     ],
     "allow": [
+      "Bash(mkdir *)",
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
       "Bash(pnpm test *)",
       "Bash(pnpm test)",
