@@ -60,7 +60,7 @@ Inspect-but-do-not-enumerate is the rule. Read enough to know what each source c
 
 ### Worked example — Phase 1 summary against a public-DS-shaped target (illustrative)
 
-The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same summary contract applies to whichever DS the user passes. Substitute real cites for the DS you are extracting.
+The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same summary contract applies to whichever DS the user passes. Substitute real cites for the DS you are extracting. The example shows the upstream-package case (large N, small demand-driven M). When the target includes a local wrapper surface, the components block instead defaults to proposing the full local surface (M = N) — see the local-surface worked example in `references/discovery.md`.
 
 ```
 Proposed skill: `mantine` -> .claude/skills/mantine/
@@ -231,7 +231,7 @@ Five-step priority scan. Run in order. Stop at the first step that fires a hard 
 1. **Is the request in scope (tokens/assets/components/APIs) or copy?** If copy (tone, voice, marketing language, casing rules, placeholder phrasing, error-message wording, microcopy style) → say so and stop. Suggest a sibling copy skill (`extract-copy-skill` or equivalent); do not extract copy here. The full scope guardrail is quoted in the Scope section above - apply it verbatim.
 2. **Is the DS source accessible?** If the user pointed at a private repo, paywalled package, or unreachable docs site, treat it as a soft blocker - record it in the discovery summary tagged `[private-blocker]`, do not pretend you read it. Inputs that may become available later are not hard blockers; inputs you fabricated from memory are.
 3. **Does a skill with this slug already exist at `.claude/skills/<slug>/`?** If yes, ASK before overwriting. Never silently suffix `-2`, `-new`, or a date. The user picks: overwrite, choose a different slug, or abort.
-4. **Is the auto-discovered component set the right scope?** Print "Components found (N), proposing (M)" in Phase 1 and let the user prune. Default is "all exported public components"; the user trims. Never type a hand-picked component list off a slide - the discovery scan is the source of truth, the prune is the human edit.
+4. **Is the auto-discovered component set the right scope?** Print "Components found (N), proposing (M)" in Phase 1 and let the user prune. For a local DS wrapper surface (`ds/components/*.tsx`-shaped), the default is ALL wrappers found (M = N); for upstream-package exports not wrapped locally, the default is demand-driven (wiring/exemplar pull only). The user trims by name. Never type a hand-picked component list off a slide - the discovery scan is the source of truth, the prune is the human edit.
 5. **Are sources joint-readable (code + docs)?** If both are present, joint-read them and resolve conflicts in favor of code. If only docs are present, mark every extracted prop with `[VERIFY]` until a consumer app or types file lands. If only code is present, extract from the types and the source; docs-derived rules are deferred.
 
 ## Agent Stance

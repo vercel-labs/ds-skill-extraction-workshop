@@ -32,11 +32,12 @@ Shallow means: enough to summarize, not enough to extract. Deep enumeration is P
 
 Workshop credibility depends on this. If the attendee types four component names off a slide, the demo is rehearsed theatre. Instead:
 
-1. Scan package exports (`package.json` `exports` field, `index.ts` re-exports, or equivalent).
-2. Surface the total in the discovery summary as `Components found (N), proposing (M)` with the proposed subset bulleted.
-3. Let the user prune or extend by name in their confirm reply.
+1. Scan package exports (`package.json` `exports` field, `index.ts` re-exports, or equivalent). When the extraction target includes a **local DS wrapper surface** — a consumer-side directory of thin wrappers over an upstream package (typical shape: `ds/components/*.tsx`) — enumerate the wrapper files as their own surface, separate from the upstream package's export count.
+2. Surface the totals in the discovery summary as `Components found (N), proposing (M)` with the proposed set bulleted. For the local wrapper surface, **M = N by default — propose every wrapper found.** The local surface is curated and small by construction; every wrapper exists because a consumer needs it, so the extraction boundary defaults to the whole surface.
+3. For **upstream-package components NOT wrapped locally**, the default is unchanged: propose only those demanded by wiring or composition exemplars (e.g. a layout primitive the reference project's pages compose with). These appear as additional bullets in the proposing set, tagged with the source that demanded them.
+4. Let the user prune or extend by name in their confirm reply. "go" accepts the full default.
 
-Default proposal: pick the four most-imported components from any sibling example app, or fall back to the four with the most prop surface area. Show the count regardless so the gap is visible.
+Default proposal when there is NO local wrapper surface (extracting directly from an upstream package): pick the four most-imported components from any sibling example app, or fall back to the four with the most prop surface area. Show the count regardless so the gap is visible.
 
 ## Private / inaccessible handling
 
@@ -172,6 +173,22 @@ Sources used:
 
 The reference-project line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will read the auto-detected root entry file and lift the wiring per `references/reference-project.md`; if no project is provided, both lines are omitted and Phase 2 falls back to the foundation-docs setup snippet (or empties the Setup section entirely if no foundation URL is in scope either). When a reference project is supplied AND a foundation URL is in scope, the soft-nudge line is omitted because the reference project IS the cleaner source.
 
+### Worked example — same summary against a local wrapper surface (illustrative)
+
+When the target is a consumer repo with a local wrapper directory, the components block splits into two lines and the local line defaults to all-of-surface:
+
+```
+Components found — local DS wrappers (13), proposing (13):
+- Button - primary/secondary/danger action trigger (annotated: Button.docs.tsx)
+- TextInput - single-line text entry with label and error slots
+- … (one line per wrapper; annotated wrappers note their .docs file)
+
+Upstream package exports (140+) not wrapped locally: proposing 1 (demanded by reference project):
+- PageShell - app frame composition used by the reference project's pages
+```
+
+The local-surface line proposes M = N. The upstream line proposes only demand-driven additions and never defaults to the full upstream export set. The user can still prune either line by name; "go" accepts both defaults.
+
 ## Handoff document — phase-1.md template
 
 Phase 1 closes by writing `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc is the irrecoverable-state snapshot for a future session that resumes after a context-window blow-out or `/exit`. Apply the `/handoff` skill discipline: capture only what is NOT recoverable from the codebase, the meta-skill, or `AGENTS.md`. Reference everything else by path.
@@ -239,7 +256,7 @@ The proposing set is <M> of <N> components found. Excluded categories:
 
 Consumer of the produced skill should expect coverage gaps in these areas. If a reproduction prompt requires excluded components, run a second extraction with an expanded slate.
 
-(Omit this entire section — heading and all — when the slate is accepted as-proposed with N = M. Emit only when N − M > 0. Same empty-section discipline as `## Re-exports outside proposing set` below: no empty heading.)
+(Omit this entire section — heading and all — when the slate is accepted as-proposed with N = M. Emit only when N − M > 0. Same empty-section discipline as `## Re-exports outside proposing set` below: no empty heading. Under the all-of-`ds/` default, N = M for the local wrapper surface is the expected state — this section appears only when the user pruned by name or when demand-driven upstream candidates were rejected.)
 
 ## Re-exports outside proposing set
 
@@ -249,7 +266,7 @@ Consumer of the produced skill should expect coverage gaps in these areas. If a 
 - `<wrapper-file-2>.tsx` — re-exports `<UpstreamSymbol2>` from `<package-2>`
 - …
 
-(Omit this entire section — heading and all — when every wrapper is in the proposing set. An empty `## Re-exports outside proposing set` heading is forbidden.)
+(Omit this entire section — heading and all — when every wrapper is in the proposing set. An empty `## Re-exports outside proposing set` heading is forbidden. Under the all-of-`ds/` default this section is empty by construction — every local wrapper is in the proposing set — so it is omitted in the common case. It reappears only when the user prunes the slate at the gate.)
 
 ## Resume context
 
