@@ -123,7 +123,14 @@
 
       "Read(dry-runs/**)",
       "Write(dry-runs/**)",
-      "Edit(dry-runs/**)"
+      "Edit(dry-runs/**)",
+
+      "Write(app/**)",
+      "Edit(app/**)",
+      "Write(components/**)",
+      "Edit(components/**)",
+      "Write(lib/**)",
+      "Edit(lib/**)"
     ]
   }
 }
