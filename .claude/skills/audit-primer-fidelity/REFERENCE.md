@@ -13,6 +13,7 @@ This is the rubric. It encodes the Primer React contract for this repository (th
 **`shell/mode-theme-pairing`** — dark mode actually wired.
 - `<html data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">` attributes must be paired with BOTH `@import "@primer/primitives/dist/css/functional/themes/light.css"` AND `.../themes/dark.css` in the global CSS. Attributes without the imports leave `var(--bgColor-default)` at fallback — dark mode silently broken.
 - Provider `colorMode` must agree with `data-color-mode` (e.g. both `auto`).
+- `<ThemeProvider>` with **no `colorMode` prop** while `<html data-color-mode="auto">` is set → ❌. The CSS-variable layer follows the OS preference but Primer's React layer defaults to light: the page background goes dark while every component surface stays light — a white card floating on a black page. The omission is silent and typechecks clean; this is the canonical unaided failure.
 
 **`shell/provider-wraps-content`** — context reaches the components.
 - `<ThemeProvider><BaseStyles>{children}</BaseStyles></ThemeProvider>` — children must be descendants of BOTH. A provider rendered as a sibling of `{children}` gives every component the default theme: ❌.
@@ -101,8 +102,8 @@ FIDELITY_RESULT=FAIL
 | Rule | shell | components/* | Verdict | Evidence |
 |---|:-:|:-:|:-:|---|
 | shell/painted-body | ⚠️ | – | ⚠️ | BaseStyles bare; body CSS carries the paint |
-| shell/mode-theme-pairing | ✅ | – | ✅ | |
-| shell/provider-wraps-content | ❌ | – | ❌ | layout.tsx:9 no `colorMode="auto"` vs `data-color-mode="auto"` |
+| shell/mode-theme-pairing | ❌ | – | ❌ | layout.tsx:9 ThemeProvider has no `colorMode` while html sets `data-color-mode="auto"` — white card on dark page |
+| shell/provider-wraps-content | ✅ | – | ✅ | |
 | token/no-raw-values | ✅ | ✅ | ✅ | |
 | component/legal-variants | – | ✅ | ✅ | |
 | component/required-props | – | ✅ | ✅ | |

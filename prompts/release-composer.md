@@ -39,10 +39,11 @@ Next to the pair, a compact metadata cluster: a neutral counter badge "14" besid
 
 ## Behaviour and constraints
 
+- The app must follow the user's system colour preference: render correctly in **both light and dark mode**, including the page background behind the card — not just the card surface itself.
 - Use mock/default values inline — no API calls, no new dependencies.
 - All form inputs accessibly labelled; icon-only controls have accessible names.
 - The card uses the design system's surface tokens for background, border, radius, and shadow. Muted text uses the muted-foreground token. No hand-picked hex or px values.
-- Follow whatever rules `extract-ds-skill` put in `.claude/skills/ds/` (or `extracted-skill/` in dry-run snapshots).
+- Follow whatever rules `extract-ds-skill` put in `.claude/skills/primer-react/` (when that skill is installed).
 
 ## Out of scope
 
