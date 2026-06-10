@@ -25,6 +25,7 @@ html, body {
 
 | Trigger | Files to load | Notes |
 |---|---|---|
+| user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |
 | button asks | references/components/button.md | per-component file |
 
 ## Hard rules

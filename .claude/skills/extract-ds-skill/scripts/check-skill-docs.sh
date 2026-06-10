@@ -565,6 +565,49 @@ if [[ "$MODE" == "produced" ]]; then
     FAILED=1
   fi
 
+  # 13. DESIGN_CRAFT (produced-skill mode only). Every produced skill ships
+  #     references/design-craft.md — the DS-agnostic design-craft reference —
+  #     copied VERBATIM by scripts/scaffold.sh from the meta-skill's
+  #     assets/design-craft.md (cp, never regenerated; see
+  #     references/persist.md Design-craft materialization and
+  #     references/anti-patterns.md craft/regenerated-not-copied). When the
+  #     file is present: (a) the produced SKILL.md must carry a table row
+  #     pointing at it, and (b) the file must be byte-identical to the
+  #     canonical asset, resolved from this script's own location. The byte
+  #     check SKIPs informationally when the canonical asset is not
+  #     resolvable (a produced skill audited on a machine without the
+  #     meta-skill). When the file is ABSENT the check reports SKIP, not
+  #     FAIL — absence is valid only on the explicit Phase 1 opt-out
+  #     (scaffold.sh --no-design-craft); an unexpected SKIP on the default
+  #     path means the scaffold copy was lost, and the agent re-runs
+  #     scripts/scaffold.sh (or re-copies the asset) before closing.
+  DC_FILE="$SKILL_PATH/references/design-craft.md"
+  DC_CANONICAL="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/../assets/design-craft.md"
+  if [[ ! -f "$DC_FILE" ]]; then
+    echo "DESIGN_CRAFT=SKIP (references/design-craft.md absent — valid only on explicit Phase 1 opt-out; scaffold.sh ships it by default)"
+  else
+    DC_FAILS=()
+    if ! grep -qE '^\|.*references/design-craft\.md' "$SKILL_MD"; then
+      DC_FAILS+=("SKILL.md carries no routing-table row pointing at references/design-craft.md — add the fixed design-craft row per references/skill-template.md (Routing table)")
+    fi
+    if [[ -f "$DC_CANONICAL" ]]; then
+      if ! cmp -s "$DC_CANONICAL" "$DC_FILE"; then
+        DC_FAILS+=("references/design-craft.md differs from the canonical assets/design-craft.md — the file ships verbatim (cp), never regenerated or paraphrased (craft/regenerated-not-copied); re-copy it from the meta-skill")
+      fi
+    else
+      echo "DESIGN_CRAFT_DIFF=SKIP (canonical asset not resolvable at $DC_CANONICAL)"
+    fi
+    if [[ ${#DC_FAILS[@]} -eq 0 ]]; then
+      echo "DESIGN_CRAFT=PASS"
+    else
+      echo "DESIGN_CRAFT=FAIL"
+      for r in "${DC_FAILS[@]}"; do
+        echo "  $r"
+      done
+      FAILED=1
+    fi
+  fi
+
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,

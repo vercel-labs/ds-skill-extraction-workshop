@@ -12,9 +12,10 @@ DS_VERSION=""
 SCOPE="project"
 EXAMPLES_FROM=""
 FOUNDATIONS_FROM=""
+NO_DESIGN_CRAFT=0
 
 usage() {
-  echo "usage: scaffold.sh <slug> --components <n1,n2,...> --ds-package <name> [--ds-version <v>] [--scope project|user] [--examples-from <dir>] [--foundations-from <dir>]" >&2
+  echo "usage: scaffold.sh <slug> --components <n1,n2,...> --ds-package <name> [--ds-version <v>] [--scope project|user] [--examples-from <dir>] [--foundations-from <dir>] [--no-design-craft]" >&2
   exit 2
 }
 
@@ -29,6 +30,7 @@ while [[ $# -gt 0 ]]; do
     --scope)         SCOPE="${2:-}"; shift 2 ;;
     --examples-from) EXAMPLES_FROM="${2:-}"; shift 2 ;;
     --foundations-from) FOUNDATIONS_FROM="${2:-}"; shift 2 ;;
+    --no-design-craft) NO_DESIGN_CRAFT=1; shift ;;
     *) echo "unknown arg: $1" >&2; usage ;;
   esac
 done
@@ -36,6 +38,17 @@ done
 [[ -z "$COMPONENTS" ]] && { echo "missing --components" >&2; usage; }
 [[ -z "$DS_PACKAGE" ]] && { echo "missing --ds-package" >&2; usage; }
 [[ "$SCOPE" != "project" && "$SCOPE" != "user" ]] && { echo "--scope must be project|user" >&2; exit 2; }
+
+# Canonical design-craft asset — validated up front (fail fast on a corrupted
+# meta-skill install, before any write). Copied verbatim in STEP 3a unless the
+# user opted out in Phase 1 (--no-design-craft). See references/persist.md
+# (Design-craft materialization).
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CRAFT_SRC="${SCRIPT_DIR}/../assets/design-craft.md"
+if [[ "$NO_DESIGN_CRAFT" -eq 0 && ! -f "$CRAFT_SRC" ]]; then
+  echo "error: canonical design-craft asset missing: $CRAFT_SRC (meta-skill install incomplete; re-clone or pass --no-design-craft to skip)" >&2
+  exit 3
+fi
 
 if [[ "$SCOPE" == "user" ]]; then
   PERSIST_PATH="${HOME}/.claude/skills/${SLUG}"
@@ -139,6 +152,16 @@ write_file "${PERSIST_PATH}/references/anti-patterns.md" "<!-- scaffold-stub: re
 | Bad | Good | Why |
 |-----|------|-----|
 "
+
+# STEP 3a — Design-craft reference (verbatim copy, default-on).
+# cp, never model regeneration: the produced copy must stay byte-identical to
+# the meta-skill's assets/design-craft.md (enforced post-emit by
+# check-skill-docs.sh check DESIGN_CRAFT; see references/anti-patterns.md
+# craft/regenerated-not-copied). Skipped only on explicit Phase 1 opt-out.
+if [[ "$NO_DESIGN_CRAFT" -eq 0 ]]; then
+  cp "$CRAFT_SRC" "${PERSIST_PATH}/references/design-craft.md"
+  WRITTEN+=("${PERSIST_PATH}/references/design-craft.md")
+fi
 
 # STEP 3b — Composition exemplars (additive, fallback to no-op when empty).
 # When --examples-from <dir> is passed AND that dir contains *.md files,
@@ -266,6 +289,7 @@ echo "SCAFFOLD_RESULT=OK"
 echo "PERSIST_PATH=${PERSIST_PATH}"
 echo "EXAMPLES_WRITTEN=${EXAMPLE_COUNT}"
 echo "FOUNDATIONS_WRITTEN=${FOUNDATION_COUNT}"
+echo "DESIGN_CRAFT_WRITTEN=$((1 - NO_DESIGN_CRAFT))"
 echo "FILES_WRITTEN=${#WRITTEN[@]}"
 for p in "${WRITTEN[@]}"; do
   echo "- ${p}"

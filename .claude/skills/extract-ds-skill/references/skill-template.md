@@ -56,6 +56,12 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
 - **Source-of-truth rules** — which docs/repo paths are canonical. Code wins on conflict with docs. List the repo path (e.g. `packages/react/src/`), the docs URL, the Storybook URL if public. Mark private/inaccessible sources explicitly.
 - **Routing table** — 3-column dispatch: `Trigger | Files to load | Notes`. Every row resolves to a real file under `references/`. Triggers are user-intent phrases ("user asks for a button", "user wires a form"), not file names.
 
+  **Design-craft row (fixed).** Every produced skill carries one verbatim row pointing at the shipped design-craft reference:
+
+  - `| user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |`
+
+  Omit the row only when the user opted out of the craft file in Phase 1 (see `references/persist.md`, Design-craft materialization). Enforced post-emit by `scripts/check-skill-docs.sh` check `DESIGN_CRAFT`.
+
   **Composition exemplar rows.** When the reference-project extraction surfaced composition exemplars (see `references/reference-project.md`, Composition exemplar extraction section), the routing table carries one row per exemplar file plus an index row. Replace any single `**Validated examples:** references/examples/` row with:
 
   - `| user reviews available composition exemplars | references/examples/index.md | one entry per composition exemplar lifted from the reference project |`
@@ -72,6 +78,7 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   |---|---|---|
   | user asks for a button | references/components/button.md | per-component file |
   | user wires a form | references/components/form-control.md | a11y composition rules |
+  | user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |
   | user reviews available composition exemplars | references/examples/index.md | one entry per composition exemplar lifted from the reference project |
   | home: <one-line summary> | references/examples/home.md | composition exemplar lifted from <reference-project>/app/page.tsx |
   | <route-a>: <one-line summary> | references/examples/<route-a>.md | composition exemplar lifted from <reference-project>/app/<route-a>/page.tsx |

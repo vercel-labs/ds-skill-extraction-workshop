@@ -20,7 +20,7 @@ The meta-skill at this path is an extractor that builds Claude Code design-syste
 
 - `scripts/inspect.sh` — Phase 1 source classifier; walks the input path and tags each artifact as `code | asset-package | app | AGENTS-CLAUDE | docs | storybook | figma | private-blocker`.
 - `scripts/validate.sh` — Phase 2 deterministic typecheck + grep-resolves against the scratch workspace; surfaces "N props verified against source, M hallucinations" before the persist gate.
-- `scripts/scaffold.sh` — Phase 3 writer; runs the slug-collision check FIRST and exits 75 (ASK) on conflict, never silently suffixes.
+- `scripts/scaffold.sh` — Phase 3 writer; runs the slug-collision check FIRST and exits 75 (ASK) on conflict, never silently suffixes. Also copies the meta-skill's `assets/design-craft.md` verbatim into every produced skill at `references/design-craft.md` (default-on; `--no-design-craft` is the Phase 1 opt-out; byte-checked post-emit by `check-skill-docs.sh` check `DESIGN_CRAFT`).
 - `scripts/check-skill-docs.sh` — Phase 3 post-emit consistency check; every routing-table row resolves to a real file, every rule slug resolves, every `[VERIFY]` marker is grep-counted and surfaced in the closing message.
 
 ## Requirements (cross-platform)

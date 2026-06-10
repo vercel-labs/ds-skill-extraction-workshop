@@ -15,6 +15,8 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 
 This scope block is quoted by downstream rules (Quick Triage step 1, Agent Stance bullet 3, Anti-fabrication "Do not" list, `references/component-extraction.md` Shape 3). Do not paraphrase or trim it when re-citing.
 
+One shipped (not extracted) artefact rides alongside this scope: `references/design-craft.md`, a DS-agnostic design-craft reference (layout, hierarchy, typography, color, spacing, motion, interactive states, anti-slop restraint) copied verbatim into every produced skill during Phase 3 from the meta-skill's `assets/design-craft.md`. It is static material, not extraction output — the `file:line` citation contract and the `[VERIFY]` discipline do not apply to it, it never varies by DS, and its own precedence header defers to the DS on every conflict. See `references/persist.md` (Design-craft materialization).
+
 The skill runs in three labeled phases. The single human gate sits at the boundary between Phase 2 and Phase 3. Phase 1 closes with a confirmation prompt; Phase 2 closes with an approval prompt; Phase 3 writes to disk. Phase 1 and Phase 2 close with a hard stop (write handoff → cutoff message → EXIT); the user resumes in a FRESH Claude Code session via an explicit `validate:` / `persist:` resume parameter so the context window is cleared between phases.
 
 ## Resume from a prior phase
@@ -54,7 +56,7 @@ The label is observability, not enforcement — it makes cross-worktree mistakes
 
 Inspect the sources the user pointed at, classify each by role (design-system code, asset package, product/example app, internal AGENTS/CLAUDE files, docs site, docs:foundation, Storybook, Figma), auto-discover component exports, and render a compact discovery summary inline (not a file). Hard ceiling 30 lines, target 20-28. Load `references/discovery.md` for the budget rules, the source-role taxonomy, the auto-discover-and-prune flow, and the worked example.
 
-The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), foundation docs block if any (N URLs accepted or rejected per-URL, tagged `[docs:foundation]`, with each accepted root's depth-1 crawl tree shown abbreviated; omitted entirely if the user did not provide any foundation URL), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
+The discovery summary covers: proposed skill name and target path, DS one-liner, components in scope (one line each, of the form "Components found (N), proposing (M)"), tokens detected (one summary line), assets detected (one summary line), foundation docs block if any (N URLs accepted or rejected per-URL, tagged `[docs:foundation]`, with each accepted root's depth-1 crawl tree shown abbreviated; omitted entirely if the user did not provide any foundation URL), 1-3 headline rule candidates with `file:line` cites, sources used (one line each, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[storybook]` / `[private-blocker]`), a fixed one-line design-craft ship-note (`references/design-craft.md` ships with the produced skill; the user can opt out by saying "skip design craft" — see `references/discovery.md` Required fields), and any open questions that would actually stop Phase 2. End with a single short sentence asking the user to confirm or adjust. Then stop and wait. If the user just says "go" without answering anything, pick defensible defaults and proceed.
 
 Inspect-but-do-not-enumerate is the rule. Read enough to know what each source contains (package exports, top-level folders, docs index, example apps); do not list every component, token, or icon yet. The full enumeration happens in Phase 2, against the pruned set the user confirms.
 
@@ -91,13 +93,13 @@ Sources used:
 - ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
 
 Out-of-scope rules surfaced (route to sibling copy skill): "button labels are Title Case", "placeholder text is action-oriented".
-
+Ships with the produced skill: references/design-craft.md [craft, DS-agnostic] (say "skip design craft" to exclude).
 No blockers. Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
 ```
 
 ### Phase 1 close (handoff emission, mandatory)
 
-After the user confirms (with "go" or adjustments), run `mkdir -p .extract-ds-skill-scratch/handoffs/` and write the phase-1 handoff from the template in `references/discovery.md` (`## Handoff document — phase-1.md template`). Resolve the handoff filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-1.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc captures ONLY the decisions surfaced in the discovery summary — slug, ref project + entry, proposing set (as approved by the user), DS package versions + paths, accepted foundation URLs, the three headline rules verbatim with their `file:line` cites. Do NOT include the discovery exploration, the raw npm/curl/grep outputs, or the per-component deliberation — those are recoverable from the codebase and the meta-skill itself.
+After the user confirms (with "go" or adjustments), run `mkdir -p .extract-ds-skill-scratch/handoffs/` and write the phase-1 handoff from the template in `references/discovery.md` (`## Handoff document — phase-1.md template`). Resolve the handoff filename per the "Handoff filename labeling" section above: under a `.claude/worktrees/dryrun-NN/` cwd write `.extract-ds-skill-scratch/handoffs/dryrun-NN-phase-1.md`, otherwise write `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc captures ONLY the decisions surfaced in the discovery summary — slug, ref project + entry, proposing set (as approved by the user), DS package versions + paths, accepted foundation URLs, the three headline rules verbatim with their `file:line` cites, and the design-craft opt-out (only when the user excluded the shipped craft file; the default ship path records nothing). Do NOT include the discovery exploration, the raw npm/curl/grep outputs, or the per-component deliberation — those are recoverable from the codebase and the meta-skill itself.
 
 After the handoff is written, **print the cutoff message and EXIT**. Do NOT enter Phase 2 inline. The cutoff message uses the resolved labeled filename verbatim in both the "Handoff written to" line and the resume command:
 
@@ -192,7 +194,7 @@ Approve to persist? (Reply "go" to write to .claude/skills/mantine/.)
 
 Triggered only after the user confirms the validation looks good. This is the first write to `.claude/skills/<slug>/` in this conversation. Once you start writing here, files go live immediately. No staging, no draft frontmatter, no commit step. Partial state during a crash is acceptable.
 
-Load `references/persist.md` for the slug-collision check (must run FIRST, before any write), the file layout, the per-component-file contract, and the closing message. The scaffolder writes `SKILL.md`, `AGENTS.md`, `references/components/*.md`, `references/tokens.md`, `references/assets.md`, and optionally `references/patterns.md` - omit any folder that would be empty.
+Load `references/persist.md` for the slug-collision check (must run FIRST, before any write), the file layout, the per-component-file contract, and the closing message. The scaffolder writes `SKILL.md`, `AGENTS.md`, `references/components/*.md`, `references/tokens.md`, `references/assets.md`, `references/design-craft.md` (copied verbatim from the meta-skill's `assets/design-craft.md` — see `references/persist.md`, Design-craft materialization), and optionally `references/patterns.md` - omit any folder that would be empty.
 
 If the user later asks for changes, edit the files in-place (they are already live under `.claude/skills/<slug>/`). Re-run `scripts/check-skill-docs.sh` after any edit that touches the routing table, the rule-slug registry, or the file layout.
 
@@ -439,11 +441,15 @@ Six architectural choices were locked on 2026-05-31. Recording them here so the 
 - **Headline rules discovered independently.** The meta-skill does not hard-code DS-specific rules (e.g. "use `disabled` not `inactive`" for one DS, "use `loading` prop not custom spinner" for another). If dry-runs show the extraction misses the rule, the prompts in this file are tuned until it lands. Hard-coding is detectable; the audience can smell it.
 - **No Hallmark stamp pattern.** The v0 onboarding flow does not stamp. The product-copywriting skill does not stamp (git blame is provenance). `check-skill-docs.sh` does not need stamps as a falsifiability check. Adding a stamp because Hallmark does would be cargo-cult. Deferred to `references/coverage-gaps.md` for a future re-extract verb that genuinely needs source provenance.
 
+One further choice was locked on 2026-06-10:
+
+- **Design craft ships verbatim, not extracted.** The DS-agnostic craft reference (`assets/design-craft.md` → produced `references/design-craft.md`) is general taste/layout knowledge with no DS source to verify against, so it is copied byte-for-byte by `scripts/scaffold.sh` rather than generated per-run. Generating it per-DS would produce unauditable drift (no types file or token grep can catch a softened rule); the file's precedence header ("the DS wins on conflict") is what keeps a static file safe across wildly different design systems. Enforced by `check-skill-docs.sh` check `DESIGN_CRAFT` (byte-diff + routing row).
+
 ## Operating envelope (what good output looks like)
 
 A successful run produces:
 
-- A single skill directory at `.claude/skills/<slug>/` containing `SKILL.md`, `AGENTS.md`, `references/components/*.md`, `references/tokens.md`, `references/assets.md`, and optionally `references/patterns.md`.
+- A single skill directory at `.claude/skills/<slug>/` containing `SKILL.md`, `AGENTS.md`, `references/components/*.md`, `references/tokens.md`, `references/assets.md`, `references/design-craft.md` (verbatim copy of the meta-skill's `assets/design-craft.md`), and optionally `references/patterns.md`.
 - A SKILL.md for the produced skill (not this file) that frames the DS as canonical, names setup and import rules, lists routing rules pointing at `references/`, and ends with hard rules and final checks. Short, operational, authoritative.
 - Every component file with all 8 sections (public imports / when to use / key props / accessibility / composition examples / source references / common mistakes / things to never invent), every rule cited to `file:line` or marked `[VERIFY]`.
 - A `check-skill-docs.sh` exit code 0.
