@@ -49,6 +49,8 @@
     ],
     "allow": [
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm test)",
       "Bash(cat *)",
       "Write(app/**)",
       "Edit(app/**)",

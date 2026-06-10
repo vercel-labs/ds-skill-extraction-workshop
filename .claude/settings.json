@@ -35,6 +35,8 @@
       "Bash(pnpm dev)",
       "Bash(pnpm verify *)",
       "Bash(pnpm verify)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm test)",
       "Bash(pnpm lint *)",
       "Bash(pnpm biome *)",
       "Bash(pnpm exec *)",
