@@ -61,7 +61,7 @@ FIDELITY_RESULT=FAIL
 
 ## Worked example — two real runs, one skill
 
-Both audited against the produced `primer-react` skill (13 components, 6 hard rules).
+Both audited against the produced `primer-react` skill (13 components, 6 hard rules). The DS-specific names below (`BaseStyles`, `Flash`, `colorMode`) are real audit output kept for grounding — the mechanism is DS-agnostic and the rubric always comes from whatever produced skill is passed in.
 
 **Run A (unaided — generated without skill access):**
 
