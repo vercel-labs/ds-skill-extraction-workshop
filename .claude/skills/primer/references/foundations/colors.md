@@ -2,7 +2,7 @@
 
 ## What this covers
 
-- Primer's three-tier color token system (base → functional → component/pattern), surface/foreground pairing rules, mode-aware token swaps, and contrast minimums against `--bgColor-muted`.
+- Primer's three-tier color token system (base → functional → component- and pattern-level), surface/foreground pairing rules, mode-aware token swaps, and contrast minimums against `--bgColor-muted`.
 
 Source URL fetched: https://primer.style/foundations/color/overview (the path `/product/getting-started/foundations/color-usage` from Phase 1 redirects here on the current docs site).
 
