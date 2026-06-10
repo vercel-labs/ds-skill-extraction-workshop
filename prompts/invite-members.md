@@ -28,10 +28,11 @@ A medium page title "Invite members to vercel-labs" with a muted subtitle ("Invi
 
 ## Behaviour and constraints
 
+- The app must follow the user's system colour preference: render correctly in **both light and dark mode**, including the page background behind the card — not just the card surface itself.
 - Use mock/default values inline — no API calls, no new dependencies.
 - All form inputs accessibly labelled; icon-only controls have accessible names.
 - Status pill tones follow the design system's semantic options for each meaning — never hand-picked colours. Surface, border, radius, shadow, and muted text use tokens, not hex/px.
-- Follow whatever rules `extract-ds-skill` put in `.claude/skills/ds/` (or `extracted-skill/` in dry-run snapshots).
+- Follow whatever rules `extract-ds-skill` put in `.claude/skills/primer-react/` (when that skill is installed).
 
 ## Out of scope
 
