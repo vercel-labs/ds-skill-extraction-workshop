@@ -27,7 +27,21 @@
       "Bash(cat .extract-ds-skill-scratch/*)",
       "Bash(* .extract-ds-skill-scratch/*)",
       "Bash(* ./.extract-ds-skill-scratch/*)",
-      "Bash(cd .extract-ds-skill-scratch*)"
+      "Bash(cd .extract-ds-skill-scratch*)",
+      "Read(//Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/ds/**)",
+      "Read(//Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/skills/primer-react/**)",
+      "Read(//Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.extract-ds-skill-scratch/**)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/ds/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/skills/primer-react/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/skills/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.extract-ds-skill-scratch/*)",
+      "Read(//Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/ds/**)",
+      "Read(//Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/skills/primer-react/**)",
+      "Read(//Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.extract-ds-skill-scratch/**)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/ds/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/skills/primer-react/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/skills/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.extract-ds-skill-scratch/*)"
     ],
     "allow": [
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
