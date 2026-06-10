@@ -1,29 +1,27 @@
 # audit-ds-fidelity — reference
 
-## Rubric derivation
+## Rubric derivation — the fixed row catalog
 
-The rubric is a function of the produced skill alone. Extract rows in this order; the same skill must always yield the same rubric.
+The rubric is a function of the produced skill alone, and it is a **fixed catalog of grouped category rows** (~12), never per-component or per-bullet rows. The same skill must always yield the same rubric; the audit's job is to fold the skill's many rules into these buckets and score each bucket across every instance in the run.
 
-### 1. Hard rules (`SKILL.md ## Hard rules`)
+| Row slug | What folds into it (from the produced skill) |
+|---|---|
+| `shell/painted-body` | base-styles/body background+color paint rules |
+| `shell/mode-theme-pairing` | mode attributes ↔ theme CSS imports ↔ provider colorMode agreement |
+| `shell/provider-wraps-content` | provider + base-styles wrap children as descendants |
+| `token/no-raw-values` | all token rules and Bad/Good token rows |
+| `component/legal-variants` | every variant/size/scheme union + "never invent" lists, all components |
+| `component/required-props` | required aria-labels and other mandatory props, all call sites |
+| `component/form-wiring` | control/label association rules (inputs inside form-control, ordering) |
+| `component/icon-mechanics` | icon-as-component-not-JSX and similar prop-mechanics rules |
+| `component/routing-preferences` | every "prefer X over Y" rule |
+| `layout/system-idiom` | system layout/stack component over ad-hoc divs+margins |
+| `audit/imports-resolve` | skill-independent (below) |
+| `audit/typecheck-clean` | skill-independent (below) |
 
-One row per bullet. Key each row by the anti-pattern slug the rule cites (e.g. `shell/unpainted-body`, `shell/mode-attribute-no-theme-import`, `shell/provider-missing-content-wrap`, `token/no-raw-values`). If a hard rule cites no slug, mint one as `hard/<kebab-summary>` and note the minting in the report preamble.
+Scoring a category row: it passes only if **every** instance in the run passes; one violation anywhere sets the row's verdict (cite the worst offender). A category the skill never legislates, or with zero instances in the run, scores `–`/NA. If the skill states a rule no catalog row covers, fold it into the nearest row — mint a new row only if nothing fits, noting the minting in one line.
 
-### 2. Anti-pattern rows (`references/anti-patterns.md`)
-
-One row per Bad/Good table row, keyed by its slug. Skip any slug already captured from Hard rules.
-
-### 3. Per-component conditional rows
-
-From each `references/components/<name>.md` (or the single `references/components.md`), extract:
-
-- **Legal-values rows** — variant/size unions under "Key props" and "Things to never invent" → `component/<name>-legal-variants`.
-- **Required-prop rows** — e.g. `component/iconbutton-requires-aria-label`.
-- **Mechanics rows** — e.g. `component/icon-prop-not-jsx`.
-- **Routing rows** — "prefer X over Y" guidance → `component/<x>-over-<y>`.
-
-Conditional rows apply only when the component appears in the audited run. Detect appearance by import (wrapper or barrel) or JSX usage. Absent → every cell `–`, footer value `NA`.
-
-### 4. Skill-independent rows (always present, always last)
+### Skill-independent rows (always present, always last)
 
 - `audit/imports-resolve` — every JS `import` specifier and CSS `@import` path must resolve to a real file in `node_modules` (or the repo). This catches hallucinated paths (e.g. a `primitives.css` aggregate that does not exist in the installed version) that neither tsc nor a visual check reveals — bundlers and browsers silently skip missing CSS imports, so tokens degrade with no error anywhere.
 - `audit/typecheck-clean` — the project's `tsc --noEmit` exits 0 for the audited files.
@@ -47,20 +45,19 @@ Verdict column = worst cell in the row (❌ > ⚠️ > ✅; all `–` → NA).
 Rubric derived from `<skill path>` only; the audited run may not have had
 access to it. Audited files: <list>. Typecheck: <command + exit code>.
 
-| Rule | app/layout.tsx | app/globals.css | components/* | Verdict | Evidence |
-|---|:-:|:-:|:-:|:-:|---|
-| shell/unpainted-body | ✅ | ✅ | – | ✅ | |
-| ... | | | | | |
+| Rule | shell (layout+css) | components/* | Verdict | Evidence |
+|---|:-:|:-:|:-:|---|
+| shell/painted-body | ✅ | – | ✅ | |
+| ... ~12 rows total ... | | | | |
 
 RUBRIC_SOURCE=.claude/skills/primer-react
-RULES=14 PASS=10 WARN=1 FAIL=3 NA=0
-shell/unpainted-body=PASS
+RULES=12 PASS=9 WARN=1 FAIL=2 NA=0
+shell/painted-body=PASS
 ...
 FIDELITY_RESULT=FAIL
 ```
 
-Column set = the audited files grouped however keeps the table ≤ ~6 columns
-(group `components/*` when many). Rows and footer lines are NEVER grouped.
+≤3 file-group columns (e.g. `shell` = layout + global css; `components/*` = everything else). Evidence is one clause: worst-offender `file:line` plus a few words. No rubric-construction notes, no per-rule prose, summary ≤3 sentences.
 
 ## Worked example — two real runs, one skill
 
@@ -68,18 +65,24 @@ Both audited against the produced `primer-react` skill (13 components, 6 hard ru
 
 **Run A (unaided — generated without skill access):**
 
-| Rule | layout.tsx | globals.css | components/* | Verdict | Evidence |
-|---|:-:|:-:|:-:|:-:|---|
-| audit/imports-resolve | ✅ | ✅ | ✅ | ✅ | all `@import`/alias paths exist (verified on disk, not assumed) |
-| shell/mode-attribute-no-theme-import | ✅ | ✅ | – | ✅ | theme css imported |
-| shell/provider-missing-content-wrap | ❌ | – | – | ❌ | layout.tsx:9 `ThemeProvider` without `colorMode="auto"` while `<html data-color-mode="auto">`; no `suppressHydrationWarning` |
-| shell/unpainted-body | ⚠️ | ✅ | – | ⚠️ | BaseStyles bare; body CSS rule carries the paint |
-| component/flash-over-experimental-banner | – | – | ❌ | ❌ | create-repo-card.tsx:50 `Banner` where skill routes to `Flash` |
-| token/no-raw-values | ✅ | ✅ | ✅ | ✅ | all `var(--…)` |
+| Rule | shell | components/* | Verdict | Evidence |
+|---|:-:|:-:|:-:|---|
+| shell/painted-body | ⚠️ | – | ⚠️ | BaseStyles bare; body CSS carries the paint |
+| shell/mode-theme-pairing | ✅ | – | ✅ | |
+| shell/provider-wraps-content | ❌ | – | ❌ | layout.tsx:9 no `colorMode="auto"` vs `data-color-mode="auto"` |
+| token/no-raw-values | ✅ | ✅ | ✅ | |
+| component/legal-variants | – | ✅ | ✅ | |
+| component/required-props | – | ✅ | ✅ | |
+| component/form-wiring | – | ✅ | ✅ | |
+| component/icon-mechanics | – | ✅ | ✅ | |
+| component/routing-preferences | – | ❌ | ❌ | create-repo-card.tsx:50 `Banner` where skill routes to `Flash` |
+| layout/system-idiom | – | ✅ | ✅ | |
+| audit/imports-resolve | ✅ | ✅ | ✅ | verified on disk, not assumed |
+| audit/typecheck-clean | ✅ | ✅ | ✅ | |
 
-`RULES=14 PASS=10 WARN=1 FAIL=2 NA=1 · FIDELITY_RESULT=FAIL`
+`RULES=12 PASS=8 WARN=1 FAIL=2 NA=0 · FIDELITY_RESULT=FAIL`
 
-**Run B (skill-loaded):** same rubric, `RULES=14 PASS=13 WARN=1 FAIL=0 NA=0 · FIDELITY_RESULT=PASS` (the WARN: `minHeight` for `height`).
+**Run B (skill-loaded):** same rubric, `RULES=12 PASS=11 WARN=1 FAIL=0 NA=0 · FIDELITY_RESULT=PASS` (the WARN: `minHeight` for `height`).
 
 Comparison is a diff of the two footers — no comparative mode exists in the skill itself. Note what the differential shows: Run A got tokens-not-raw, legal variants, and import paths *right*; its failures concentrate in wiring and routing knowledge (which provider props pair with which attributes, which component the system prefers). That distribution is the finding, not just the totals.
 

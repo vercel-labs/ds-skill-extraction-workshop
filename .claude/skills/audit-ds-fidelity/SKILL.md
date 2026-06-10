@@ -17,14 +17,14 @@ Score one generated run against the rules a produced DS skill states. Run it onc
 
 ### Step 1 — Build the rubric BEFORE reading any generated code
 
-Derive rows from the produced skill only, in this fixed order (see [REFERENCE.md](REFERENCE.md) for extraction details):
+Derive rows from the produced skill only. The rubric is a **fixed set of ~12 grouped category rows** — never one row per component or per bullet (see [REFERENCE.md](REFERENCE.md) for the row catalog and how skill content maps into it):
 
-1. `SKILL.md ## Hard rules` → one row each, keyed by anti-pattern slug.
-2. `references/anti-patterns.md` rows → one row each (skip duplicates of 1).
-3. Per-component contracts (legal variants, required props, icon-as-component, routing preferences like prefer-X-over-Y) → **conditional rows**: scored only when that component appears in the run, otherwise `–`.
-4. Two skill-independent rows, always last: `audit/imports-resolve` and `audit/typecheck-clean`.
+1. **Shell rows** (one each): painted shell, mode/theme pairing, provider wraps content.
+2. **Token row**: no raw values.
+3. **Component category rows** (one each, each aggregating ALL components in the run): legal variants/sizes, required props (aria-labels etc.), form wiring (control/label association), icon mechanics, routing preferences (prefer-X-over-Y), layout idiom (system layout component over ad-hoc divs).
+4. Two skill-independent rows, always last: `audit/imports-resolve`, `audit/typecheck-clean`.
 
-The rubric must be identical for any run audited against the same skill. Never add, drop, or reorder rows based on what the audited code contains.
+A category row passes only if every instance in the run passes; one violation anywhere fails the whole row (cite it). A category the skill never legislates, or with no instances in the run, scores `–`. The rubric must be identical for any run audited against the same skill.
 
 ### Step 2 — Score
 
@@ -35,7 +35,7 @@ The rubric must be identical for any run audited against the same skill. Never a
 
 ### Step 3 — Emit the report
 
-One markdown table: rows = rule slugs (rubric order), columns = audited files + `Verdict` + `Evidence`. Then the greppable footer:
+**One compact markdown table is the deliverable** — rows = the ~12 category slugs (rubric order), columns = audited file groups (≤3, e.g. `shell` / `components/*`) + `Verdict` + `Evidence`. Keep Evidence to one clause (`file:line` + a few words); detail beyond that is omitted, not appended. No rubric-construction notes, no per-rule prose blocks. After the table come the greppable footer, then a summary of **at most 3 sentences**:
 
 ```
 RUBRIC_SOURCE=<skill path>
@@ -53,6 +53,7 @@ Full report template and worked example: [REFERENCE.md](REFERENCE.md).
 ## Hard rules
 
 - Rubric from the produced skill only — never from the audited code, memory of the DS, or upstream docs.
+- The table stays ~12 rows: grouped category rows, never one row per component or per skill bullet. Per-instance detail lives only in Evidence cells.
 - Conditional rows score `–` when the component is absent, never `✅` (no free passes for avoidance).
 - `⚠️` is first-class: stricter-than-required or equivalent substitutions are not failures.
 - Cite `file:line` in every non-`✅` cell.
