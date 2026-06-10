@@ -1,6 +1,7 @@
 ---
 name: primer-react
 description: Build accessible GitHub-style UI with the Primer React design system (Button, IconButton, TextInput, Textarea, Select, Checkbox, FormControl, Flash, Label, CounterLabel, Heading, Text, Stack) wired through this project's @/ds/components wrappers over @primer/react. Use when the user asks for a Primer-styled page, a GitHub-style form/list/settings screen, a FormControl-wrapped field, a token-painted card, or a repo header. Triggers: 'primer', 'primer-react', '@primer/react', 'ds component', 'github-style'. Scope: components, tokens, assets. Out of scope: tone of voice and marketing copy — route copy rules to a sibling skill. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient.
+disable-model-invocation: true
 ---
 
 ## Mission

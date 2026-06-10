@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(ds/**)",
+      "Read(./ds/**)",
+      "Bash(cat ds/*)",
+      "Bash(cat ./ds/*)",
+      "Bash(* ds/*)",
+      "Bash(* ./ds/*)",
+      "Bash(cd ds*)",
+      "Read(.claude/skills/primer-react/**)",
+      "Read(./.claude/skills/primer-react/**)",
+      "Bash(* .claude/skills/primer-react/*)",
+      "Bash(* ./.claude/skills/primer-react/*)",
+      "Skill(primer-react)"
+    ]
+  }
+}
