@@ -41,7 +41,11 @@
       "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/ds/*)",
       "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/skills/primer-react/*)",
       "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/skills/*)",
-      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.extract-ds-skill-scratch/*)"
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.extract-ds-skill-scratch/*)",
+      "Bash(*primer-react*)",
+      "Bash(*extract-ds-skill-scratch*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/*)",
+      "Bash(* /Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/.claude/worktrees/dryrun-14/.claude/*)"
     ],
     "allow": [
       "Bash(bash .claude/skills/audit-primer-fidelity/scripts/*)",
