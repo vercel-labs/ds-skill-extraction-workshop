@@ -16,6 +16,14 @@
       "Skill(ds)",
       "Skill(shadcn)",
       "Read(//Users/diegodemiguel/.claude/skills/ds/**)"
+    ],
+    "allow": [
+      "Write(app/**)",
+      "Edit(app/**)",
+      "Write(components/**)",
+      "Edit(components/**)",
+      "Write(lib/**)",
+      "Edit(lib/**)"
     ]
   }
 }
