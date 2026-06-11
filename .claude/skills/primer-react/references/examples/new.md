@@ -13,6 +13,11 @@ Lifted from `vercel-labs/primer-nextjs-template/app/new/page.tsx` (next-app).
 ```tsx
 "use client";
 
+// Form-page exemplar. Surface is a token-painted card (background +
+// border + radius + shadow all via vars) wrapping a vertical Stack of
+// FormControl rows, with a Flash context banner up top and an action
+// footer at the bottom. Every component imports from @primer/react root.
+
 import {
   Button,
   Checkbox,
@@ -33,9 +38,12 @@ export default function NewRepoPage() {
     <PageLayout containerWidth="medium">
       <PageLayout.Header>
         <Stack direction="vertical" gap="condensed">
-          <Heading as="h1" variant="large">Create a new repository</Heading>
+          <Heading as="h1" variant="large">
+            Create a new repository
+          </Heading>
           <Text style={{ color: "var(--fgColor-muted)" }}>
-            A repository contains all project files, including the revision history.
+            A repository contains all project files, including the revision
+            history.
           </Text>
         </Stack>
       </PageLayout.Header>
@@ -57,7 +65,11 @@ export default function NewRepoPage() {
 
             <FormControl required>
               <FormControl.Label>Repository name</FormControl.Label>
-              <TextInput block placeholder="awesome-project" leadingVisual={RepoIcon} />
+              <TextInput
+                block
+                placeholder="awesome-project"
+                leadingVisual={RepoIcon}
+              />
               <FormControl.Caption>
                 Great repository names are short and memorable.
               </FormControl.Caption>
@@ -65,7 +77,12 @@ export default function NewRepoPage() {
 
             <FormControl>
               <FormControl.Label>Description</FormControl.Label>
-              <Textarea block rows={3} placeholder="Optional description" resize="vertical" />
+              <Textarea
+                block
+                rows={3}
+                placeholder="Optional description"
+                resize="vertical"
+              />
             </FormControl>
 
             <FormControl>
@@ -76,7 +93,8 @@ export default function NewRepoPage() {
                 <Select.Option value="internal">Internal</Select.Option>
               </Select>
               <FormControl.Caption>
-                Anyone on the internet can see this repository when set to Public.
+                Anyone on the internet can see this repository when set to
+                Public.
               </FormControl.Caption>
             </FormControl>
 
@@ -84,7 +102,8 @@ export default function NewRepoPage() {
               <Checkbox defaultChecked />
               <FormControl.Label>Add a README file</FormControl.Label>
               <FormControl.Caption>
-                This is where you can write a long description for your project.
+                This is where you can write a long description for your
+                project.
               </FormControl.Caption>
             </FormControl>
 
@@ -117,10 +136,9 @@ export default function NewRepoPage() {
 
 ## What to copy
 
-- Form pages render their fields inside a token-painted card `<div>` (background + border + radius + shadow + padding all from tokens) — same paint recipe as the dashboard stat cards but with `shadow-resting-medium` and `base-size-24` padding for the heavier surface.
-- Each input row is one `<FormControl>` carrying `FormControl.Label`, the input primitive (`TextInput`, `Textarea`, `Select`), and `FormControl.Caption` — label association is automatic; never wire `htmlFor`/`id` by hand.
-- `<FormControl required>` is the prop, not `<FormControl.Label required>`; the wrapper drives the required-state visual + ARIA.
-- Checkbox rows put `<Checkbox />` BEFORE `<FormControl.Label>` inside `<FormControl>` — the wrapper detects the inline checkbox and arranges the label-on-right layout automatically.
-- Action footer is a horizontal `<Stack gap="condensed" justify="end">` with `<Button variant="invisible">Cancel</Button>` then `<Button variant="primary">Submit</Button>` — invisible on the left, primary on the right.
-- Footer separator is a `<div style={{ borderTop: "1px solid var(--borderColor-muted)" }}>` plus internal top padding — Primer ships no `<Divider>` primitive for this slot.
-- `<TextInput leadingVisual={Icon}>` takes the icon component as a prop (not a child); icons go via the prop slot.
+- The form surface is one token-painted card `<div>` (`var(--bgColor-default)` + `var(--borderColor-default)` + `var(--borderRadius-large, 12px)` + `var(--shadow-resting-medium)` + `var(--base-size-24, 1.5rem)` padding) wrapping a single vertical Stack of rows.
+- Every input row is a `FormControl` wrapping `Label` + input + optional `Caption` — label association comes from the wrapper, never a bare `<label>`; `required` lives on FormControl, not the input.
+- Checkbox rows invert the order: `<Checkbox />` FIRST, then `FormControl.Label`, then `Caption` — the control precedes its label for checkbox-shaped rows.
+- Text entry is `TextInput block` with `leadingVisual={RepoIcon}` (icon passed as a component reference, not an element); multi-line is `Textarea block rows={3} resize="vertical"`.
+- Context banner is `Flash variant="default"` as the first Stack row — page-level context sits inside the card, above the first field.
+- Action footer: top border `var(--borderColor-muted)` + horizontal Stack `justify="end"` with `Button variant="invisible"` Cancel before `Button variant="primary"` submit.

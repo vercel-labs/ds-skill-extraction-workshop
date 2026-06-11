@@ -5,13 +5,18 @@ Lifted from `vercel-labs/primer-nextjs-template/app/settings/page.tsx` (next-app
 ## Required imports
 
 - `@primer/react`: Button, FormControl, Heading, NavList, PageLayout, Select, Stack, Text, TextInput, Textarea
-- `@primer/octicons-react`: BellIcon, CreditCardIcon, KeyIcon, PersonIcon, Icon (type)
+- `@primer/octicons-react`: BellIcon, CreditCardIcon, KeyIcon, PersonIcon, type Icon
 - Other: (none)
 
 ## Composition (verbatim)
 
 ```tsx
 "use client";
+
+// Sidebar-nav exemplar. Shape: PageLayout regions — Pane carries a NavList
+// with leading-visual octicons (one item marked aria-current="page"), Content
+// carries a stack of section headings each wrapping FormControl groups.
+// NavList here is the root entrypoint (also re-exported from experimental).
 
 import {
   Button,
@@ -51,7 +56,9 @@ export default function SettingsPage() {
   return (
     <PageLayout containerWidth="large">
       <PageLayout.Header>
-        <Heading as="h1" variant="large">Settings</Heading>
+        <Heading as="h1" variant="large">
+          Settings
+        </Heading>
       </PageLayout.Header>
 
       <PageLayout.Pane position="start" width="medium">
@@ -79,7 +86,9 @@ export default function SettingsPage() {
           <section>
             <Stack direction="vertical" gap="normal">
               <Stack direction="vertical" gap="condensed">
-                <Heading as="h2" variant="medium">Public profile</Heading>
+                <Heading as="h2" variant="medium">
+                  Public profile
+                </Heading>
                 <Text style={{ color: "var(--fgColor-muted)" }}>
                   This information appears on your profile and in @-mentions.
                 </Text>
@@ -95,7 +104,12 @@ export default function SettingsPage() {
 
               <FormControl>
                 <FormControl.Label>Bio</FormControl.Label>
-                <Textarea block rows={3} resize="vertical" defaultValue="Builds workshops on agentic coding." />
+                <Textarea
+                  block
+                  rows={3}
+                  resize="vertical"
+                  defaultValue="Builds workshops on agentic coding."
+                />
                 <FormControl.Caption>
                   You can @mention other users and organizations.
                 </FormControl.Caption>
@@ -107,12 +121,17 @@ export default function SettingsPage() {
             </Stack>
           </section>
 
-          <div style={{ borderTop: "1px solid var(--borderColor-muted)" }} aria-hidden />
+          <div
+            style={{ borderTop: "1px solid var(--borderColor-muted)" }}
+            aria-hidden
+          />
 
           <section>
             <Stack direction="vertical" gap="normal">
               <Stack direction="vertical" gap="condensed">
-                <Heading as="h2" variant="medium">Preferences</Heading>
+                <Heading as="h2" variant="medium">
+                  Preferences
+                </Heading>
                 <Text style={{ color: "var(--fgColor-muted)" }}>
                   Tune how GitHub looks and behaves for you.
                 </Text>
@@ -149,9 +168,8 @@ export default function SettingsPage() {
 
 ## What to copy
 
-- Sidebar-nav pages use `<PageLayout>` with all three regions: `Header`, `Pane position="start" width="medium"` (the sidebar), and `Content`. Pane width tokens are `small | medium | large`, not pixel values.
-- `<NavList>` carries an `aria-label` and contains `<NavList.Item>` children; each item passes its icon through `<NavList.LeadingVisual>` (a slot, not a prop).
-- Active nav item is marked via `aria-current="page"` on `<NavList.Item>`, not a `selected` prop — `NavList` reads ARIA, not a custom flag.
-- Content sections wrap in `<section>` for landmark semantics, each carrying a `<Heading as="h2" variant="medium">` + muted `<Text>` description over a vertical `<Stack>` of `<FormControl>` rows.
-- Section dividers are a bare `<div style={{ borderTop: "1px solid var(--borderColor-muted)" }} aria-hidden />` — Primer ships no `<Divider>` primitive; `aria-hidden` keeps it out of the a11y tree.
-- Per-section submit buttons sit in a horizontal `<Stack justify="end">` at the section bottom — one save action per section, not a global page footer.
+- Sidebar-nav skeleton: `PageLayout` with `Pane position="start" width="medium"` carrying a `NavList`, and `Content` carrying the form sections — the pane/content split is PageLayout regions, not CSS columns.
+- `NavList` takes `aria-label`; each `NavList.Item` carries `href`, an octicon inside `NavList.LeadingVisual`, and the active item sets `aria-current="page"` (others leave it `undefined`).
+- Each settings section is a `<section>` with a heading cluster (vertical Stack `gap="condensed"`: `Heading as="h2" variant="medium"` + muted `Text`) over its FormControl rows — heading levels h1 (page) → h2 (sections) stay semantic.
+- Section dividers are an `aria-hidden` `<div>` with `borderTop: "1px solid var(--borderColor-muted)"` between vertical-Stack sections.
+- Every section ends with its own right-aligned action row (horizontal Stack `justify="end"` + `Button variant="primary"`) — per-section save, not one global footer.

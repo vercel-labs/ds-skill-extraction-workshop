@@ -5,13 +5,18 @@ Lifted from `vercel-labs/primer-nextjs-template/app/page.tsx` (next-app).
 ## Required imports
 
 - `@primer/react`: Heading, Link, PageHeader, Stack, Text
-- `@primer/octicons-react`: GearIcon, GraphIcon, PlusIcon, RepoIcon, SearchIcon, Icon (type)
+- `@primer/octicons-react`: GearIcon, GraphIcon, PlusIcon, RepoIcon, SearchIcon, type Icon
 - Other: (none)
 
 ## Composition (verbatim)
 
 ```tsx
 "use client";
+
+// Route index. Smoke-test role for the wiring contract: every link below
+// hits a composition exemplar that the extract-ds-skill meta-skill lifts
+// into references/examples/<route>.md. Imports stay on @primer/react root
+// (Link, Stack, PageHeader, Text) plus @primer/octicons-react.
 
 import { Heading, Link, PageHeader, Stack, Text } from "@primer/react";
 import {
@@ -125,8 +130,8 @@ export default function Home() {
 
 ## What to copy
 
-- Page chrome is a single vertical `<Stack gap="spacious">` capped at `maxWidth: 768` and centered with `margin: "0 auto"` — the wrap pattern for narrow content-led pages.
-- `<PageHeader>` carries a `<PageHeader.TitleArea>` over a `<PageHeader.Description>`; no `Actions` slot when the page is informational rather than transactional.
-- Card-shaped link rows paint with `var(--bgColor-default)` background + `var(--borderColor-default)` border + `var(--borderRadius-medium)` corner — never raw hex; the token cascade reads the data-*-theme attrs on `<html>`.
-- Nested `<Stack>` is the layout primitive: outer horizontal `<Stack align="center">` for icon-plus-text rows, inner vertical `<Stack gap="none">` for stacked title + caption.
-- Muted secondary text reads `var(--fgColor-muted)` inline via `style`, not a `variant` prop — Text has size + weight but not a muted variant.
+- Route-index cards are plain `<Link>` elements painted entirely with tokens: `var(--borderColor-default)` border, `var(--borderRadius-medium, 8px)` radius, `var(--bgColor-default)` background — a card surface without any Card component.
+- Card innards are a nested Stack pair: horizontal `gap="condensed"` (icon beside text block) wrapping a vertical `gap="none"` (title over description) — the icon optically anchors the row.
+- Page chrome is `PageHeader` with `TitleArea` + `Description` slots; the description prose lives in the slot, not a sibling `<Text>`.
+- Secondary prose drops to `size="small"` with `style={{ color: "var(--fgColor-muted)" }}` — the muted-foreground token, never a raw hex.
+- Semantic `<ul>`/`<li>` wraps the Stack list (`listStyle: "none"`) so the route list reads as a list to assistive tech while Stack handles spacing.

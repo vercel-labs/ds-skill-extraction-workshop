@@ -4,15 +4,20 @@ Lifted from `vercel-labs/primer-nextjs-template/app/repos/page.tsx` (next-app).
 
 ## Required imports
 
-- `@primer/react`: Button, Label, PageHeader, PageLayout, RelativeTime, SelectPanel, Stack, Text, LabelProps (type), SelectPanelItemInput (type)
+- `@primer/react`: Button, Label, PageHeader, PageLayout, RelativeTime, SelectPanel, Stack, Text, type LabelProps, type SelectPanelItemInput
 - `@primer/react/experimental`: DataTable, Table
 - `@primer/octicons-react`: PlusIcon, RepoIcon, StarIcon
-- Other: useState (react)
+- Other: useState from react
 
 ## Composition (verbatim)
 
 ```tsx
 "use client";
+
+// List-page exemplar. Shape: PageLayout > PageHeader (title + Actions slot)
+// over a filter row over a DataTable. DataTable + Table.Container come from
+// the experimental entrypoint; everything else is on root. Mock data lives
+// inline so the lift surfaces composition, not a data layer.
 
 import { useState } from "react";
 import {
@@ -27,8 +32,15 @@ import {
   type LabelProps,
   type SelectPanelItemInput,
 } from "@primer/react";
-import { DataTable, Table } from "@primer/react/experimental";
-import { PlusIcon, RepoIcon, StarIcon } from "@primer/octicons-react";
+import {
+  DataTable,
+  Table,
+} from "@primer/react/experimental";
+import {
+  PlusIcon,
+  RepoIcon,
+  StarIcon,
+} from "@primer/octicons-react";
 
 type Visibility = "Public" | "Private";
 
@@ -109,7 +121,9 @@ export default function ReposPage() {
           </Stack>
 
           <Table.Container>
-            <Table.Title as="h2" id="repos-table-title">Repositories</Table.Title>
+            <Table.Title as="h2" id="repos-table-title">
+              Repositories
+            </Table.Title>
             <Table.Subtitle as="p" id="repos-table-subtitle">
               Sortable by name, stars, or last update.
             </Table.Subtitle>
@@ -171,9 +185,9 @@ export default function ReposPage() {
 
 ## What to copy
 
-- List pages reach for `<DataTable>` + `<Table.Container>` from `@primer/react/experimental`, not a hand-rolled `<table>`. `Table.Title` + `Table.Subtitle` provide the accessible-name surface via `aria-labelledby` / `aria-describedby`.
-- `<PageHeader>` with an `Actions` slot is how primary actions land in the chrome — push `<Button variant="primary">` into `PageHeader.Actions` rather than rendering it inside content.
-- Filter rows of selectable items use `<SelectPanel>` with typed `SelectPanelItemInput[]` over hand-rolled menus — controlled via `open`/`onOpenChange` + `selected`/`onSelectedChange` + `filterValue`/`onFilterChange`. The `renderAnchor` prop returns the trigger button.
-- `DataTable` columns declare `field`, `header`, optional `sortBy` (`alphanumeric` | `basic` | `datetime`), `align`, and a `renderCell` function — never inline a `<td>` outside `renderCell`.
-- Use `<Label variant="success" | "attention" | "danger" | ...>` for inline status pills inside table cells — Primer reserves `Label` for typed-status metadata.
-- Relative dates render via `<RelativeTime date={new Date(...)}>`, not `Intl.RelativeTimeFormat` by hand — `<RelativeTime>` handles localization and the `<time>` element wrapper.
+- List-page skeleton: `PageLayout` > `PageHeader` (TitleArea + Description + `Actions` slot carrying the primary `Button leadingVisual={PlusIcon}`) > filter row > table — the "New X" action lives in the PageHeader.Actions slot, not floating beside the table.
+- `DataTable`/`Table` come from `@primer/react/experimental`; the table nests in `Table.Container` with `Table.Title as="h2"` + `Table.Subtitle`, wired via `aria-labelledby`/`aria-describedby` ids.
+- Column defs drive everything: `rowHeader: true` on the name column, `sortBy: "alphanumeric" | "basic" | "datetime"` per column, `align: "end"` for numeric, `renderCell` for composed cells; initial sort via `initialSortColumn` + `initialSortDirection="DESC"`.
+- Status badges map data to `Label` variants through a typed record (`Record<Visibility, LabelProps["variant"]>`) — variant selection is a lookup, not inline conditionals.
+- `SelectPanel` is fully controlled: `open`/`onOpenChange`, `items`/`selected`/`onSelectedChange`, `filterValue`/`onFilterChange`, with `renderAnchor` spreading anchorProps onto a `Button`.
+- Timestamps render through `RelativeTime date={new Date(...)}`, never hand-formatted strings.

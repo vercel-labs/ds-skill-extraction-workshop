@@ -5,13 +5,17 @@ Lifted from `vercel-labs/primer-nextjs-template/app/dashboard/page.tsx` (next-ap
 ## Required imports
 
 - `@primer/react`: CounterLabel, Heading, Label, PageHeader, PageLayout, Stack, Text, Timeline
-- `@primer/octicons-react`: GitPullRequestIcon, IssueOpenedIcon, RepoIcon, StarIcon, Icon (type)
+- `@primer/octicons-react`: GitPullRequestIcon, IssueOpenedIcon, RepoIcon, StarIcon, type Icon
 - Other: (none)
 
 ## Composition (verbatim)
 
 ```tsx
 "use client";
+
+// Multi-section dashboard exemplar. Shape: PageHeader + horizontal Stack of
+// token-painted stat cards + a Timeline of recent activity using badge
+// variants. All imports from @primer/react root + @primer/octicons-react.
 
 import {
   CounterLabel,
@@ -55,10 +59,38 @@ type Activity = {
 };
 
 const ACTIVITY: Activity[] = [
-  { id: 1, badgeVariant: "success", badgeIcon: GitPullRequestIcon, title: "Merged primer-nextjs-template#42", body: "feat: ship composition exemplars for the meta-skill lift.", meta: "2 hours ago" },
-  { id: 2, badgeVariant: "open", badgeIcon: IssueOpenedIcon, title: "Opened extract-ds-skill#118", body: "Phase 2 should walk app/**/page.tsx and components/showcase/*.tsx.", meta: "yesterday" },
-  { id: 3, badgeVariant: "accent", badgeIcon: StarIcon, title: "Starred ship-2025-companion", body: "Workshop scaffolding for the agentic-coding session.", meta: "3 days ago" },
-  { id: 4, badgeVariant: "closed", badgeIcon: IssueOpenedIcon, title: "Closed primer-nextjs-template#40", body: "Resolved: the smoke-test page was missing border-radius tokens.", meta: "last week" },
+  {
+    id: 1,
+    badgeVariant: "success",
+    badgeIcon: GitPullRequestIcon,
+    title: "Merged primer-nextjs-template#42",
+    body: "feat: ship composition exemplars for the meta-skill lift.",
+    meta: "2 hours ago",
+  },
+  {
+    id: 2,
+    badgeVariant: "open",
+    badgeIcon: IssueOpenedIcon,
+    title: "Opened extract-ds-skill#118",
+    body: "Phase 2 should walk app/**/page.tsx and components/showcase/*.tsx.",
+    meta: "yesterday",
+  },
+  {
+    id: 3,
+    badgeVariant: "accent",
+    badgeIcon: StarIcon,
+    title: "Starred ship-2025-companion",
+    body: "Workshop scaffolding for the agentic-coding session.",
+    meta: "3 days ago",
+  },
+  {
+    id: 4,
+    badgeVariant: "closed",
+    badgeIcon: IssueOpenedIcon,
+    title: "Closed primer-nextjs-template#40",
+    body: "Resolved: the smoke-test page was missing border-radius tokens.",
+    meta: "last week",
+  },
 ];
 
 export default function DashboardPage() {
@@ -96,14 +128,27 @@ export default function DashboardPage() {
                   }}
                 >
                   <Stack direction="vertical" gap="condensed">
-                    <Stack direction="horizontal" gap="condensed" align="center" justify="space-between">
-                      <Text size="small" weight="semibold" style={{ color: "var(--fgColor-muted)" }}>
+                    <Stack
+                      direction="horizontal"
+                      gap="condensed"
+                      align="center"
+                      justify="space-between"
+                    >
+                      <Text
+                        size="small"
+                        weight="semibold"
+                        style={{ color: "var(--fgColor-muted)" }}
+                      >
                         {stat.label}
                       </Text>
                       <StatIcon size={16} />
                     </Stack>
-                    <Heading as="h3" variant="large">{stat.value}</Heading>
-                    <Text size="small" style={{ color: "var(--fgColor-muted)" }}>{stat.delta}</Text>
+                    <Heading as="h3" variant="large">
+                      {stat.value}
+                    </Heading>
+                    <Text size="small" style={{ color: "var(--fgColor-muted)" }}>
+                      {stat.delta}
+                    </Text>
                   </Stack>
                 </div>
               );
@@ -112,8 +157,15 @@ export default function DashboardPage() {
 
           <section>
             <Stack direction="vertical" gap="normal">
-              <Stack direction="horizontal" gap="condensed" align="center" justify="space-between">
-                <Heading as="h2" variant="medium">Recent activity</Heading>
+              <Stack
+                direction="horizontal"
+                gap="condensed"
+                align="center"
+                justify="space-between"
+              >
+                <Heading as="h2" variant="medium">
+                  Recent activity
+                </Heading>
                 <Stack direction="horizontal" gap="condensed" align="center">
                   <Label variant="accent">Last 7 days</Label>
                   <CounterLabel>{ACTIVITY.length}</CounterLabel>
@@ -131,8 +183,12 @@ export default function DashboardPage() {
                       <Timeline.Body>
                         <Stack direction="vertical" gap="none">
                           <Text weight="semibold">{item.title}</Text>
-                          <Text size="small" style={{ color: "var(--fgColor-muted)" }}>{item.body}</Text>
-                          <Text size="small" style={{ color: "var(--fgColor-muted)" }}>{item.meta}</Text>
+                          <Text size="small" style={{ color: "var(--fgColor-muted)" }}>
+                            {item.body}
+                          </Text>
+                          <Text size="small" style={{ color: "var(--fgColor-muted)" }}>
+                            {item.meta}
+                          </Text>
                         </Stack>
                       </Timeline.Body>
                     </Timeline.Item>
@@ -150,8 +206,8 @@ export default function DashboardPage() {
 
 ## What to copy
 
-- `<PageLayout containerWidth="large">` with `Header` + `Content` regions is the page-frame primitive for app-shell pages; reach for `medium`/`small` only when the page is form-led.
-- Stat-card grid is a horizontal `<Stack gap="normal" wrap="wrap">` of bare `<div>` cards painted with `bgColor-default` + `borderColor-default` + `borderRadius-large` + `shadow-resting-small` — Primer ships no first-class Card primitive, so cards are token-painted divs.
-- Card internal vertical `<Stack gap="condensed">` carries a header row (label + icon via `justify="space-between"`), a metric `<Heading as="h3" variant="large">`, and a `<Text size="small">` delta in muted color.
-- Section headers pair `<Heading as="h2" variant="medium">` with a metadata cluster (`<Label variant="accent">` + `<CounterLabel>`) on the right via `justify="space-between"`.
-- `<Timeline>` carries `Timeline.Item` rows; each row is `Timeline.Badge` (variant from `success | open | closed | accent`) followed by `Timeline.Body` carrying a vertical `<Stack gap="none">` of weighted title + muted body + muted meta.
+- Stat cards are token-painted `<div>`s (`var(--bgColor-default)` + `var(--borderColor-default)` + `var(--borderRadius-large, 12px)` + `var(--shadow-resting-small)`) inside a horizontal Stack with `wrap="wrap"` and `flex: "1 1 200px"` — responsive card grid without a grid component.
+- Section headers are a horizontal Stack with `justify="space-between"`: Heading on the left, a `Label variant="accent"` + `CounterLabel` cluster on the right — metadata badges pair with counts, not lifecycle states.
+- `Timeline.Badge variant` is driven by data (`"success" | "open" | "closed" | "accent"`) with an octicon child sized 16 — lifecycle color comes from the badge variant, not hand-painted icons.
+- Page skeleton is `PageLayout containerWidth="large"` with `Header` (PageHeader inside) and `Content` regions; the content is one vertical Stack `gap="spacious"` separating major sections.
+- Three-line timeline body is a vertical Stack `gap="none"`: semibold title, muted body, muted meta — hierarchy by weight and the muted token, not by font-size jumps.

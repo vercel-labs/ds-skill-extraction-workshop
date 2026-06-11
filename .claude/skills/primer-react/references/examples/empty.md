@@ -14,6 +14,10 @@ Lifted from `vercel-labs/primer-nextjs-template/app/empty/page.tsx` (next-app).
 ```tsx
 "use client";
 
+// Empty-state exemplar. Demonstrates the experimental Blankslate entrypoint
+// (Visual + Heading + Description + PrimaryAction). Wraps in a PageLayout
+// so the empty surface still reads like a routed page, not a floating card.
+
 import { PageLayout, Stack } from "@primer/react";
 import { Blankslate } from "@primer/react/experimental";
 import { SearchIcon } from "@primer/octicons-react";
@@ -48,8 +52,7 @@ export default function EmptyPage() {
 
 ## What to copy
 
-- Empty states use `<Blankslate>` from `@primer/react/experimental` — not a hand-rolled card. The component carries `Visual / Heading / Description / PrimaryAction / SecondaryAction` slots in that order.
-- `<Blankslate spacious border>` is the standard variant for routed empty pages — `border` paints the dashed token-driven border, `spacious` enlarges internal padding.
-- Wrap `<Blankslate>` in `<PageLayout containerWidth="medium">` + `<PageLayout.Content>` so the empty surface reads as a routed page, not a floating card.
-- Top padding on the inner `<Stack>` uses `var(--base-size-32, 2rem)` not raw `2rem` — keeps the spacing scale token-driven.
-- Both actions take an `href` prop (anchor semantics); pass `onClick` instead when the action is a handler not a navigation.
+- Empty states are the experimental `Blankslate` entrypoint (`@primer/react/experimental`), not a hand-rolled centered div — slots: `Visual` (octicon size 32), `Heading`, `Description`, `PrimaryAction`, `SecondaryAction`.
+- `Blankslate` takes `spacious` and `border` boolean props for padding and the framed look; the frame replaces any hand-painted border.
+- The empty surface still mounts inside `PageLayout containerWidth="medium"` + `PageLayout.Content` so it reads as a routed page, not a floating card.
+- Actions are href-shaped (`PrimaryAction href=...`) — an empty state routes the user somewhere useful, primary before secondary.
