@@ -7,6 +7,7 @@ description: Test fixture — produced-skill mode, ships 3 foundation files plus
 
 | Trigger | Files to load | Notes |
 |---|---|---|
+| user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |
 | button asks | references/components/button.md | per-component file |
 | user reviews available foundation pages | references/foundations/index.md | one entry per accepted+crawled foundation URL |
 | colors: pairing + dark mode + contrast | references/foundations/colors.md | foundation rules from docs |

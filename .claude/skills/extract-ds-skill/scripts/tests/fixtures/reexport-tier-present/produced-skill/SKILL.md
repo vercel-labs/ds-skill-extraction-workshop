@@ -7,6 +7,7 @@ description: Test fixture — produced-skill mode with a populated `## Other re-
 
 | Trigger | Files to load | Notes |
 |---|---|---|
+| user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |
 | ExampleButton asks | references/components.md | single-file components mode |
 | user asks for a component not in the routing table above | references/components.md `## Other re-exports` | thin wrappers — props live in the upstream types file named under each entry |
 

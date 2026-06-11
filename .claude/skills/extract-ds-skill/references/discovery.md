@@ -85,6 +85,7 @@ Render inline, not as a file. Every summary contains:
 
   Each accepted root is crawled depth-1 within its path prefix per the **Crawl rules** subsection below. The discovered tree surfaces here so the user can prune before Phase 2 proceeds.
 - Reference project — one line, tagged `[example:project]`, with the URL or local path, the auto-detected framework (`vite` / `next-app` / `next-pages` / `cra`), and the resolved root entry file (e.g. `<reference-project-url-or-path>` @ `<root-entry-file>` (`<framework>`)). Omit this line entirely if the user did not provide a reference project. See `references/reference-project.md` for the recipe Phase 2 will run against it.
+- Design-craft ship-note — one fixed line: `Ships with the produced skill: references/design-craft.md [craft, DS-agnostic] (say "skip design craft" to exclude).` Informational, not a question — "go" (or silence on the point) accepts it. On explicit opt-out, the phase-1 handoff Decisions block records the exclusion (see the handoff Include list below) and Phase 3 passes `--no-design-craft` to `scripts/scaffold.sh` and omits the design-craft routing row per `references/persist.md` (Design-craft materialization).
 - Headline rule candidates (1-3) with `file:line` cites
 - Sources used — one line per input, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[example:project]` / `[storybook]` / `[private-blocker]`
 - Open questions or blockers — only if they would stop Phase 2
@@ -152,6 +153,7 @@ Sources used:
 - mantine.dev/core/button [docs]
 - CHANGELOG.md [code]
 
+Ships with the produced skill: references/design-craft.md [craft, DS-agnostic] (say "skip design craft" to exclude).
 No blockers. Storybook is public but not cloned - will fall back to docs site for variant examples.
 
 Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
@@ -223,6 +225,7 @@ Phase 1 closes by writing `.extract-ds-skill-scratch/handoffs/phase-1.md`. The d
 - DS package names, versions, and `node_modules/` paths (resolved during inspection)
 - Foundation URLs accepted, with the depth-1 crawl tree per accepted root, each sub-page tagged `[in-scope]` or `[out-of-scope: sibling-<topic>-skill]` per the scope classification done during the crawl (see **Scope routing during discovery**). The handoff carries the classification as a decision — never hedged "if confirmed" prose deferred to Phase 2.
 - The 1-3 headline rule candidates VERBATIM with their `file:line` cites
+- Design-craft opt-out, ONLY when the user excluded the craft file ("skip design craft") — one Decisions line: `- **Design-craft reference**: excluded (user opt-out)`. Omitted entirely on the default ship path (shipping is the default and needs no record). Phase 2 passes the exclusion through its own handoff; Phase 3 reads it and runs `scripts/scaffold.sh --no-design-craft` per `references/persist.md` (Design-craft materialization).
 - Re-exports outside the proposing set (one line per wrapper file under `ds/components/*.tsx` that was NOT included in the proposing set) — filename + the upstream symbol it re-exports, derived from the wrapper's `import { Foo as DSFoo } from '<package>'` statement. Omitted entirely when the proposing set covers every wrapper.
 - cwd convention reminder ("if this resumed session is not in `.claude/worktrees/dryrun-NN/`, the dry-run worktree where the handoff was written, ask the user where to land outputs")
 - Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-1.md`)

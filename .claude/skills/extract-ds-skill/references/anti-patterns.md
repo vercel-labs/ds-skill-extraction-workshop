@@ -75,7 +75,7 @@ Repeating the same WHY clause across rows in the same axis is correct — the fa
 
 Layer A and Layer B describe rules the *produced* skill ships — guidance for the agent that USES the skill. Layer C describes rules the *meta-skill itself* obeys while producing a skill. They live in this file because the audit surface is the same (slug registry, `check-skill-docs.sh` enforcement), but the failure mode is upstream: a Layer C violation is the meta-skill shipping a broken produced skill, not the produced skill mis-guiding the agent.
 
-Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line (or `How to apply:` for warn-only rules) naming the script and the gate. Layer C subsections use three namespaces today: `wiring/` and `state/` for rules that fire against the meta-skill's own output during a run, and `shell/` for rules whose authoritative definition lives here (the slug registry) but whose runtime fire-site is Layer A + Layer B in the produced skill. More will be added when more meta-skill rules surface.
+Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line (or `How to apply:` for warn-only rules) naming the script and the gate. Layer C subsections use four namespaces today: `wiring/`, `state/`, and `craft/` for rules that fire against the meta-skill's own output during a run, and `shell/` for rules whose authoritative definition lives here (the slug registry) but whose runtime fire-site is Layer A + Layer B in the produced skill. More will be added when more meta-skill rules surface.
 
 ### wiring/css-prose-summary
 
@@ -165,6 +165,14 @@ Whenever Phase 2 lifts a provider mount into the Setup section of the produced S
 
 **How to apply:** Phase 2 promotes the provider mount from `.extract-ds-skill-scratch/wiring-extracted.md` into `.extract-ds-skill-scratch/shell-invariants.md`. Phase 3 materializes the entry into the produced SKILL.md `## Hard rules` section AND a Layer B Bad/Good/Why row in the produced `references/anti-patterns.md` under the `shell/` namespace. `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` re-verifies post-emit; the cross-check resolves the cited `shell/provider-missing-content-wrap` slug.
 
+### craft/regenerated-not-copied
+
+`references/design-craft.md` in the produced skill is a verbatim copy of the meta-skill's `assets/design-craft.md`, made by `scripts/scaffold.sh`. NEVER regenerate, paraphrase, trim, reorder, or DS-customize the file during Phase 3 (or any later in-place edit) — the file's own precedence header already defers to the DS wherever the two conflict, so adaptation buys nothing and costs auditability.
+
+**Why:** The craft file is the one produced artefact with no DS source to verify against — no types file, no token grep, no `file:line` cite. A paraphrase therefore drifts silently: no validation step would catch a dropped NEVER or a softened MUST, and every produced skill would carry a different, unauditable variant of the same rules. Byte-identity with the canonical asset is the only checkable contract.
+
+**How to enforce:** `scripts/check-skill-docs.sh` produced-mode check `DESIGN_CRAFT` byte-compares the produced file against the canonical asset (`cmp`), asserts the SKILL.md routing-table row, and FAILs on drift. `scripts/scaffold.sh` performs the copy with `cp`, so the default path never routes the file's contents through the model. The explicit Phase 1 opt-out (`--no-design-craft`) is the only sanctioned absence; the check reports `DESIGN_CRAFT=SKIP` (informational) when the file is missing.
+
 ## Rule slug namespaces
 
 Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
@@ -174,12 +182,13 @@ Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs 
 - `asset/...` for asset violations (Layer A or Layer B depending on cite) — examples: `asset/raw-svg-instead-of-icon`, `asset/inlined-logo-instead-of-package-import`.
 - `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
 - `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`, `state/handoff-missing-component-shape`, `state/handoff-out-of-scope-deferred`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters, handoff-template completeness), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
+- `craft/...` for meta-skill shipped-material discipline rules (Layer C) — example: `craft/regenerated-not-copied`. Fire against the meta-skill's handling of static payload files (today: `assets/design-craft.md`) that ship verbatim into produced skills. Distinct from `wiring/` because nothing is lifted from a source — the failure mode is routing a copy operation through the model instead of `cp`.
 - `shell/...` for produced-skill rules about app-shell wiring contracts (Layer A in produced SKILL.md `## Hard rules`; Layer B in produced `references/anti-patterns.md` Bad/Good/Why table). Examples: `shell/unpainted-body`, `shell/mode-attribute-no-theme-import`, `shell/provider-missing-content-wrap`. Fire against the downstream consumer app's root layout / providers / globals.css, NOT against the meta-skill's own output. Distinct from `token/` because the failure mode is "no body-paint rule at all" or "wiring step skipped," not "wrong token name." Distinct from `wiring/` because `wiring/` rules fire against the meta-skill's own output discipline; `shell/` rules fire against the produced skill's downstream consumer surface. The Layer C subsections for the three pre-seeded slugs in this file are the meta-skill's authoritative registry; the produced skill carries the same slugs as Layer A Hard Rules and Layer B Bad/Good/Why rows.
 
 Slug grammar:
 
 - Lowercase, hyphen-separated.
-- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`, `shell/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
+- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`, `shell/`, `craft/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
 - One slug per concept. If the same trap fires in two component files, the slug is identical in both — the slug names the rule, not its location.
 - Slugs are stable. Renaming a slug breaks every finding that cites it, so renames go through `coverage-gaps.md` first.
 - Slugs are unique across the skill. Slug collisions are surfaced by `check-skill-docs.sh` and ASK the user to rename one (same convention as the persist-time slug-collision rule).

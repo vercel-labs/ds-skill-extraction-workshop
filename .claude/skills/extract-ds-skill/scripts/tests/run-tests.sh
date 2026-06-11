@@ -734,6 +734,45 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# ---------- DESIGN_CRAFT fixtures (produced-mode) ----------
+#
+# Every produced skill ships references/design-craft.md verbatim from the
+# meta-skill's assets/design-craft.md (scaffold.sh cp; never regenerated) plus
+# the fixed routing-table row. check-skill-docs.sh check DESIGN_CRAFT asserts
+# routing row + byte-identity when the file is present and SKIPs when absent
+# (the Phase 1 opt-out posture). Pass fixtures ship the file as a SYMLINK to
+# the canonical asset so canonical edits never desync the fixtures. See
+# references/persist.md (Design-craft materialization) and
+# references/anti-patterns.md craft/regenerated-not-copied.
+
+# Test 54: pass — craft file symlinked to the canonical asset (byte-identical
+# by construction) + routing row present. DESIGN_CRAFT must PASS, exit 0.
+assert "pass-design-craft-verbatim exits 0 with PASS tally" \
+  "$FIXTURES/pass-design-craft-verbatim/produced-skill" \
+  0 "DESIGN_CRAFT=PASS"
+
+# Test 55: fail — craft file present and routed but paraphrased during persist
+# (drifted from the canonical asset). The byte-diff must FAIL and the failure
+# message must cite the craft/regenerated-not-copied slug.
+assert "fail-design-craft-drift exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-design-craft-drift/produced-skill" \
+  1 "DESIGN_CRAFT=FAIL" \
+  "craft/regenerated-not-copied"
+
+# Test 56: absent file SKIPs, never FAILs — re-use Test 4's on-the-fly produced
+# fixture (which ships no craft file): the tally must be SKIP (opt-out posture),
+# so a legitimate Phase 1 opt-out never blocks the closing message.
+if grep -qE '^DESIGN_CRAFT=SKIP' <<<"$out_produced"; then
+  echo "PASS  produced-mode reports DESIGN_CRAFT=SKIP when the file is absent"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must report DESIGN_CRAFT=SKIP when the file is absent"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
 # Test 52: meta-mode skips SLATE_COVERAGE entirely — the slate declaration is
 # a produced-skill contract; the meta-skill has no component slate.
 if grep -qE '^SLATE_COVERAGE=' <<<"$out_meta_self"; then
@@ -744,6 +783,19 @@ if grep -qE '^SLATE_COVERAGE=' <<<"$out_meta_self"; then
   FAIL=$((FAIL + 1))
 else
   echo "PASS  meta-mode skips SLATE_COVERAGE"
+  PASS=$((PASS + 1))
+fi
+
+# Test 57: meta-mode skips DESIGN_CRAFT entirely. The check is produced-mode
+# only — the meta-skill ships the canonical asset, not a copy of it.
+if grep -qE '^DESIGN_CRAFT=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit DESIGN_CRAFT tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips DESIGN_CRAFT"
   PASS=$((PASS + 1))
 fi
 

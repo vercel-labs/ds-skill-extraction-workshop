@@ -238,6 +238,7 @@ Phase 2 closes by writing `.extract-ds-skill-scratch/handoffs/phase-2.md` BEFORE
   - `.extract-ds-skill-scratch/tokens-extracted.md` (size, last-modified)
   - `.extract-ds-skill-scratch/shell-invariants.md` (size, last-modified — present only when Phase 2 lifted wiring; omit the bullet when absent)
 - `[VERIFY]` marker list — each marker with file:line + the one-line reason, plus user-acceptance status (`pending`, `accepted as known limitation`, `flagged for redo`)
+- Design-craft opt-out passthrough, ONLY when the phase-1 handoff records the exclusion — one line: `Design-craft reference: excluded (user opt-out)`. Omitted entirely on the default ship path. Phase 3 reads it and runs `scripts/scaffold.sh --no-design-craft` per `references/persist.md` (Design-craft materialization).
 - Approval-pending flag (`status: awaiting-approval`)
 - Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-2.md`)
 

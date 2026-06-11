@@ -46,7 +46,10 @@ The validation gate at the end of Phase 2 is the only checkpoint. Past that gate
     │                               when no exemplars exist — see split rules)
     ├── examples/index.md          (sub-index of every examples/<name>.md;
     │   OR (omitted)                co-required with examples/<name>.md)
-    └── anti-patterns.md
+    ├── anti-patterns.md
+    └── design-craft.md             (always written — DS-agnostic design-craft
+                                     defaults, copied verbatim by scaffold.sh;
+                                     omitted ONLY on explicit Phase 1 opt-out)
 ```
 
 Apply the universal-coverage rule: every component file ships a Best Practices section even if the only bullet is "No special rules — use the API as documented." Omitting the section reads as a gap; the explicit no-op bullet reads as a verified absence.
@@ -93,6 +96,17 @@ When the Phase 2 scratch file `.extract-ds-skill-scratch/shell-invariants.md` ca
 3. **A `## Final checks` entry in the produced `SKILL.md`** — one self-check line per scratch block, woven into the shell-parity clause of the Final checks paragraph per the template in `references/skill-template.md` (Final checks bullet). The shell-parity clause names the constructs collectively ("the page/root surface paints with a surface token; the mode attribute (when present) matches the imported theme CSS files; the provider (when present) wraps children, not siblings") rather than enumerating one clause per scratch block — the structural shape is the same regardless of how many shell invariants were lifted.
 
 When the scratch file is absent (Phase 2 lifted no wiring, so no shell invariants surfaced), Phase 3 emits no shell-rule bullets in `## Hard rules`, no `shell/<slug>` Layer B rows in `references/anti-patterns.md`, and omits the shell-parity clause from `## Final checks`. The Setup section will likewise be empty per the Companion CSS materialization rule above; the produced skill's `## Hard rules` carries only the universal `[VERIFY]` + report-blockers bullets, and `## Final checks` carries only the universal cite-components + list-VERIFY-markers + name-prompt clause. Inventing a shell rule when no construct was lifted is a fabrication — the omission rule in `references/anti-patterns.md` (Pre-seeded `shell/` rows section) applies. The audit hook `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` re-verifies post-emit that the produced `## Hard rules` carries at least one shell-vocabulary + token-shape rule whenever Setup ships a triggering construct (provider mount, Companion CSS subheading, or Foundation wiring subheading); the same check resolves each cited `shell/<slug>` against the produced `references/anti-patterns.md`.
+
+## Design-craft materialization
+
+Every produced skill ships `references/design-craft.md` — a DS-agnostic design-craft reference (layout, hierarchy, typography, color, spacing, motion, interactive states, anti-slop restraint) for the agent that later composes screens with the skill. It is shipped material, not extraction output: the `file:line` citation contract and the `[VERIFY]` discipline do not apply to it, and it is identical across all produced skills regardless of DS — its own precedence header defers to the DS on every conflict.
+
+Mechanics:
+
+- `scripts/scaffold.sh` copies the canonical file from the meta-skill's `assets/design-craft.md` into `<persist-target>/<slug>/references/design-craft.md` on every run (`cp`, byte-for-byte). The copy is NOT model output. NEVER regenerate, paraphrase, trim, reorder, or "adapt" the file to the DS. Registered as `craft/regenerated-not-copied` in `references/anti-patterns.md` Layer C; enforced post-emit by `scripts/check-skill-docs.sh` check `DESIGN_CRAFT` (byte-diff against the canonical asset).
+- The produced SKILL.md routing table carries the fixed design-craft row per `references/skill-template.md` (Routing table). The `DESIGN_CRAFT` check asserts the row whenever the file ships.
+- Do NOT load `assets/design-craft.md` into context during extraction — it is payload for the produced skill, not instructions for the extracting agent. The scaffolder moves the bytes; the agent never needs to read them.
+- Opt-out: when the phase-1 (or passed-through phase-2) handoff records `Design-craft reference: excluded (user opt-out)`, pass `--no-design-craft` to `scripts/scaffold.sh` and omit the routing row. `check-skill-docs.sh` then reports `DESIGN_CRAFT=SKIP` (informational, not a failure). An unexpected `DESIGN_CRAFT=SKIP` on the default ship path means the copy was lost — re-run `scripts/scaffold.sh` (or `cp` the asset manually) before printing the closing message.
 
 ## Closing message contract
 
