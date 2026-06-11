@@ -116,7 +116,7 @@ assert "pass-fixture auto-detects meta-mode" \
 # in meta-mode; produced-mode should NOT emit a NO_HARDCODED_PATHS line at
 # all (the check is meta-mode only).
 PRODUCED_TMP="$(mktemp -d)"
-trap 'rm -rf "$PRODUCED_TMP"' EXIT
+trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}"' EXIT
 mkdir -p "$PRODUCED_TMP/test-produced-skill/references/components"
 cat >"$PRODUCED_TMP/test-produced-skill/SKILL.md" <<'EOF'
 ---
@@ -646,6 +646,106 @@ assert "fail-skill-mode-attribute-orphan exits non-zero with FAIL tally" \
   1 "SHELL_INVARIANTS=FAIL" \
   "shell/mode-attribute-no-theme-import"
 
+# ---------- validate.sh claims-file fixtures ----------
+#
+# The claims-file contract (references/validate.md, Claims file contract):
+# positive prop claims become typed assignments in the generated probe,
+# negative claims become @ts-expect-error lines, PATH claims run test -e.
+# These tests build a self-contained fixture env on the fly: a fake DS
+# package with a known prop-type surface, plus symlinks to the repo-root
+# typescript install so `pnpm tsc` resolves from the fixture cwd. The env
+# lives INSIDE the repo tree so react/@types/react resolve by walking up.
+#
+# Requires a repo-root `pnpm install`. When typescript/@types/react are
+# absent the four tests are SKIPPED LOUDLY (counted in the summary) rather
+# than silently passed — a silent no-op here is the green-but-broken trap.
+VALIDATE="$SKILL_DIR/validate.sh"
+REPO_ROOT="$(cd -- "$META_SKILL_ROOT/../../.." && pwd)"
+SKIPPED=0
+
+# Run validate.sh from the fixture cwd against a claims file and assert exit
+# code, tally line, optional output substring. Usage:
+#   assert_validate <name> <claims-file> <want-exit> <tally-grep> [out-substring]
+assert_validate() {
+  local name="$1" claims="$2" want_exit="$3" tally="$4" out_sub="${5:-}"
+  local out got_exit=0
+  out="$( (cd "$CLAIMS_TMP" && bash "$VALIDATE" fake-ds apis.txt --claims "$claims") 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qE "^${tally}$" <<<"$out"; then
+    err+=$'\n  tally line not found: '"$tally"
+  fi
+  if [[ -n "$out_sub" ]] && ! grep -qF "$out_sub" <<<"$out"; then
+    err+=$'\n  expected output substring not found: '"$out_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+if [[ -e "$REPO_ROOT/node_modules/.bin/tsc" && -d "$REPO_ROOT/node_modules/@types/react" ]]; then
+  CLAIMS_TMP="$(mktemp -d "$SCRIPT_DIR/.claims-probe-tmp.XXXXXX")"
+  mkdir -p "$CLAIMS_TMP/node_modules/fake-ds" "$CLAIMS_TMP/node_modules/.bin"
+  printf '{ "name": "claims-probe-fixture", "private": true }\n' >"$CLAIMS_TMP/package.json"
+  printf '{ "name": "fake-ds", "version": "1.0.0", "main": "index.js", "types": "index.d.ts" }\n' \
+    >"$CLAIMS_TMP/node_modules/fake-ds/package.json"
+  cat >"$CLAIMS_TMP/node_modules/fake-ds/index.d.ts" <<'EOF'
+import * as React from 'react';
+export declare const Button: React.FC<{ variant?: 'primary' | 'secondary'; disabled?: boolean }>;
+export declare const Stack: React.FC<{ gap?: 'sm' | 'md' | 'lg' }>;
+EOF
+  : >"$CLAIMS_TMP/node_modules/fake-ds/index.js"
+  # pnpm exec needs a manifest + a local .bin/tsc; link the repo install.
+  ln -sfn "$(cd "$REPO_ROOT/node_modules/typescript" && pwd -P)" "$CLAIMS_TMP/node_modules/typescript"
+  ln -sfn ../typescript/bin/tsc "$CLAIMS_TMP/node_modules/.bin/tsc"
+  printf 'Button\nStack\n' >"$CLAIMS_TMP/apis.txt"
+
+  # Test 45: well-formed claims file (positive + negative + path + url) —
+  # the generated probe typechecks, test -e passes, url is counted but
+  # skipped. VALIDATE_RESULT=PASS, exit 0, tally carries all four counts.
+  printf 'Button.variant=primary\nNEGATIVE:Stack.gap=xs\nPATH:node_modules/fake-ds/index.d.ts\nURL:https://example.invalid/docs\n' \
+    >"$CLAIMS_TMP/claims-pass.txt"
+  assert_validate "claims fixture (pos+neg+path+url) passes" \
+    claims-pass.txt 0 "VALIDATE_RESULT=PASS" \
+    "CLAIMS_CHECKED=positive:1 negative:1 path:1 url-skipped:1"
+
+  # Test 46: seeded FALSE POSITIVE claim — 'tertiary' is not in Button's
+  # variant union. The typed assignment must break the typecheck.
+  printf 'Button.variant=tertiary\n' >"$CLAIMS_TMP/claims-false-pos.txt"
+  assert_validate "seeded false positive claim breaks the typecheck" \
+    claims-false-pos.txt 1 "FAIL_REASON=typecheck" "error TS2322"
+
+  # Test 47: seeded FALSE NEGATIVE claim — 'secondary' IS valid for
+  # Button.variant, so the @ts-expect-error directive goes unused (TS2578)
+  # and the probe fails. This is the upstream-type-widening guard.
+  printf 'NEGATIVE:Button.variant=secondary\n' >"$CLAIMS_TMP/claims-false-neg.txt"
+  assert_validate "seeded false negative claim fails via @ts-expect-error" \
+    claims-false-neg.txt 1 "FAIL_REASON=typecheck" "TS2578"
+
+  # Test 48: seeded missing node_modules/ path — test -e fails, the miss is
+  # named, FAIL_REASON=path (typecheck and grep both clean).
+  printf 'PATH:node_modules/fake-ds/missing.d.ts\n' >"$CLAIMS_TMP/claims-bad-path.txt"
+  assert_validate "seeded missing node_modules path fails test -e" \
+    claims-bad-path.txt 1 "FAIL_REASON=path" "PATH_MISS=node_modules/fake-ds/missing.d.ts"
+else
+  echo "SKIP  claims-probe tests (4) — typescript/@types/react not installed at $REPO_ROOT; run pnpm install first"
+  SKIPPED=$((SKIPPED + 4))
+fi
+
 echo
-echo "PASSED=$PASS FAILED=$FAIL"
+if [[ "$SKIPPED" -gt 0 ]]; then
+  echo "PASSED=$PASS FAILED=$FAIL SKIPPED=$SKIPPED"
+else
+  echo "PASSED=$PASS FAILED=$FAIL"
+fi
 [[ "$FAIL" -eq 0 ]]
