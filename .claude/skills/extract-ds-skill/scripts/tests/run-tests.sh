@@ -773,12 +773,14 @@ REPO_ROOT="$(cd -- "$META_SKILL_ROOT/../../.." && pwd)"
 SKIPPED=0
 
 # Run validate.sh from the fixture cwd against a claims file and assert exit
-# code, tally line, optional output substring. Usage:
+# code, tally line, optional output substring. Package and apis file default to
+# the fake-ds fixture; override via AV_PKG / AV_APIS globals. Usage:
 #   assert_validate <name> <claims-file> <want-exit> <tally-grep> [out-substring]
 assert_validate() {
   local name="$1" claims="$2" want_exit="$3" tally="$4" out_sub="${5:-}"
+  local pkg="${AV_PKG:-fake-ds}" apis="${AV_APIS:-apis.txt}"
   local out got_exit=0
-  out="$( (cd "$CLAIMS_TMP" && bash "$VALIDATE" fake-ds apis.txt --claims "$claims") 2>&1)" || got_exit=$?
+  out="$( (cd "$CLAIMS_TMP" && bash "$VALIDATE" "$pkg" "$apis" --claims "$claims") 2>&1)" || got_exit=$?
   local err=""
   if [[ "$got_exit" -ne "$want_exit" ]]; then
     err="  exit got=$got_exit want=$want_exit"
@@ -846,9 +848,42 @@ EOF
   printf 'PATH:node_modules/fake-ds/missing.d.ts\n' >"$CLAIMS_TMP/claims-bad-path.txt"
   assert_validate "seeded missing node_modules path fails test -e" \
     claims-bad-path.txt 1 "FAIL_REASON=path" "PATH_MISS=node_modules/fake-ds/missing.d.ts"
+
+  # Test 49: strict-exports package (issue #37) — its `exports` map omits the
+  # ./package.json subpath, so require.resolve('<pkg>/package.json') throws
+  # ERR_PACKAGE_PATH_NOT_EXPORTED. Phase B must fall back to resolving the main
+  # entry and walking up to the package root; the nested dist/package.json
+  # type-marker (name-less) must NOT be mistaken for that root. Pre-fix this
+  # emitted GREP_MISS=__package_not_resolved__ → exit 1 FAIL_REASON=grep.
+  mkdir -p "$CLAIMS_TMP/node_modules/fake-ds-strict/dist"
+  cat >"$CLAIMS_TMP/node_modules/fake-ds-strict/package.json" <<'EOF'
+{ "name": "fake-ds-strict", "version": "1.0.0",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } } }
+EOF
+  printf '{ "type": "commonjs" }\n' >"$CLAIMS_TMP/node_modules/fake-ds-strict/dist/package.json"
+  cat >"$CLAIMS_TMP/node_modules/fake-ds-strict/dist/index.d.ts" <<'EOF'
+import * as React from 'react';
+export declare const Button: React.FC<{ variant?: 'primary' | 'secondary' }>;
+EOF
+  : >"$CLAIMS_TMP/node_modules/fake-ds-strict/dist/index.js"
+  printf 'Button\n' >"$CLAIMS_TMP/apis-strict.txt"
+  printf 'Button.variant=primary\nPATH:node_modules/fake-ds-strict/dist/index.d.ts\n' \
+    >"$CLAIMS_TMP/claims-strict.txt"
+  AV_PKG="fake-ds-strict"; AV_APIS="apis-strict.txt"
+  assert_validate "strict-exports package resolves via Phase B fallback" \
+    claims-strict.txt 0 "VALIDATE_RESULT=PASS" "GREP_OK"
+
+  # Test 50: a genuinely absent package must still emit the grep miss — the
+  # fallback chain may not invent a package dir. (Typecheck fails first, so
+  # FAIL_REASON=typecheck; the miss marker is asserted as an output substring.)
+  printf '# no claims\n' >"$CLAIMS_TMP/claims-none.txt"
+  AV_PKG="fake-ds-absent"; AV_APIS="apis-strict.txt"
+  assert_validate "absent package still emits GREP_MISS=__package_not_resolved__" \
+    claims-none.txt 1 "VALIDATE_RESULT=FAIL" "GREP_MISS=__package_not_resolved__ (fake-ds-absent)"
+  AV_PKG=""; AV_APIS=""
 else
-  echo "SKIP  claims-probe tests (4) — typescript/@types/react not installed at $REPO_ROOT; run pnpm install first"
-  SKIPPED=$((SKIPPED + 4))
+  echo "SKIP  claims-probe tests (6) — typescript/@types/react not installed at $REPO_ROOT; run pnpm install first"
+  SKIPPED=$((SKIPPED + 6))
 fi
 
 echo

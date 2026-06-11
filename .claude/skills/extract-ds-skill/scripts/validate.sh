@@ -144,13 +144,38 @@ if [[ $TSC_EXIT -ne 0 ]]; then
 fi
 
 # ---------- Phase B: grep-resolves ----------
+# Package-dir resolution is a fallback chain: (1) require.resolve('<pkg>/package.json')
+# — throws ERR_PACKAGE_PATH_NOT_EXPORTED when a strict `exports` map omits the
+# ./package.json subpath; (2) resolve the main entry and walk up to the nearest
+# package.json whose `name` matches the package (skipping name-less type-marker
+# files like dist/package.json); (3) node_modules/<pkg> on disk — covers
+# ESM-only packages whose entry require.resolve cannot reach either.
 GREP_OK=true
-PKG_JSON_PATH=""
-command -v node >/dev/null 2>&1 && PKG_JSON_PATH=$(node -p "require.resolve('$PKG/package.json')" 2>/dev/null || true)
-if [[ -z "$PKG_JSON_PATH" || ! -f "$PKG_JSON_PATH" ]]; then
+PKG_DIR=""
+if command -v node >/dev/null 2>&1; then
+  PKG_DIR=$(node -e '
+    const path = require("path"), fs = require("fs");
+    const pkg = process.argv[1];
+    try { console.log(path.dirname(require.resolve(pkg + "/package.json"))); process.exit(0); } catch (e) {}
+    try {
+      let dir = path.dirname(require.resolve(pkg));
+      while (dir !== path.dirname(dir)) {
+        const pj = path.join(dir, "package.json");
+        if (fs.existsSync(pj)) {
+          try { if (JSON.parse(fs.readFileSync(pj, "utf8")).name === pkg) { console.log(dir); process.exit(0); } } catch (e) {}
+        }
+        dir = path.dirname(dir);
+      }
+    } catch (e) {}
+    process.exit(1);
+  ' "$PKG" 2>/dev/null || true)
+fi
+if [[ -z "$PKG_DIR" || ! -d "$PKG_DIR" ]]; then
+  [[ -d "node_modules/$PKG" ]] && PKG_DIR="node_modules/$PKG" || PKG_DIR=""
+fi
+if [[ -z "$PKG_DIR" ]]; then
   echo "GREP_MISS=__package_not_resolved__ ($PKG)"; GREP_OK=false
 else
-  PKG_DIR=$(dirname "$PKG_JSON_PATH")
   for top in "${TOPS[@]}"; do
     if ! grep -rEq "export.*\b${top}\b" "$PKG_DIR" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.mjs" --include="*.d.ts" 2>/dev/null; then
       echo "GREP_MISS=$top"; GREP_OK=false
