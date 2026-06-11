@@ -22,6 +22,32 @@ Then grep the DS package's `exports` field (or its `index.d.ts`) for each named 
 
 Exit 0 = pass. This catches "you said `Button` takes a `kind` prop, TypeScript says it doesn't" without asking the model to grade its own homework. The proof point surfaced to the user is concrete: `14 props verified against source, 0 hallucinations`. That is what `scripts/validate.sh` runs by default.
 
+### Claims file contract — every claim becomes mechanically checkable
+
+At extract time, every positive prop/enum claim, every negative ("never accepts") claim, and every cited local path that lands in produced prose MUST also be recorded as one line in `.extract-ds-skill-scratch/claims.txt`. `scripts/validate.sh` consumes that file to generate the prop-shape probe — the probe checks what the claims file declares, not what the prose says. A claim that never lands in the claims file is by definition unverified and must not appear in produced prose; zero positive prop/enum claims outside the claims file is the floor.
+
+One claim per line; `#` comments and blank lines are skipped. Four line forms:
+
+| Line form | Meaning | Mechanical check |
+|---|---|---|
+| `<Component>.<prop>=<value>` | positive: the prop accepts the value | typed assignment appended to the generated probe; `tsc` must accept it |
+| `NEGATIVE:<Component>.<prop>=<value>` | negative: the prop rejects the value | `// @ts-expect-error` line in the probe; `tsc` must reject the assignment. If the value is actually valid (an upstream type widening), the directive goes unused → TS2578 fails the probe |
+| `PATH:node_modules/<...>` | cited local path exists | `test -e` at validate time; a miss prints `PATH_MISS=<path>` and the run fails with `FAIL_REASON=path`. Only `node_modules/`-prefixed paths are accepted — anything else is a parse error |
+| `URL:<https-url>` | cited URL is reachable | verified as fetchable (HTTP 200) AT EXTRACT TIME by the extracting agent; `validate.sh` counts it (`url-skipped`) and does NOT re-check |
+
+Generated probe line shapes (component names illustrative):
+
+```
+Button.variant=primary                       →  export const __claim_1: React.ComponentProps<typeof Button>['variant'] = 'primary';
+NEGATIVE:Stack.gap=xs                        →  // @ts-expect-error NEGATIVE claim: Stack.gap must reject xs
+                                                export const __claim_2: React.ComponentProps<typeof Stack>['gap'] = 'xs';
+PATH:node_modules/@acme/ui/dist/button.d.ts  →  test -e node_modules/@acme/ui/dist/button.d.ts
+```
+
+Values `true`/`false` and bare numbers are emitted unquoted; everything else becomes a string literal. A claimed component that is missing from the surfaced-APIs file is added to the probe's import line automatically, so a claim against a component the package does not export fails the probe instead of silently skipping.
+
+`validate.sh` auto-detects `.extract-ds-skill-scratch/claims.txt`; pass `--claims <path>` to point at a different file. The summary emits `CLAIMS_CHECKED=positive:<n> negative:<n> path:<n> url-skipped:<n>` so the proof point can carry the tally verbatim.
+
 ### Escalation — probe-page render
 
 Only if the user has a local dev server running. Write a minimal page importing each surfaced component for the user to inspect visually. The user reports back whether it paints. Use this when the DS has runtime requirements typecheck cannot catch — provider mounting, CSS-in-JS hydration, font loading — and the user is set up to look.
@@ -149,7 +175,7 @@ Validation complete.
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
-- Wiring extracted from github.com/mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
+- Wiring extracted from mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
 - TOKEN_COVERAGE=PASS
 - 0 hallucinations
 - 3 open [VERIFY] markers:

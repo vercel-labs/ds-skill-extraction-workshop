@@ -8,6 +8,8 @@ In scope: tokens, assets, component descriptions, component APIs. Out of scope: 
 
 Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose. It is lifted from a real consumer app — see `references/reference-project.md` (when present). Foundation extraction stays in the prose-rule lane.
 
+DS-taste prose IS in scope (two-channel rule — see `references/discovery.md`, DS-taste channel). Density expectations for the DS's canonical surfaces, empty-state patterns, and emphasis-level guidance contract visible structural choices, not words — extract them with citations into the matching `references/foundations/<page>.md` file like any other foundation prose. Do not confuse them with the brand-voice prose routed out below: taste says how dense, how empty states look, which emphasis level; voice says how the words feel. The complementary channel — generic, DS-independent craft guidance — ships verbatim from the extractor's canonical craft asset and is never edited per-DS; precedence: the DS always wins, craft fills silence.
+
 ---
 
 ## When to load this file
@@ -36,7 +38,7 @@ Each output file starts with a one-line `## What this covers` section whose firs
 
 ## Five foundation rule shapes
 
-Every rule worth extracting from a foundations page maps to one of five shapes. Classify first, then extract using the per-shape recipe. If a rule does not fit any shape, it is probably brand-voice prose, illustrative example, out-of-scope copy, or wiring (route wiring through `references/reference-project.md`, not through this file).
+Every rule worth extracting from a foundations page maps to one of five shapes. Classify first, then extract using the per-shape recipe. If a rule does not fit any shape, check the DS-taste channel before discarding: DS-specific taste prose (density expectations, empty-state patterns, emphasis-level guidance) is in scope and ships as cited prose guidance in the matching foundations file even when it fits no shape below. Everything else that resists classification is probably brand-voice prose, illustrative example, out-of-scope copy, or wiring (route wiring through `references/reference-project.md`, not through this file).
 
 ### Shape 1 — Token-pairing
 
@@ -187,7 +189,7 @@ Do NOT use `[VERIFY]` to ship guesses. If a foundation rule cannot be grounded a
 
 The following frequently appear on foundation pages and frequently tempt the extraction agent. They go to the discovery summary as candidates for a sibling copy or brand skill, not into the DS skill:
 
-- **Brand-voice prose** — "our greens feel reassuring", "the accent color carries energy". Tone, not contract.
+- **Brand-voice prose** — "our greens feel reassuring", "the accent color carries energy". Tone, not contract. Distinguish from DS-taste prose (density expectations, empty-state patterns, emphasis-level guidance), which contracts visible structural choices and IS extracted with citations — see the two-channel rule at the top of this file.
 - **Marketing-color guidance** — "use the marketing palette for landing pages, the product palette for the app". Belongs in a sibling brand skill.
 - **Naming conventions for new tokens** — "name new tokens semantically, not by hex value". A meta-rule about extending the system, not a rule about using it.
 - **History or rationale paragraphs** — "we moved from a 5-step to a 10-step scale in 2024". Context, not contract.

@@ -116,7 +116,7 @@ assert "pass-fixture auto-detects meta-mode" \
 # in meta-mode; produced-mode should NOT emit a NO_HARDCODED_PATHS line at
 # all (the check is meta-mode only).
 PRODUCED_TMP="$(mktemp -d)"
-trap 'rm -rf "$PRODUCED_TMP"' EXIT
+trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}"' EXIT
 mkdir -p "$PRODUCED_TMP/test-produced-skill/references/components"
 cat >"$PRODUCED_TMP/test-produced-skill/SKILL.md" <<'EOF'
 ---
@@ -486,6 +486,47 @@ assert "reexport-tier-present fixture passes shape checks" \
   "$FIXTURES/reexport-tier-present/produced-skill" \
   0 "CHECK_RESULT=PASS"
 
+# ---------- LEXICAL_DENY_LIST fixtures (meta-mode) ----------
+#
+# The meta-skill's own files must contain zero case-insensitive occurrences
+# of the DS-distinctive deny-listed terms (one DS vendor, its host product,
+# its icon set, and its distinctive component names). The check is part of
+# the standard meta-mode audit, scans every file except scripts/tests/, and
+# has NO illustrative-block carve-out. See check-skill-docs.sh section 14.
+
+# Test: seeded violation — the fixture's SKILL.md mentions a deny-listed
+# component name in prescription text. Tally must FAIL, exit non-zero, and
+# the failure message must name the term and the file:line.
+assert "fail-lexical-deny-list exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-lexical-deny-list/extract-ds-skill" \
+  1 "LEXICAL_DENY_LIST=FAIL" \
+  "deny-listed term 'blankslate'"
+assert "fail-lexical-deny-list names the offending file and line" \
+  "$FIXTURES/fail-lexical-deny-list/extract-ds-skill" \
+  1 "LEXICAL_DENY_LIST=FAIL" \
+  "fail-lexical-deny-list/extract-ds-skill/SKILL.md:10"
+
+# Test: live meta-skill self-check — the real extractor tree is clean of
+# deny-listed terms. Regression guard for anyone reintroducing DS-specific
+# vocabulary into SKILL.md, references/, or scripts/.
+assert "live extract-ds-skill LEXICAL_DENY_LIST PASSES" \
+  "$META_SKILL_ROOT" \
+  0 "LEXICAL_DENY_LIST=PASS"
+
+# Test: produced-mode skips LEXICAL_DENY_LIST entirely — a produced DS skill
+# legitimately names its own DS everywhere; the deny-list gates only the
+# extractor's own files.
+if grep -qE '^LEXICAL_DENY_LIST=' <<<"$out_produced"; then
+  echo "FAIL  produced-mode must NOT emit LEXICAL_DENY_LIST tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  produced-mode skips LEXICAL_DENY_LIST"
+  PASS=$((PASS + 1))
+fi
+
 # ---------- HANDOFF_COMPLETENESS fixtures (meta-mode) ----------
 #
 # The Phase 1 handoff must carry component shape (`## Components proposed`) and a
@@ -646,6 +687,209 @@ assert "fail-skill-mode-attribute-orphan exits non-zero with FAIL tally" \
   1 "SHELL_INVARIANTS=FAIL" \
   "shell/mode-attribute-no-theme-import"
 
+# ---------- SLATE_COVERAGE fixtures (produced-mode) ----------
+#
+# The full-coverage rule: every component on the confirmed slate gets its own
+# contract section. The produced SKILL.md declares the slate under
+# `## Component slate` (per references/skill-template.md); the produced-mode
+# SLATE_COVERAGE check cross-checks each declared name against
+# references/components/<kebab-name>.md (per-file mode) or a `## <Name>`
+# heading in references/components.md (single-file mode). An absent section
+# NOOPs (produced skills predating the contract); a declared-but-uncovered
+# component FAILs. See references/component-extraction.md (Full-coverage rule)
+# and references/anti-patterns.md component/slate-contract-missing.
+
+# Test 49: pass — 3-component slate; Button resolves per-file, FormControl
+# exercises kebab-casing (form-control.md), Stack resolves as a `## Stack`
+# heading in components.md (single-file path). SLATE_COVERAGE must PASS and
+# the script must exit 0.
+assert "pass-slate-coverage exits 0 with PASS tally" \
+  "$FIXTURES/pass-slate-coverage/produced-skill" \
+  0 "SLATE_COVERAGE=PASS"
+
+# Test 50: fail — the slate declares Tooltip but no contract section exists
+# for it (no per-file, no single-file heading). SLATE_COVERAGE must FAIL,
+# exit non-zero, and the message must name the uncovered component and the
+# slug.
+assert "fail-slate-coverage exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-slate-coverage/produced-skill" \
+  1 "SLATE_COVERAGE=FAIL" \
+  "slate component 'Tooltip' has no contract section"
+assert "fail-slate-coverage names the slug" \
+  "$FIXTURES/fail-slate-coverage/produced-skill" \
+  1 "SLATE_COVERAGE=FAIL" \
+  "component/slate-contract-missing"
+
+# Test 51: produced-mode emits SLATE_COVERAGE even when SKILL.md carries no
+# `## Component slate` section (re-use Test 4's on-the-fly produced fixture —
+# the check NOOPs but the tally line MUST appear, mirroring TOKEN_COVERAGE).
+if grep -qE '^SLATE_COVERAGE=' <<<"$out_produced"; then
+  echo "PASS  produced-mode emits SLATE_COVERAGE tally"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must emit SLATE_COVERAGE tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
+# Test 52: meta-mode skips SLATE_COVERAGE entirely — the slate declaration is
+# a produced-skill contract; the meta-skill has no component slate.
+if grep -qE '^SLATE_COVERAGE=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit SLATE_COVERAGE tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips SLATE_COVERAGE"
+  PASS=$((PASS + 1))
+fi
+
+# Test 53: live meta-skill self-check — the full-coverage rule prose exists in
+# references/component-extraction.md and the '- **Component slate**' bullet
+# exists in references/skill-template.md. Regression guard for anyone editing
+# either file and dropping the rule the SLATE_COVERAGE check keys off.
+assert "live extract-ds-skill FULL_COVERAGE_RULE_PRESENT PASSES" \
+  "$META_SKILL_ROOT" \
+  0 "FULL_COVERAGE_RULE_PRESENT=PASS"
+
+# ---------- validate.sh claims-file fixtures ----------
+#
+# The claims-file contract (references/validate.md, Claims file contract):
+# positive prop claims become typed assignments in the generated probe,
+# negative claims become @ts-expect-error lines, PATH claims run test -e.
+# These tests build a self-contained fixture env on the fly: a fake DS
+# package with a known prop-type surface, plus symlinks to the repo-root
+# typescript install so `pnpm tsc` resolves from the fixture cwd. The env
+# lives INSIDE the repo tree so react/@types/react resolve by walking up.
+#
+# Requires a repo-root `pnpm install`. When typescript/@types/react are
+# absent the four tests are SKIPPED LOUDLY (counted in the summary) rather
+# than silently passed — a silent no-op here is the green-but-broken trap.
+VALIDATE="$SKILL_DIR/validate.sh"
+REPO_ROOT="$(cd -- "$META_SKILL_ROOT/../../.." && pwd)"
+SKIPPED=0
+
+# Run validate.sh from the fixture cwd against a claims file and assert exit
+# code, tally line, optional output substring. Package and apis file default to
+# the fake-ds fixture; override via AV_PKG / AV_APIS globals. Usage:
+#   assert_validate <name> <claims-file> <want-exit> <tally-grep> [out-substring]
+assert_validate() {
+  local name="$1" claims="$2" want_exit="$3" tally="$4" out_sub="${5:-}"
+  local pkg="${AV_PKG:-fake-ds}" apis="${AV_APIS:-apis.txt}"
+  local out got_exit=0
+  out="$( (cd "$CLAIMS_TMP" && bash "$VALIDATE" "$pkg" "$apis" --claims "$claims") 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qE "^${tally}$" <<<"$out"; then
+    err+=$'\n  tally line not found: '"$tally"
+  fi
+  if [[ -n "$out_sub" ]] && ! grep -qF "$out_sub" <<<"$out"; then
+    err+=$'\n  expected output substring not found: '"$out_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+if [[ -e "$REPO_ROOT/node_modules/.bin/tsc" && -d "$REPO_ROOT/node_modules/@types/react" ]]; then
+  CLAIMS_TMP="$(mktemp -d "$SCRIPT_DIR/.claims-probe-tmp.XXXXXX")"
+  mkdir -p "$CLAIMS_TMP/node_modules/fake-ds" "$CLAIMS_TMP/node_modules/.bin"
+  printf '{ "name": "claims-probe-fixture", "private": true }\n' >"$CLAIMS_TMP/package.json"
+  printf '{ "name": "fake-ds", "version": "1.0.0", "main": "index.js", "types": "index.d.ts" }\n' \
+    >"$CLAIMS_TMP/node_modules/fake-ds/package.json"
+  cat >"$CLAIMS_TMP/node_modules/fake-ds/index.d.ts" <<'EOF'
+import * as React from 'react';
+export declare const Button: React.FC<{ variant?: 'primary' | 'secondary'; disabled?: boolean }>;
+export declare const Stack: React.FC<{ gap?: 'sm' | 'md' | 'lg' }>;
+EOF
+  : >"$CLAIMS_TMP/node_modules/fake-ds/index.js"
+  # pnpm exec needs a manifest + a local .bin/tsc; link the repo install.
+  ln -sfn "$(cd "$REPO_ROOT/node_modules/typescript" && pwd -P)" "$CLAIMS_TMP/node_modules/typescript"
+  ln -sfn ../typescript/bin/tsc "$CLAIMS_TMP/node_modules/.bin/tsc"
+  printf 'Button\nStack\n' >"$CLAIMS_TMP/apis.txt"
+
+  # Test 45: well-formed claims file (positive + negative + path + url) —
+  # the generated probe typechecks, test -e passes, url is counted but
+  # skipped. VALIDATE_RESULT=PASS, exit 0, tally carries all four counts.
+  printf 'Button.variant=primary\nNEGATIVE:Stack.gap=xs\nPATH:node_modules/fake-ds/index.d.ts\nURL:https://example.invalid/docs\n' \
+    >"$CLAIMS_TMP/claims-pass.txt"
+  assert_validate "claims fixture (pos+neg+path+url) passes" \
+    claims-pass.txt 0 "VALIDATE_RESULT=PASS" \
+    "CLAIMS_CHECKED=positive:1 negative:1 path:1 url-skipped:1"
+
+  # Test 46: seeded FALSE POSITIVE claim — 'tertiary' is not in Button's
+  # variant union. The typed assignment must break the typecheck.
+  printf 'Button.variant=tertiary\n' >"$CLAIMS_TMP/claims-false-pos.txt"
+  assert_validate "seeded false positive claim breaks the typecheck" \
+    claims-false-pos.txt 1 "FAIL_REASON=typecheck" "error TS2322"
+
+  # Test 47: seeded FALSE NEGATIVE claim — 'secondary' IS valid for
+  # Button.variant, so the @ts-expect-error directive goes unused (TS2578)
+  # and the probe fails. This is the upstream-type-widening guard.
+  printf 'NEGATIVE:Button.variant=secondary\n' >"$CLAIMS_TMP/claims-false-neg.txt"
+  assert_validate "seeded false negative claim fails via @ts-expect-error" \
+    claims-false-neg.txt 1 "FAIL_REASON=typecheck" "TS2578"
+
+  # Test 48: seeded missing node_modules/ path — test -e fails, the miss is
+  # named, FAIL_REASON=path (typecheck and grep both clean).
+  printf 'PATH:node_modules/fake-ds/missing.d.ts\n' >"$CLAIMS_TMP/claims-bad-path.txt"
+  assert_validate "seeded missing node_modules path fails test -e" \
+    claims-bad-path.txt 1 "FAIL_REASON=path" "PATH_MISS=node_modules/fake-ds/missing.d.ts"
+
+  # Test 49: strict-exports package (issue #37) — its `exports` map omits the
+  # ./package.json subpath, so require.resolve('<pkg>/package.json') throws
+  # ERR_PACKAGE_PATH_NOT_EXPORTED. Phase B must fall back to resolving the main
+  # entry and walking up to the package root; the nested dist/package.json
+  # type-marker (name-less) must NOT be mistaken for that root. Pre-fix this
+  # emitted GREP_MISS=__package_not_resolved__ → exit 1 FAIL_REASON=grep.
+  mkdir -p "$CLAIMS_TMP/node_modules/fake-ds-strict/dist"
+  cat >"$CLAIMS_TMP/node_modules/fake-ds-strict/package.json" <<'EOF'
+{ "name": "fake-ds-strict", "version": "1.0.0",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } } }
+EOF
+  printf '{ "type": "commonjs" }\n' >"$CLAIMS_TMP/node_modules/fake-ds-strict/dist/package.json"
+  cat >"$CLAIMS_TMP/node_modules/fake-ds-strict/dist/index.d.ts" <<'EOF'
+import * as React from 'react';
+export declare const Button: React.FC<{ variant?: 'primary' | 'secondary' }>;
+EOF
+  : >"$CLAIMS_TMP/node_modules/fake-ds-strict/dist/index.js"
+  printf 'Button\n' >"$CLAIMS_TMP/apis-strict.txt"
+  printf 'Button.variant=primary\nPATH:node_modules/fake-ds-strict/dist/index.d.ts\n' \
+    >"$CLAIMS_TMP/claims-strict.txt"
+  AV_PKG="fake-ds-strict"; AV_APIS="apis-strict.txt"
+  assert_validate "strict-exports package resolves via Phase B fallback" \
+    claims-strict.txt 0 "VALIDATE_RESULT=PASS" "GREP_OK"
+
+  # Test 50: a genuinely absent package must still emit the grep miss — the
+  # fallback chain may not invent a package dir. (Typecheck fails first, so
+  # FAIL_REASON=typecheck; the miss marker is asserted as an output substring.)
+  printf '# no claims\n' >"$CLAIMS_TMP/claims-none.txt"
+  AV_PKG="fake-ds-absent"; AV_APIS="apis-strict.txt"
+  assert_validate "absent package still emits GREP_MISS=__package_not_resolved__" \
+    claims-none.txt 1 "VALIDATE_RESULT=FAIL" "GREP_MISS=__package_not_resolved__ (fake-ds-absent)"
+  AV_PKG=""; AV_APIS=""
+else
+  echo "SKIP  claims-probe tests (6) — typescript/@types/react not installed at $REPO_ROOT; run pnpm install first"
+  SKIPPED=$((SKIPPED + 6))
+fi
+
 echo
-echo "PASSED=$PASS FAILED=$FAIL"
+if [[ "$SKIPPED" -gt 0 ]]; then
+  echo "PASSED=$PASS FAILED=$FAIL SKIPPED=$SKIPPED"
+else
+  echo "PASSED=$PASS FAILED=$FAIL"
+fi
 [[ "$FAIL" -eq 0 ]]

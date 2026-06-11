@@ -565,10 +565,62 @@ if [[ "$MODE" == "produced" ]]; then
     FAILED=1
   fi
 
+  # 13. SLATE_COVERAGE (produced-skill mode only). The produced SKILL.md
+  #     declares the confirmed extraction slate under a `## Component slate`
+  #     section (per references/skill-template.md): one bullet per component
+  #     the user approved at the Phase 1 gate. When the section is present,
+  #     every declared name must resolve to its own contract section —
+  #     references/components/<kebab-name>.md in per-file mode, or a
+  #     `## <ComponentName>` heading in references/components.md in
+  #     single-file mode. The `## Other re-exports` tier never satisfies the
+  #     rule (its entries are one-line bullets, not `##` headings, so they do
+  #     not resolve here by construction). Absence of the section NOOPs —
+  #     produced skills predating the contract stay green — but an empty
+  #     section FAILs (an empty heading is the worse failure mode). See
+  #     references/component-extraction.md (Full-coverage rule) and
+  #     references/anti-patterns.md component/slate-contract-missing.
+  if ! grep -qE '^##[[:space:]]+Component slate[[:space:]]*$' "$SKILL_MD"; then
+    echo "SLATE_COVERAGE=NOOP (no '## Component slate' section in SKILL.md)"
+  else
+    SLATE_SECTION="$(awk '/^##[[:space:]]+Component slate[[:space:]]*$/{flag=1; next} flag && /^##[[:space:]]/{flag=0} flag' "$SKILL_MD")"
+    SLATE_NAMES=()
+    while IFS= read -r line; do
+      [[ "$line" =~ ^-[[:space:]] ]] || continue
+      # Bullet shapes accepted: "- `Name` — desc", "- **Name** — desc",
+      # "- Name — desc". Strip the bullet marker and any backtick/asterisk
+      # wrapping, then cut at the first non-name character.
+      name="$(sed -E 's/^-[[:space:]]+//; s/^[`*]+//; s/[`*].*$//; s/[[:space:]].*$//' <<<"$line")"
+      [[ -n "$name" ]] && SLATE_NAMES+=("$name")
+    done <<<"$SLATE_SECTION"
+
+    SLATE_MISSING=()
+    for name in "${SLATE_NAMES[@]+"${SLATE_NAMES[@]}"}"; do
+      [[ -z "$name" ]] && continue
+      kebab="$(sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' <<<"$name" | tr '[:upper:]' '[:lower:]')"
+      [[ -f "$COMPONENT_DIR/$kebab.md" ]] && continue
+      [[ -f "$COMPONENTS_MD" ]] && grep -qiE "^##[[:space:]]+($name|$kebab)([[:space:]]|$)" "$COMPONENTS_MD" && continue
+      SLATE_MISSING+=("$name")
+    done
+
+    if [[ ${#SLATE_NAMES[@]} -eq 0 ]]; then
+      echo "SLATE_COVERAGE=FAIL"
+      echo "  '## Component slate' section is present but lists no components — an empty heading is forbidden; list the confirmed slate (one bullet per component, per references/skill-template.md) or drop the section"
+      FAILED=1
+    elif [[ ${#SLATE_MISSING[@]} -eq 0 ]]; then
+      echo "SLATE_COVERAGE=PASS"
+    else
+      echo "SLATE_COVERAGE=FAIL"
+      for m in "${SLATE_MISSING[@]}"; do
+        echo "  slate component '$m' has no contract section — expected references/components/<kebab-name>.md (per-file mode) or a '## $m' heading in references/components.md (single-file mode); the Other re-exports tier does not satisfy the full-coverage rule (component/slate-contract-missing)"
+      done
+      FAILED=1
+    fi
+  fi
+
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,
-#    GitHub URL, or DS-specific package name in the meta-skill must live
+#    hosted-git URL, or DS-specific package name in the meta-skill must live
 #    INSIDE a labeled illustrative block (a heading starting with "Worked
 #    example", "Example output", or "Example shape"). Prescription text uses
 #    placeholders only — see references/reference-project.md (when present)
@@ -579,12 +631,17 @@ fi  # end produced-mode checks
 #    between are inside the block. The check walks each file with an awk
 #    state machine and reports any leaks outside such a block.
 if [[ "$MODE" == "meta" ]]; then
+  # The hosted-git hostname is assembled from fragments so this script's own
+  # source does not trip the LEXICAL_DENY_LIST scan below; the awk pattern
+  # that consumes it uses string-form regex (portable per the BSD-awk fix —
+  # see the issue trail on escaped slashes in regex literals).
+  GH_HOST_FRAG="git""hub"
   HARDCODE_LEAKS=()
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     while IFS= read -r leak; do
       [[ -n "$leak" ]] && HARDCODE_LEAKS+=("$leak")
-    done < <(awk '
+    done < <(awk -v gh_host="$GH_HOST_FRAG" '
       function is_example_heading(line,    title) {
         if (line !~ /^#+[[:space:]]/) return 0
         # Strip the leading hashes + whitespace to inspect the title.
@@ -649,7 +706,7 @@ if [[ "$MODE" == "meta" ]]; then
           if (candidate !~ /^~\/\.claude\/skills\//) leak = candidate
         } else if (match($0, /ds-skill-extraction-workshop\/[-A-Za-z0-9._\/]*/)) {
           leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/)) {
+        } else if (match($0, gh_host "\\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+")) {
           leak = substr($0, RSTART, RLENGTH)
         } else if (match($0, /@(shadcn|mui|geist|chakra-ui|radix-ui)\/[A-Za-z0-9._-]+/)) {
           leak = substr($0, RSTART, RLENGTH)
@@ -939,6 +996,87 @@ if [[ "$MODE" == "meta" ]]; then
     else
       echo "OTHER_REEXPORTS_CONTRACT=FAIL"
       echo "  references/skill-template.md: missing '- **Other re-exports**' required-section bullet — re-exports outside the proposing set would disappear from the produced components.md (component/reexport-tier-invisible)"
+      FAILED=1
+    fi
+  fi
+
+  # 14. LEXICAL_DENY_LIST (meta-skill self-mode only). The extractor's own
+  #     files (SKILL.md, references, scripts, assets) must contain zero
+  #     case-insensitive occurrences of a small set of DS-distinctive terms:
+  #     one specific DS vendor name, its host product, its icon-set name, and
+  #     six of its distinctive component names. The extractor improves FOR a
+  #     workshop use case without bending TOWARD it — an improvement that
+  #     survives this gate is generic by demonstration, not assertion.
+  #     Generic component nouns stay off the list — they appear legitimately
+  #     in prose any DS skill needs.
+  #
+  #     The terms are assembled from string fragments so this script's own
+  #     source never contains them contiguously and cannot trip the scan it
+  #     performs. scripts/tests/ is excluded (same posture as
+  #     NO_HARDCODED_PATHS): fixtures deliberately seed violations, and the
+  #     test driver names them in assertions. Unlike NO_HARDCODED_PATHS there
+  #     is NO illustrative-block carve-out — worked examples citing a
+  #     deny-listed source are replaced per the DS-diversification rule
+  #     (WORKED_EXAMPLE_DS_BIAS), not exempted.
+  DENY_TERMS=(
+    "pri""mer"
+    "git""hub"
+    "octi""con"
+    "state""label"
+    "branch""name"
+    "counter""label"
+    "blank""slate"
+    "page""layout"
+    "page""header"
+  )
+  DENY_HITS=()
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    for term in "${DENY_TERMS[@]}"; do
+      while IFS= read -r ln; do
+        [[ -n "$ln" ]] && DENY_HITS+=("$f|$ln|$term")
+      done < <(grep -inIF "$term" "$f" 2>/dev/null | cut -d: -f1)
+    done
+  done < <(find "$SKILL_PATH" -type f -not -path "$SKILL_PATH/scripts/tests/*")
+
+  if [[ ${#DENY_HITS[@]} -eq 0 ]]; then
+    echo "LEXICAL_DENY_LIST=PASS"
+  else
+    echo "LEXICAL_DENY_LIST=FAIL"
+    for entry in "${DENY_HITS[@]}"; do
+      file_part="${entry%%|*}"
+      rest="${entry#*|}"
+      line_part="${rest%%|*}"
+      term_part="${rest#*|}"
+      echo "  deny-listed term '$term_part' at $file_part:$line_part — the meta-skill must stay DS-agnostic; rephrase generically or replace the worked example per the DS-diversification rule (WORKED_EXAMPLE_DS_BIAS)"
+    done
+    FAILED=1
+  fi
+
+  # 15. FULL_COVERAGE_RULE_PRESENT (meta-skill self-mode only). The full-
+  #     coverage rule — every component on the confirmed slate gets its own
+  #     contract section, no two-tier coverage — must be stated where
+  #     component extraction is specified, and the produced-skill template
+  #     must require the `## Component slate` declaration the SLATE_COVERAGE
+  #     produced-mode check keys off. Guarded on file presence so partial
+  #     meta-mode test fixtures skip rather than fail (same posture as
+  #     SHAPE_7_PRESENT / OTHER_REEXPORTS_CONTRACT). See
+  #     references/anti-patterns.md component/slate-contract-missing.
+  if [[ -f "$COMP_EXTRACTION" || -f "$SKILL_TEMPLATE" ]]; then
+    FC_FAILS=()
+    if [[ -f "$COMP_EXTRACTION" ]] && ! grep -qE '^## Full-coverage rule' "$COMP_EXTRACTION"; then
+      FC_FAILS+=("references/component-extraction.md: missing '## Full-coverage rule' section — slate components without their own contract section would ship two-tier coverage (component/slate-contract-missing)")
+    fi
+    if [[ -f "$SKILL_TEMPLATE" ]] && ! grep -qE '^- \*\*Component slate\*\*' "$SKILL_TEMPLATE"; then
+      FC_FAILS+=("references/skill-template.md: missing '- **Component slate**' required-section bullet — without the declaration the SLATE_COVERAGE produced-mode check cannot fire (component/slate-contract-missing)")
+    fi
+    if [[ ${#FC_FAILS[@]} -eq 0 ]]; then
+      echo "FULL_COVERAGE_RULE_PRESENT=PASS"
+    else
+      echo "FULL_COVERAGE_RULE_PRESENT=FAIL"
+      for entry in "${FC_FAILS[@]}"; do
+        echo "  $entry"
+      done
       FAILED=1
     fi
   fi

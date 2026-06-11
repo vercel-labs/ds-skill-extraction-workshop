@@ -18,7 +18,7 @@ The reference-project extraction runs in parallel with the foundation-docs extra
 
 ## Source-role definition
 
-`[example:project]` is the tenth source role (after `[code]`, `[docs]`, `[docs:foundation]`, `[storybook]`, `[figma]`, `[private-blocker]`, etc. — see `references/discovery.md` for the full ledger). It is supplied by the user at Phase 1 input time as a URL (a GitHub repo + branch + path) or a local filesystem path the agent can read. The skill carries no default reference project — the user chooses one because the choice signals which framework, which version, and which idioms the produced wiring should reflect.
+`[example:project]` is the tenth source role (after `[code]`, `[docs]`, `[docs:foundation]`, `[storybook]`, `[figma]`, `[private-blocker]`, etc. — see `references/discovery.md` for the full ledger). It is supplied by the user at Phase 1 input time as a URL (a hosted git repository + branch + path) or a local filesystem path the agent can read. The skill carries no default reference project — the user chooses one because the choice signals which framework, which version, and which idioms the produced wiring should reflect.
 
 A reference project is authoritative for **wiring only**: the provider mount(s) at the application root, the global CSS imports, the font wiring, the root-element HTML attributes (e.g. a mode attribute like `data-color-mode` or a class like `.dark`), and any other setup the application performs once at boot. It is **not** authoritative for component API shapes, prop names, or token values — those come from `[code]` and `[docs]` as before.
 
@@ -292,7 +292,7 @@ The block below uses a public Mantine Next.js App Router example to ground the s
 # Wiring extracted from mantine-next-app-template @ app/layout.tsx
 
 **Framework:** next-app
-**Source:** https://github.com/mantinedev/next-app-template/blob/master/app/layout.tsx:1-30
+**Source:** https://mantine.dev/guides/next/ (docs-URL citation form; the guide carries the same app/layout.tsx wiring as the template repo)
 
 ## Root entry file (verbatim)
 
@@ -346,7 +346,7 @@ The block below uses a public Material-UI Next.js TypeScript example to ground t
 # Wiring extracted from mui-material-nextjs-example @ src/app/layout.tsx
 
 **Framework:** next-app
-**Source:** https://github.com/mui/material-ui/blob/master/examples/material-ui-nextjs-ts/src/app/layout.tsx:1-25
+**Source:** mui/material-ui @ examples/material-ui-nextjs-ts/src/app/layout.tsx:1-25
 
 ## Root entry file (verbatim)
 
