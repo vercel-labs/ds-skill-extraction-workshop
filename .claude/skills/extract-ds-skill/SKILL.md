@@ -85,7 +85,7 @@ Headline rule candidates:
 - "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204)
 
 Sources used:
-- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantinedev/mantine @ v7.x [code, joint-read]
 - mantine.dev/core/button [docs]
 - mantine.dev/styles/colors/ [docs:foundation] (+4 crawled)
 - ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
@@ -179,7 +179,7 @@ Validation complete.
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
-- Wiring extracted from github.com/<owner>/<reference-project>@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
+- Wiring extracted from <owner>/<reference-project>@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
 - TOKEN_COVERAGE=PASS
 - 0 hallucinations
 - 3 open [VERIFY] markers:
@@ -205,7 +205,7 @@ The persist target is `.claude/skills/<slug>/` in the attendee's project (per-pr
 Every source the user points at falls into one of ten roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
 
 - **Design-system code** (`[code]`) - the package source, types file, and component implementations. Highest authority. Joint-read with docs; wins on conflict.
-- **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. octicons, geist-icons). Treat exports as the inventory; do not invent names.
+- **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. heroicons, geist-icons). Treat exports as the inventory; do not invent names.
 - **Product/example app** (`[code]`) - a real consumer of the DS. The single best source for wiring (provider mount, font setup, globals CSS, install scripts). Copy wiring verbatim from here when available.
 - **Reference project** (`[example:project]`) - a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Phase 2 auto-detects the framework (Vite / Next.js App / Next.js Pages / CRA), reads the root entry file, and lifts the provider mount + CSS imports + root-element attributes verbatim per `references/reference-project.md`. Opt-in. When omitted and a `[docs:foundation]` URL is in scope, the Setup section falls back to the verbatim docs setup snippet.
 - **Internal AGENTS/CLAUDE files** (`[code]`) - guidance the DS team has already written for agents. Inherit liberally; cite by `file:line`.

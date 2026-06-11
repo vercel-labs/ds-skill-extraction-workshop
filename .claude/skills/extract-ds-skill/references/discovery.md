@@ -128,7 +128,7 @@ Headline rule candidates:
 - "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204 prop comment)
 
 Sources used:
-- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantinedev/mantine @ v7.x [code, joint-read]
 - mantine.dev/core/button [docs]
 - CHANGELOG.md [code]
 
@@ -148,7 +148,7 @@ Foundation docs:
 - rejected: https://figma.com/file/abc/Mantine-Tokens [docs:foundation] — off-domain / non-HTML (Figma file, not a docs page)
 
 Sources used:
-- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantinedev/mantine @ v7.x [code, joint-read]
 - mantine.dev/core/button [docs]
 - mantine.dev/styles/colors/ [docs:foundation] (+4 crawled)
 - ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
@@ -162,12 +162,12 @@ Each accepted URL becomes its own file in the produced skill at `references/foun
 Same illustrative target, with the user passing a reference project URL as an additional source. Only the diff from the baseline example is shown.
 
 ```
-Reference project: https://github.com/mantinedev/next-app-template [example:project] (next-app — app/layout.tsx)
+Reference project: <git-host>/mantinedev/next-app-template [example:project] (next-app — app/layout.tsx)
 
 Sources used:
-- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantinedev/mantine @ v7.x [code, joint-read]
 - mantine.dev/core/button [docs]
-- github.com/mantinedev/next-app-template [example:project]
+- mantinedev/next-app-template [example:project]
 - CHANGELOG.md [code]
 ```
 

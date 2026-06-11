@@ -486,6 +486,47 @@ assert "reexport-tier-present fixture passes shape checks" \
   "$FIXTURES/reexport-tier-present/produced-skill" \
   0 "CHECK_RESULT=PASS"
 
+# ---------- LEXICAL_DENY_LIST fixtures (meta-mode) ----------
+#
+# The meta-skill's own files must contain zero case-insensitive occurrences
+# of the DS-distinctive deny-listed terms (one DS vendor, its host product,
+# its icon set, and its distinctive component names). The check is part of
+# the standard meta-mode audit, scans every file except scripts/tests/, and
+# has NO illustrative-block carve-out. See check-skill-docs.sh section 14.
+
+# Test: seeded violation — the fixture's SKILL.md mentions a deny-listed
+# component name in prescription text. Tally must FAIL, exit non-zero, and
+# the failure message must name the term and the file:line.
+assert "fail-lexical-deny-list exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-lexical-deny-list/extract-ds-skill" \
+  1 "LEXICAL_DENY_LIST=FAIL" \
+  "deny-listed term 'blankslate'"
+assert "fail-lexical-deny-list names the offending file and line" \
+  "$FIXTURES/fail-lexical-deny-list/extract-ds-skill" \
+  1 "LEXICAL_DENY_LIST=FAIL" \
+  "fail-lexical-deny-list/extract-ds-skill/SKILL.md:10"
+
+# Test: live meta-skill self-check — the real extractor tree is clean of
+# deny-listed terms. Regression guard for anyone reintroducing DS-specific
+# vocabulary into SKILL.md, references/, or scripts/.
+assert "live extract-ds-skill LEXICAL_DENY_LIST PASSES" \
+  "$META_SKILL_ROOT" \
+  0 "LEXICAL_DENY_LIST=PASS"
+
+# Test: produced-mode skips LEXICAL_DENY_LIST entirely — a produced DS skill
+# legitimately names its own DS everywhere; the deny-list gates only the
+# extractor's own files.
+if grep -qE '^LEXICAL_DENY_LIST=' <<<"$out_produced"; then
+  echo "FAIL  produced-mode must NOT emit LEXICAL_DENY_LIST tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  produced-mode skips LEXICAL_DENY_LIST"
+  PASS=$((PASS + 1))
+fi
+
 # ---------- HANDOFF_COMPLETENESS fixtures (meta-mode) ----------
 #
 # The Phase 1 handoff must carry component shape (`## Components proposed`) and a

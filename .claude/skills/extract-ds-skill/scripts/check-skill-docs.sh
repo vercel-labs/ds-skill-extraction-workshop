@@ -568,7 +568,7 @@ if [[ "$MODE" == "produced" ]]; then
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,
-#    GitHub URL, or DS-specific package name in the meta-skill must live
+#    hosted-git URL, or DS-specific package name in the meta-skill must live
 #    INSIDE a labeled illustrative block (a heading starting with "Worked
 #    example", "Example output", or "Example shape"). Prescription text uses
 #    placeholders only — see references/reference-project.md (when present)
@@ -579,12 +579,17 @@ fi  # end produced-mode checks
 #    between are inside the block. The check walks each file with an awk
 #    state machine and reports any leaks outside such a block.
 if [[ "$MODE" == "meta" ]]; then
+  # The hosted-git hostname is assembled from fragments so this script's own
+  # source does not trip the LEXICAL_DENY_LIST scan below; the awk pattern
+  # that consumes it uses string-form regex (portable per the BSD-awk fix —
+  # see the issue trail on escaped slashes in regex literals).
+  GH_HOST_FRAG="git""hub"
   HARDCODE_LEAKS=()
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     while IFS= read -r leak; do
       [[ -n "$leak" ]] && HARDCODE_LEAKS+=("$leak")
-    done < <(awk '
+    done < <(awk -v gh_host="$GH_HOST_FRAG" '
       function is_example_heading(line,    title) {
         if (line !~ /^#+[[:space:]]/) return 0
         # Strip the leading hashes + whitespace to inspect the title.
@@ -649,7 +654,7 @@ if [[ "$MODE" == "meta" ]]; then
           if (candidate !~ /^~\/\.claude\/skills\//) leak = candidate
         } else if (match($0, /ds-skill-extraction-workshop\/[-A-Za-z0-9._\/]*/)) {
           leak = substr($0, RSTART, RLENGTH)
-        } else if (match($0, /github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/)) {
+        } else if (match($0, gh_host "\\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+")) {
           leak = substr($0, RSTART, RLENGTH)
         } else if (match($0, /@(shadcn|mui|geist|chakra-ui|radix-ui)\/[A-Za-z0-9._-]+/)) {
           leak = substr($0, RSTART, RLENGTH)
@@ -941,6 +946,59 @@ if [[ "$MODE" == "meta" ]]; then
       echo "  references/skill-template.md: missing '- **Other re-exports**' required-section bullet — re-exports outside the proposing set would disappear from the produced components.md (component/reexport-tier-invisible)"
       FAILED=1
     fi
+  fi
+
+  # 14. LEXICAL_DENY_LIST (meta-skill self-mode only). The extractor's own
+  #     files (SKILL.md, references, scripts, assets) must contain zero
+  #     case-insensitive occurrences of a small set of DS-distinctive terms:
+  #     one specific DS vendor name, its host product, its icon-set name, and
+  #     six of its distinctive component names. The extractor improves FOR a
+  #     workshop use case without bending TOWARD it — an improvement that
+  #     survives this gate is generic by demonstration, not assertion.
+  #     Generic component nouns stay off the list — they appear legitimately
+  #     in prose any DS skill needs.
+  #
+  #     The terms are assembled from string fragments so this script's own
+  #     source never contains them contiguously and cannot trip the scan it
+  #     performs. scripts/tests/ is excluded (same posture as
+  #     NO_HARDCODED_PATHS): fixtures deliberately seed violations, and the
+  #     test driver names them in assertions. Unlike NO_HARDCODED_PATHS there
+  #     is NO illustrative-block carve-out — worked examples citing a
+  #     deny-listed source are replaced per the DS-diversification rule
+  #     (WORKED_EXAMPLE_DS_BIAS), not exempted.
+  DENY_TERMS=(
+    "pri""mer"
+    "git""hub"
+    "octi""con"
+    "state""label"
+    "branch""name"
+    "counter""label"
+    "blank""slate"
+    "page""layout"
+    "page""header"
+  )
+  DENY_HITS=()
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    for term in "${DENY_TERMS[@]}"; do
+      while IFS= read -r ln; do
+        [[ -n "$ln" ]] && DENY_HITS+=("$f|$ln|$term")
+      done < <(grep -inIF "$term" "$f" 2>/dev/null | cut -d: -f1)
+    done
+  done < <(find "$SKILL_PATH" -type f -not -path "$SKILL_PATH/scripts/tests/*")
+
+  if [[ ${#DENY_HITS[@]} -eq 0 ]]; then
+    echo "LEXICAL_DENY_LIST=PASS"
+  else
+    echo "LEXICAL_DENY_LIST=FAIL"
+    for entry in "${DENY_HITS[@]}"; do
+      file_part="${entry%%|*}"
+      rest="${entry#*|}"
+      line_part="${rest%%|*}"
+      term_part="${rest#*|}"
+      echo "  deny-listed term '$term_part' at $file_part:$line_part — the meta-skill must stay DS-agnostic; rephrase generically or replace the worked example per the DS-diversification rule (WORKED_EXAMPLE_DS_BIAS)"
+    done
+    FAILED=1
   fi
 fi
 
