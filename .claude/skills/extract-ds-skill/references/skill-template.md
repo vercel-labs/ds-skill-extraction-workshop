@@ -81,6 +81,15 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   ```
 
   A reference project that ships zero exemplars omits all five exemplar rows; the routing table carries only the per-component rows.
+- **Component slate** — the machine-readable declaration of the confirmed extraction slate: one bullet per component the user approved at the Phase 1 gate, names copied verbatim from the phase-1 handoff's `## Components proposed` section. Shape:
+
+  ```markdown
+  ## Component slate
+
+  - `<ComponentName>` — <one-line description from the discovery summary>
+  ```
+
+  Every name listed here must resolve to its own contract section — `references/components/<kebab-name>.md` in per-file mode, or a `## <ComponentName>` section in `references/components.md` in single-file mode — per the full-coverage rule in `references/component-extraction.md`. The `## Other re-exports` tier never satisfies the rule; that tier is reserved for wrappers OUTSIDE the slate. `scripts/check-skill-docs.sh` (produced mode, `SLATE_COVERAGE`) cross-checks the declaration against the emitted contract sections. Do not omit this section: without the declaration, the post-emit check cannot tell a pruned slate from a dropped contract.
 - **Other re-exports** — when the source DS wraps and re-exports more components than the proposing set, list the unannotated wrappers under this section in `references/components.md` (single-file mode) or in `references/components/_other-reexports.md` (per-file mode, ≥10 proposing components). One line per re-export:
   - `<ComponentName>` — `import { <ComponentName> } from '<barrel-path>'`. Props: see `<upstream-types-path>/<ComponentName>.d.ts`.
 

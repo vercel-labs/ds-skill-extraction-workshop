@@ -687,6 +687,74 @@ assert "fail-skill-mode-attribute-orphan exits non-zero with FAIL tally" \
   1 "SHELL_INVARIANTS=FAIL" \
   "shell/mode-attribute-no-theme-import"
 
+# ---------- SLATE_COVERAGE fixtures (produced-mode) ----------
+#
+# The full-coverage rule: every component on the confirmed slate gets its own
+# contract section. The produced SKILL.md declares the slate under
+# `## Component slate` (per references/skill-template.md); the produced-mode
+# SLATE_COVERAGE check cross-checks each declared name against
+# references/components/<kebab-name>.md (per-file mode) or a `## <Name>`
+# heading in references/components.md (single-file mode). An absent section
+# NOOPs (produced skills predating the contract); a declared-but-uncovered
+# component FAILs. See references/component-extraction.md (Full-coverage rule)
+# and references/anti-patterns.md component/slate-contract-missing.
+
+# Test 49: pass — 3-component slate; Button resolves per-file, FormControl
+# exercises kebab-casing (form-control.md), Stack resolves as a `## Stack`
+# heading in components.md (single-file path). SLATE_COVERAGE must PASS and
+# the script must exit 0.
+assert "pass-slate-coverage exits 0 with PASS tally" \
+  "$FIXTURES/pass-slate-coverage/produced-skill" \
+  0 "SLATE_COVERAGE=PASS"
+
+# Test 50: fail — the slate declares Tooltip but no contract section exists
+# for it (no per-file, no single-file heading). SLATE_COVERAGE must FAIL,
+# exit non-zero, and the message must name the uncovered component and the
+# slug.
+assert "fail-slate-coverage exits non-zero with FAIL tally" \
+  "$FIXTURES/fail-slate-coverage/produced-skill" \
+  1 "SLATE_COVERAGE=FAIL" \
+  "slate component 'Tooltip' has no contract section"
+assert "fail-slate-coverage names the slug" \
+  "$FIXTURES/fail-slate-coverage/produced-skill" \
+  1 "SLATE_COVERAGE=FAIL" \
+  "component/slate-contract-missing"
+
+# Test 51: produced-mode emits SLATE_COVERAGE even when SKILL.md carries no
+# `## Component slate` section (re-use Test 4's on-the-fly produced fixture —
+# the check NOOPs but the tally line MUST appear, mirroring TOKEN_COVERAGE).
+if grep -qE '^SLATE_COVERAGE=' <<<"$out_produced"; then
+  echo "PASS  produced-mode emits SLATE_COVERAGE tally"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must emit SLATE_COVERAGE tally"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
+# Test 52: meta-mode skips SLATE_COVERAGE entirely — the slate declaration is
+# a produced-skill contract; the meta-skill has no component slate.
+if grep -qE '^SLATE_COVERAGE=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit SLATE_COVERAGE tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips SLATE_COVERAGE"
+  PASS=$((PASS + 1))
+fi
+
+# Test 53: live meta-skill self-check — the full-coverage rule prose exists in
+# references/component-extraction.md and the '- **Component slate**' bullet
+# exists in references/skill-template.md. Regression guard for anyone editing
+# either file and dropping the rule the SLATE_COVERAGE check keys off.
+assert "live extract-ds-skill FULL_COVERAGE_RULE_PRESENT PASSES" \
+  "$META_SKILL_ROOT" \
+  0 "FULL_COVERAGE_RULE_PRESENT=PASS"
+
 # ---------- validate.sh claims-file fixtures ----------
 #
 # The claims-file contract (references/validate.md, Claims file contract):
