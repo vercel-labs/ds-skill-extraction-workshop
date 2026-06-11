@@ -14,16 +14,17 @@ and are listed inside the illustrative block below.
 
 ### Worked example — workshop deployment links (illustrative)
 
-The URLs below were the canonical pair for the inaugural workshop run.
-Subsequent runs may re-host either side; treat the block as a snapshot,
-not as a contract this README enforces.
+The repositories below were the canonical pair for the inaugural workshop
+run, both hosted on the workshop's git host. Subsequent runs may re-host
+either side; treat the block as a snapshot, not as a contract this README
+enforces.
 
 - **Starter repo** (this repo — the meta-skill is pre-installed under
   `.claude/skills/extract-ds-skill/`):
-  <https://github.com/vercel-labs/ds-skill-extraction-workshop>
+  `vercel-labs/ds-skill-extraction-workshop`
 - **Companion site** (Overview, Hands-On, Reference, Resources, and
   Cultivate pages for the workshop):
-  <https://github.com/vercel-labs/ship-2026-companion-site>
+  `vercel-labs/ship-2026-companion-site`
 
 ## How to use
 

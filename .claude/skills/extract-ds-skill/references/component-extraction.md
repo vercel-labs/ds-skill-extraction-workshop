@@ -166,6 +166,18 @@ The eight headings (`Public imports`, `When to use`, `Key props`, `Best Practice
 
 ---
 
+## Full-coverage rule — every slate component gets a contract section
+
+Every component on the confirmed slate (the proposing set the user approved at the Phase 1 gate) gets its own contract section in the produced components reference — its own `references/components/<kebab-name>.md` file in per-file mode, or its own `## <ComponentName>` section in `references/components.md` in single-file mode. The contract section carries the component's props, variants, pitfalls, and every rule its upstream machine-readable docs + prose carry, per the per-component file skeleton above. No two-tier coverage:
+
+- A slate component must never ride on composition exemplars (`references/examples/*.md`), worked examples, or a sibling component's file alone. An exemplar shows one composition; the contract section is the API surface the agent reasons from when the composition differs.
+- The `## Other re-exports` tier never satisfies this rule — that tier is reserved for wrappers OUTSIDE the slate (see `references/skill-template.md`). Listing a slate component there is a coverage failure, not a smaller contract.
+- Rich upstream docs are not optional input. When a slate component's machine-readable docs or prose carry a rule (a prop constraint, a state contract, an a11y obligation), the contract section carries it too — extracting the component's name without its rules is the dropped-contract failure mode this rule exists to prevent.
+
+The rule is per-slate, not per-name: it applies to whichever components the user confirmed, never to a fixed component list. Phase 3 declares the slate in the produced SKILL.md under `## Component slate` (per `references/skill-template.md`), and `scripts/check-skill-docs.sh` (produced mode, `SLATE_COVERAGE`) mechanically cross-checks that declaration against the contract sections actually emitted. Registered as `component/slate-contract-missing` in `references/anti-patterns.md` Layer C.
+
+---
+
 ## Universal coverage rule
 
 Every component file ships a `## Best Practices` section. No exceptions. If no rules surfaced during extraction for a given component, the section contains exactly one line:

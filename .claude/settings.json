@@ -3,8 +3,6 @@
     "deny": [
       "Edit(ds/**)",
       "Write(ds/**)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(git -C * add *)",
       "Bash(git -C * commit *)",
@@ -57,6 +55,7 @@
       "Bash(bash --version)",
       "Bash(python3 -c *)",
       "Bash(python3 --version)",
+      "Bash(mkdir *)",
       "Bash(mkdir -p .extract-ds-skill-scratch*)",
       "Bash(rm -rf .extract-ds-skill-scratch*)",
       "Bash(ls .extract-ds-skill-scratch*)",

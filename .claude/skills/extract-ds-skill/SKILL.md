@@ -87,7 +87,7 @@ Headline rule candidates:
 - "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204)
 
 Sources used:
-- github.com/mantinedev/mantine @ v7.x [code, joint-read]
+- mantinedev/mantine @ v7.x [code, joint-read]
 - mantine.dev/core/button [docs]
 - mantine.dev/styles/colors/ [docs:foundation] (+4 crawled)
 - ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
@@ -131,6 +131,8 @@ The "continue inline" override is the only allowed inline transition out of Phas
 Triggered only after explicit user confirmation from Phase 1. Goal: prove the extraction grounds in real source before any file is written to `.claude/skills/<slug>/`. Everything in this phase lives in `.extract-ds-skill-scratch/` (local, gitignored). Nothing is written to `.claude/skills/<slug>/` yet - iteration is cheap and partial state never lands in the user's project.
 
 Load `references/validate.md` for the deterministic typecheck + grep-resolves protocol. The validation runs `scripts/validate.sh` against the scratch workspace. It typechecks the extracted component contracts against the DS package's published types, greps every cited token name against the source token file, greps every cited icon/asset name against the asset package, and counts `[VERIFY]` markers.
+
+Before running `scripts/validate.sh`, emit the claims file: every positive prop/enum claim, every negative ("never accepts") claim, and every cited local path the extraction makes goes into `.extract-ds-skill-scratch/claims.txt` per the Claims file contract in `references/validate.md`. The script consumes that file to generate the prop-shape probe — positive claims become typed assignments, negative claims become `@ts-expect-error` lines, `PATH:` claims run `test -e` — so the probe checks declared claims, not prose. URL-shaped cites are verified fetchable (HTTP 200) at extract time and are not re-checked by the script.
 
 If any `[docs:foundation]` URLs are in scope from Phase 1, run the foundation-docs extraction step in addition. Load `references/foundation-extraction.md`, then **iterate** over the union of accepted root URLs and crawled sub-pages from Phase 1 (one WebFetch per URL, never re-fetch). For each URL, classify candidate rules into the five shapes (token-pairing, mode-aware, contrast-minimum, semantic-role, fallback-element), grep-resolve every cited CSS variable against the installed token package (`node_modules/<ds-package>/dist/css/`), mark unresolved cites `[VERIFY]`, and stash the per-URL output to `.extract-ds-skill-scratch/foundations/<slug>.md` (slug per the persist map in `references/persist.md`). One bad URL logs `[VERIFY: WebFetch failed for <url>]` as the file body and the loop continues — failure on a single page does not abort the run. No foundation file lands in `.claude/skills/<slug>/` until Phase 3. Skip this paragraph entirely when no foundation URL is in scope; the baseline typecheck + grep-resolves contract is the full Phase 2. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md` when one is in scope, or from the verbatim docs setup snippet otherwise.
 
@@ -179,7 +181,7 @@ Validation complete.
 - 47 tokens grep-resolved (color: 28, space: 12, type: 7)
 - 0 assets in scope this run
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
-- Wiring extracted from github.com/<owner>/<reference-project>@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
+- Wiring extracted from <owner>/<reference-project>@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
 - TOKEN_COVERAGE=PASS
 - 0 hallucinations
 - 3 open [VERIFY] markers:
@@ -204,16 +206,20 @@ The persist target is `.claude/skills/<slug>/` in the attendee's project (per-pr
 
 Every source the user points at falls into one of ten roles. The taxonomy lives in `references/discovery.md`; this is the SKILL.md summary for fast classification during Phase 1.
 
-- **Design-system code** (`[code]`) - the package source, types file, and component implementations. Highest authority. Joint-read with docs; wins on conflict.
-- **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. octicons, geist-icons). Treat exports as the inventory; do not invent names.
+- **Design-system code** (`[code]`) - the package source, types file, and component implementations. Highest authority. Joint-read with docs; wins on conflict. Includes the DS's hosted component repo when it ships per-component machine-readable docs and story files — raw-fetched per file, never cloned, and always scoped to the proposing slate (never the full export surface). A separately published tokens repo is the same role.
+- **Asset package** (`[code]`) - icons, logos, illustrations shipped as a separate package (e.g. heroicons, geist-icons). Treat exports as the inventory; do not invent names.
 - **Product/example app** (`[code]`) - a real consumer of the DS. The single best source for wiring (provider mount, font setup, globals CSS, install scripts). Copy wiring verbatim from here when available.
 - **Reference project** (`[example:project]`) - a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Phase 2 auto-detects the framework (Vite / Next.js App / Next.js Pages / CRA), reads the root entry file, and lifts the provider mount + CSS imports + root-element attributes verbatim per `references/reference-project.md`. Opt-in. When omitted and a `[docs:foundation]` URL is in scope, the Setup section falls back to the verbatim docs setup snippet.
 - **Internal AGENTS/CLAUDE files** (`[code]`) - guidance the DS team has already written for agents. Inherit liberally; cite by `file:line`.
-- **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures. Cited, not extracted.
+- **Docs site** (`[docs]`) - prose-and-example documentation. Useful for the "when to use" and "common mistakes" sections; lower authority than types on prop signatures. Cited, not extracted. Hard rule: when a live docs site exists, crawl the live site — never its archived backing repo.
 - **Docs:foundation** (`[docs:foundation]`) - prose foundations pages on the DS docs site that are EXTRACTED into `token/*` rules, not just cited. **N URLs per call**, opt-in; each accepted root is crawled depth-1 within its path prefix per `references/discovery.md` (Crawl rules). Phase 2 iterates the union of accepted+crawled URLs via WebFetch, extracts five prose rule shapes per `references/foundation-extraction.md` (token-pairing, mode-aware, contrast-minimum, semantic-role, fallback-element), and materializes them one file per source URL under `references/foundations/<slug>.md` (slug per the persist map). Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md`, or from the verbatim docs setup snippet as a fallback.
-- **Storybook** (`[storybook]`) - canonical variant examples. Useful for composition examples; not always authoritative on prop names if the stories lag the package.
+- **Storybook** (`[storybook]`) - canonical variant examples. Useful for composition examples; not always authoritative on prop names if the stories lag the package. Hard rule: a JS-rendered catalog a plain fetch cannot read is not an input — its content lives as story source in the component repo; fetch that via `[code]` instead.
 - **Figma** (`[figma]`) - design-time source. Use for tokens and visual rules; never for prop names or API contracts.
 - **Private/inaccessible** (`[private-blocker]`) - soft blocker. Log, proceed, may become available later.
+
+The roles are described generically on purpose — concrete repos, package names, and URLs live only in the user's invocation. The default input model for a public DS is the component repo + tokens repo + live docs site + optional reference project; a local wrapper surface remains supported but is no longer assumed primary. See `references/discovery.md` (Default input model).
+
+Taste enters the produced skill through two channels, never hand-merged: DS-specific taste prose (density expectations, empty-state patterns) is extracted from the live docs site with citations; generic craft guidance ships verbatim from the extractor's canonical craft asset and is never edited per-DS. Precedence: the DS always wins; craft fills silence. Full rule in `references/discovery.md` (DS-taste channel).
 
 ## Six rule shapes (extraction recognition)
 
