@@ -164,7 +164,7 @@ has no sibling in the in-scope set.>
 or setup docs verbatim — do not reconstruct from memory. When the source
 offers them, prefer the high-leverage composition categories:
 - status/lifecycle components (badges, state labels): a transition between
-  two states (e.g. open → merged) including the cross-fade/swap pattern the
+  two states (e.g. draft → published) including the cross-fade/swap pattern the
   DS sanctions;
 - message surfaces (alerts, flashes, banners): the variant paired with its
   leading semantic icon, showing the sanctioned icon + variant pairing.>
