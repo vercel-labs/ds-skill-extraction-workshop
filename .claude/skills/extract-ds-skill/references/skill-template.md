@@ -131,7 +131,7 @@ The 8-section checklist — the agent ticks each one during the reflexive-audit 
 
 1. **Public imports** — the `import` line(s) the consumer writes. Barrel form preferred.
 2. **When to use** — one or two sentences. Includes the negative case ("not for X — use `<other>`").
-3. **Key props and variants** — the props the agent will actually reach for. Cite each to source `file:line`. Skip exhaustive prop dumps; the type definitions are the exhaustive list.
+3. **Key props and variants** — the props the agent will actually reach for. Cite each to source `file:line`. Skip exhaustive prop dumps; the type definitions are the exhaustive list. Cite format: the first mention in a file uses the full `node_modules/<pkg>/...:line` form; later cites in the same file may drop to the short `dist/...:line` form. Upstream-repo cites use the `<owner>/<repo>@<ref>:<path>` form — never a bare `packages/...` or `src/...` path, which `scripts/verify-citations.sh` cannot resolve and must skip (the skipped class must not grow).
 4. **Accessibility** — required ARIA, label associations, keyboard behavior. Cite to source or to the docs a11y section.
 5. **Composition examples** — code blocks that compile. Imports included. Each example doubles as a pattern (see collapse rule below).
 6. **Source references** — repo-relative paths to the component implementation, its tests, its docs.
@@ -203,7 +203,7 @@ Plain Markdown, NOT Geist's JSX `<BestPractices>` wrapper. Heading: `## Best Pra
 
 Two shapes — pick by counting rules and axes:
 
-- **Flat bulleted list** — when the component has fewer than 10 rules AND fewer than 3 distinct axes of concern. One bullet per rule. Each rule is a single imperative sentence. Cite source `file:line` at the end of the bullet.
+- **Flat bulleted list** — when the component has fewer than 10 rules AND fewer than 3 distinct axes of concern. One bullet per rule. Each rule is a single imperative sentence. Cite source `file:line` at the end of the bullet (cite format per the Key-props bullet above: full `node_modules/...` form on first mention, `owner/repo@ref:path` for upstream cites).
 - **Subsectioned** — when the component has 10 or more rules OR 3 or more axes. Use the Geist vocabulary verbatim, in this order:
 
   ```markdown

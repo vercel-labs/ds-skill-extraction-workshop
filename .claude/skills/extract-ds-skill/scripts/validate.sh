@@ -32,9 +32,10 @@ if [[ -z "$CLAIMS_FILE" && -f "$SCRATCH/claims.txt" ]]; then CLAIMS_FILE="$SCRAT
 #   NEGATIVE:Component.prop=value         negative claim → @ts-expect-error line in the probe
 #   PATH:node_modules/<...>               cited local path → test -e (Phase C)
 #   URL:<https-url>                       verified fetchable (HTTP 200) at extract time; NOT re-checked here
+#   CITE:node_modules/<...>:<line>[-<end>]|<snippet>   cited line states the claim → verify-citations.sh (Phase D)
 PROP_CLAIMS=()   # "P|N<TAB>Component<TAB>prop<TAB>value"
 PATH_CLAIMS=()
-N_POS=0; N_NEG=0; N_PATH=0; N_URL=0
+N_POS=0; N_NEG=0; N_PATH=0; N_URL=0; N_CITE=0
 if [[ -n "$CLAIMS_FILE" ]]; then
   [[ -f "$CLAIMS_FILE" ]] || { echo "ERROR: claims file not found: $CLAIMS_FILE" >&2; exit 2; }
   CLAIM_LINENO=0
@@ -45,6 +46,8 @@ if [[ -n "$CLAIMS_FILE" ]]; then
       URL:*) N_URL=$((N_URL + 1)) ;;
       PATH:node_modules/*) PATH_CLAIMS+=("${claim#PATH:}"); N_PATH=$((N_PATH + 1)) ;;
       PATH:*) echo "ERROR: $CLAIMS_FILE:$CLAIM_LINENO — PATH claims must be node_modules/-prefixed: $claim" >&2; exit 2 ;;
+      CITE:node_modules/*) N_CITE=$((N_CITE + 1)) ;;
+      CITE:*) echo "ERROR: $CLAIMS_FILE:$CLAIM_LINENO — CITE claims must be node_modules/-prefixed: $claim" >&2; exit 2 ;;
       NEGATIVE:[A-Za-z]*.*=*|[A-Za-z]*.*=*)
         kind="P"; body="$claim"
         [[ "$claim" == NEGATIVE:* ]] && { kind="N"; body="${claim#NEGATIVE:}"; }
@@ -193,6 +196,22 @@ for p in "${PATH_CLAIMS[@]+"${PATH_CLAIMS[@]}"}"; do
   if [[ ! -e "$p" ]]; then echo "PATH_MISS=$p"; PATHS_OK=false; fi
 done
 
+# ---------- Phase D: citation verification ----------
+# Delegates to verify-citations.sh: every file:line cite in the scratch drafts must
+# resolve (Layer 1), be covered by a CITE row, and every CITE row's snippet must
+# appear in its cited range (Layer 2). See references/validate.md.
+CITES_OK=true
+if [[ -n "$CLAIMS_FILE" ]]; then
+  CITE_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/verify-citations.sh"
+  if [[ ! -f "$CITE_SCRIPT" ]]; then
+    echo "ERROR: verify-citations.sh not found next to validate.sh: $CITE_SCRIPT" >&2; exit 2
+  fi
+  CV_EXIT=0
+  CV_OUT="$(bash "$CITE_SCRIPT" "$SCRATCH" --claims "$CLAIMS_FILE" --package "$PKG" 2>&1)" || CV_EXIT=$?
+  printf '%s\n' "$CV_OUT"
+  [[ "$CV_EXIT" -ne 0 ]] && CITES_OK=false
+fi
+
 # ---------- Optional: probe-page escalation ----------
 if $PROBE_PAGE; then
   PP="$SCRATCH/probe-page.tsx"
@@ -209,13 +228,14 @@ fi
 
 # ---------- Summary ----------
 echo "VALIDATED_API_COUNT=$API_COUNT"
-if [[ -n "$CLAIMS_FILE" ]]; then echo "CLAIMS_CHECKED=positive:$N_POS negative:$N_NEG path:$N_PATH url-skipped:$N_URL"; fi
-if $TYPECHECK_OK && $GREP_OK && $PATHS_OK; then
+if [[ -n "$CLAIMS_FILE" ]]; then echo "CLAIMS_CHECKED=positive:$N_POS negative:$N_NEG path:$N_PATH url-skipped:$N_URL cite:$N_CITE"; fi
+if $TYPECHECK_OK && $GREP_OK && $PATHS_OK && $CITES_OK; then
   echo "VALIDATE_RESULT=PASS"; exit 0
 else
   echo "VALIDATE_RESULT=FAIL"
   if ! $TYPECHECK_OK; then echo "FAIL_REASON=typecheck"
   elif ! $GREP_OK; then echo "FAIL_REASON=grep"
-  else echo "FAIL_REASON=path"; fi
+  elif ! $PATHS_OK; then echo "FAIL_REASON=path"
+  else echo "FAIL_REASON=cite"; fi
   exit 1
 fi

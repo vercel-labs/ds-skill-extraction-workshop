@@ -109,6 +109,12 @@ Mechanics:
 - Do NOT load `assets/design-craft.md` into context during extraction — it is payload for the produced skill, not instructions for the extracting agent. The scaffolder moves the bytes; the agent never needs to read them.
 - Opt-out: when the phase-1 (or passed-through phase-2) handoff records `Design-craft reference: excluded (user opt-out)`, pass `--no-design-craft` to `scripts/scaffold.sh` and omit the routing row. `check-skill-docs.sh` then reports `DESIGN_CRAFT=SKIP` (informational, not a failure). An unexpected `DESIGN_CRAFT=SKIP` on the default ship path means the copy was lost — re-run `scripts/scaffold.sh` (or `cp` the asset manually) before printing the closing message.
 
+## Citation verification
+
+After materialization and before the closing message, run `bash <meta-skill>/scripts/verify-citations.sh .claude/skills/<slug>/` from the consumer root (the directory holding `node_modules/`). The contract lives in `references/validate.md` (Citation-verification step); Phase 3 re-runs it because verification covers EVERY persisted `.md` — including files carried over byte-for-byte from a previous run. Carryover is NOT exempt: a carried-over file's cites must be re-registered as `CITE:` rows in the claims file, which forces re-reading the cited lines each regeneration. Re-checking the only file a ticket named while persisting the rest unverified is exactly the hole this step closes.
+
+A `CITATION_VERIFICATION=FAIL` blocks the closing message the same way a `check-skill-docs.sh` non-zero exit does: fix the cites (or the CITE rows) and re-run. `scripts/check-skill-docs.sh` re-asserts the same gate post-emit (produced-mode `CITATION_VERIFICATION`), so a hand-edited skill gets the same protection on its next audit.
+
 ## Closing message contract
 
 Tell the user the skill is saved, then show 2-3 example prompts to try. Make them screen- or product-level ("a settings page", "a pricing section"), not component shopping lists.

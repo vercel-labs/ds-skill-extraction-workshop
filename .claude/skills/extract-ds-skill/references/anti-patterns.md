@@ -75,7 +75,7 @@ Repeating the same WHY clause across rows in the same axis is correct — the fa
 
 Layer A and Layer B describe rules the *produced* skill ships — guidance for the agent that USES the skill. Layer C describes rules the *meta-skill itself* obeys while producing a skill. They live in this file because the audit surface is the same (slug registry, `check-skill-docs.sh` enforcement), but the failure mode is upstream: a Layer C violation is the meta-skill shipping a broken produced skill, not the produced skill mis-guiding the agent.
 
-Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line (or `How to apply:` for warn-only rules) naming the script and the gate. Layer C subsections use four namespaces today: `wiring/`, `state/`, and `craft/` for rules that fire against the meta-skill's own output during a run, and `shell/` for rules whose authoritative definition lives here (the slug registry) but whose runtime fire-site is Layer A + Layer B in the produced skill. More will be added when more meta-skill rules surface.
+Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line (or `How to apply:` for warn-only rules) naming the script and the gate. Layer C subsections use five namespaces today: `wiring/`, `state/`, `craft/`, and `cite/` for rules that fire against the meta-skill's own output during a run, and `shell/` for rules whose authoritative definition lives here (the slug registry) but whose runtime fire-site is Layer A + Layer B in the produced skill. More will be added when more meta-skill rules surface.
 
 ### wiring/css-prose-summary
 
@@ -181,6 +181,30 @@ Whenever Phase 2 lifts a shell wrapper that sets a FIXED viewport height — `st
 
 **How to enforce:** `scripts/check-skill-docs.sh` produced-mode check `DESIGN_CRAFT` byte-compares the produced file against the canonical asset (`cmp`), asserts the SKILL.md routing-table row, and FAILs on drift. `scripts/scaffold.sh` performs the copy with `cp`, so the default path never routes the file's contents through the model. The explicit Phase 1 opt-out (`--no-design-craft`) is the only sanctioned absence; the check reports `DESIGN_CRAFT=SKIP` (informational) when the file is missing.
 
+### cite/dts-default-mismatch
+
+A default-value claim cites a type-definition line that does not state the default — no `@default` JSDoc tag, no literal default in the type. The value may even be correct; the citation is still a defect, because the cited line cannot support the claim. The statement lives wherever the default is actually set (typically the implementation's prop destructure).
+
+**Why:** The d.ts is the reflex cite for any prop claim, and the type union usually CONTAINS the default value's literal, so the imprecision survives casual re-reading. An adversarial audit (or a consumer who opens the cited line) finds a union, not a default — every such cite erodes trust in all the skill's citations at once.
+
+**How to enforce:** the claim's `CITE:` row carries the default-STATING text as its snippet (the destructure or `@default` line, never just the value) per `references/validate.md` (Citation-verification step); `scripts/verify-citations.sh` Layer 2 fails the row with `reason=drift` when the snippet is absent from the cited range. `scripts/check-skill-docs.sh` produced-mode `CITATION_VERIFICATION` re-asserts post-emit.
+
+### cite/line-drift
+
+A `file:line` cite is off by one or more lines from the text it anchors — typically introduced by re-reading a neighboring line, citing from memory, or a package version bump shifting the file under an unrevisited cite.
+
+**Why:** A drifted cite is wrong in the quietest possible way: the file exists, the line exists, and the line even looks plausible. Only re-reading the exact line catches it, and prose discipline alone does not force that re-read at regeneration time.
+
+**How to enforce:** `scripts/verify-citations.sh` — Layer 1 fails cites past the end of the file (`reason=line-out-of-range`); Layer 2 fails when the registered snippet is not on the cited line (`reason=drift`). Runs in Phase 2 (`validate.sh` Phase D) and Phase 3 (`check-skill-docs.sh` produced-mode `CITATION_VERIFICATION`).
+
+### cite/uncovered-carryover
+
+A persisted file's `file:line` cites have no covering `CITE:` rows in the claims file. The canonical instance: a regeneration carries reference files over byte-for-byte from a previous run and re-verifies only the file a ticket named, persisting the rest unread.
+
+**Why:** Carryover is the citation-discipline blind spot — every prose rule about citing carefully fires at WRITE time, and a carried-over file is never rewritten. Without a coverage gate, a defective cite survives arbitrarily many regenerations while the skill around it claims to be re-validated.
+
+**How to enforce:** `scripts/verify-citations.sh` coverage gate — every in-scope cite in the target must intersect a `CITE:` row on the same resolved path (`reason=uncovered` otherwise). Coverage spans ALL `.md` files in the persisted skill, so carried-over files must have their cites re-registered (and therefore re-read) each run. Mandatory in Phase 3 per `references/persist.md` (Citation verification).
+
 ## Rule slug namespaces
 
 Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs are greppable identifiers cited in findings: when a rule fires during extraction or during a `check-skill-docs.sh` run, the slug links the violation back to the rule.
@@ -191,12 +215,13 @@ Every anti-pattern — Layer A, Layer B, or Layer C — registers a slug. Slugs 
 - `wiring/...` for meta-skill wiring-discipline rules (Layer C) — examples: `wiring/css-prose-summary`. Fire against the meta-skill's own output during extraction, not against produced-skill usage.
 - `state/...` for meta-skill session-state-discipline rules (Layer C) — examples: `state/handoff-skipped`, `state/inline-phase-transition`, `state/handoff-missing-component-shape`, `state/handoff-out-of-scope-deferred`. Fire against the meta-skill's own session management (handoff emission, phase cutoffs, resume parameters, handoff-template completeness), not against produced-skill content. Distinct from `wiring/` because the failure mode is upstream of any produced artefact — a `state/` violation means the meta-skill loses session continuity, not that it ships bad content.
 - `craft/...` for meta-skill shipped-material discipline rules (Layer C) — example: `craft/regenerated-not-copied`. Fire against the meta-skill's handling of static payload files (today: `assets/design-craft.md`) that ship verbatim into produced skills. Distinct from `wiring/` because nothing is lifted from a source — the failure mode is routing a copy operation through the model instead of `cp`.
+- `cite/...` for meta-skill citation-discipline rules (Layer C) — examples: `cite/dts-default-mismatch`, `cite/line-drift`, `cite/uncovered-carryover`. Fire against the `file:line` citations the meta-skill writes into produced prose, enforced mechanically by `scripts/verify-citations.sh` (Phase 2 via `validate.sh` Phase D, Phase 3 via `check-skill-docs.sh` produced-mode `CITATION_VERIFICATION`). Distinct from `wiring/` because the defect is in the citation, not the lifted material.
 - `shell/...` for produced-skill rules about app-shell wiring contracts (Layer A in produced SKILL.md `## Hard rules`; Layer B in produced `references/anti-patterns.md` Bad/Good/Why table). Examples: `shell/unpainted-body`, `shell/mode-attribute-no-theme-import`, `shell/provider-missing-content-wrap`, `shell/fixed-viewport-height`. Fire against the downstream consumer app's root layout / providers / globals.css, NOT against the meta-skill's own output. Distinct from `token/` because the failure mode is "no body-paint rule at all" or "wiring step skipped," not "wrong token name." Distinct from `wiring/` because `wiring/` rules fire against the meta-skill's own output discipline; `shell/` rules fire against the produced skill's downstream consumer surface. The Layer C subsections for the four pre-seeded slugs in this file are the meta-skill's authoritative registry; the produced skill carries the same slugs as Layer A Hard Rules and Layer B Bad/Good/Why rows.
 
 Slug grammar:
 
 - Lowercase, hyphen-separated.
-- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`, `shell/`, `craft/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
+- Namespace prefix (`token/`, `component/`, `asset/`, `wiring/`, `state/`, `shell/`, `craft/`, `cite/`) is mandatory. Unprefixed slugs are rejected by `check-skill-docs.sh`.
 - One slug per concept. If the same trap fires in two component files, the slug is identical in both — the slug names the rule, not its location.
 - Slugs are stable. Renaming a slug breaks every finding that cites it, so renames go through `coverage-gaps.md` first.
 - Slugs are unique across the skill. Slug collisions are surfaced by `check-skill-docs.sh` and ASK the user to rename one (same convention as the persist-time slug-collision rule).

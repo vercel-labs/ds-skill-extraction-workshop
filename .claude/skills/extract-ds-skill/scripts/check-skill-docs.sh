@@ -698,6 +698,33 @@ if [[ "$MODE" == "produced" ]]; then
     FAILED=1
   fi
 
+  # 16. CITATION_VERIFICATION (produced-skill mode only). Every file:line cite
+  #     in the persisted prose resolves to a real file with in-range lines, and
+  #     (claims-driven) every cite is covered by a CITE row whose snippet
+  #     appears in the cited range. Coverage spans ALL persisted .md files,
+  #     including byte-for-byte carried-over ones — the carryover hole this
+  #     closes (references/validate.md, Citation-verification step). NONE only
+  #     when no node_modules tree exists at cwd to resolve against.
+  CITE_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/verify-citations.sh"
+  if [[ ! -f "$CITE_SCRIPT" ]]; then
+    echo "CITATION_VERIFICATION=FAIL"
+    echo "  verify-citations.sh missing next to check-skill-docs.sh: $CITE_SCRIPT"
+    FAILED=1
+  else
+    CV_EXIT=0
+    CV_OUT="$(bash "$CITE_SCRIPT" "$SKILL_PATH" 2>&1)" || CV_EXIT=$?
+    CV_TALLY="$(printf '%s\n' "$CV_OUT" | grep -E '^CITATION_VERIFICATION=' | tail -1 || true)"
+    printf '%s\n' "$CV_OUT" | grep -vE '^CITATION_VERIFICATION=' | sed 's/^/  /' || true
+    if [[ -n "$CV_TALLY" ]]; then
+      echo "$CV_TALLY"
+    else
+      echo "CITATION_VERIFICATION=FAIL"
+      echo "  verify-citations.sh produced no tally (exit=$CV_EXIT)"
+      FAILED=1
+    fi
+    [[ "$CV_EXIT" -ne 0 ]] && FAILED=1
+  fi
+
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,
@@ -1156,6 +1183,33 @@ if [[ "$MODE" == "meta" ]]; then
     else
       echo "FULL_COVERAGE_RULE_PRESENT=FAIL"
       for entry in "${FC_FAILS[@]}"; do
+        echo "  $entry"
+      done
+      FAILED=1
+    fi
+  fi
+
+  # 16. CITE_RULE_PRESENT (meta-skill self-mode only). The citation-
+  #     verification contract must be stated where claims are specified:
+  #     references/validate.md carries the CITE row grammar, and
+  #     references/persist.md names the Phase 3 verify-citations.sh run.
+  #     Guarded on file presence (same posture as FULL_COVERAGE_RULE_PRESENT)
+  #     so partial meta-mode test fixtures skip rather than fail.
+  VALIDATE_MD="$SKILL_PATH/references/validate.md"
+  PERSIST_MD="$SKILL_PATH/references/persist.md"
+  if [[ -f "$VALIDATE_MD" || -f "$PERSIST_MD" ]]; then
+    CR_FAILS=()
+    if [[ -f "$VALIDATE_MD" ]] && ! grep -qF 'CITE:node_modules/' "$VALIDATE_MD"; then
+      CR_FAILS+=("references/validate.md: missing the 'CITE:node_modules/' claim grammar — file:line cites without CITE rows are mechanically unverifiable (cite/uncovered-carryover)")
+    fi
+    if [[ -f "$PERSIST_MD" ]] && ! grep -qF 'verify-citations.sh' "$PERSIST_MD"; then
+      CR_FAILS+=("references/persist.md: missing the Phase 3 verify-citations.sh run — persisted (incl. carried-over) files would skip citation re-verification (cite/uncovered-carryover)")
+    fi
+    if [[ ${#CR_FAILS[@]} -eq 0 ]]; then
+      echo "CITE_RULE_PRESENT=PASS"
+    else
+      echo "CITE_RULE_PRESENT=FAIL"
+      for entry in "${CR_FAILS[@]}"; do
         echo "  $entry"
       done
       FAILED=1

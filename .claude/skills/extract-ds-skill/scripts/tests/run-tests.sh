@@ -116,7 +116,7 @@ assert "pass-fixture auto-detects meta-mode" \
 # in meta-mode; produced-mode should NOT emit a NO_HARDCODED_PATHS line at
 # all (the check is meta-mode only).
 PRODUCED_TMP="$(mktemp -d)"
-trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}" "${PROBE_TMP:-}" "${PD_TMP:-}"' EXIT
+trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}" "${PROBE_TMP:-}" "${PD_TMP:-}" "${CITE_TMP:-}"' EXIT
 mkdir -p "$PRODUCED_TMP/test-produced-skill/references/components"
 cat >"$PRODUCED_TMP/test-produced-skill/SKILL.md" <<'EOF'
 ---
@@ -901,6 +901,22 @@ EOF
   assert_validate "seeded missing node_modules path fails test -e" \
     claims-bad-path.txt 1 "FAIL_REASON=path" "PATH_MISS=node_modules/fake-ds/missing.d.ts"
 
+  # CITE-grammar parse regression: a CITE row whose snippet contains '=' and
+  # '|' must not be swallowed by the prop-claim glob or rejected as
+  # unrecognized; Phase D verifies it (snippet on index.d.ts:2) and the
+  # tally carries cite:1.
+  printf "Button.variant=primary\nCITE:node_modules/fake-ds/index.d.ts:2|'primary' | 'secondary'\n" \
+    >"$CLAIMS_TMP/claims-cite.txt"
+  assert_validate "CITE row with = and | in snippet parses and verifies" \
+    claims-cite.txt 0 "VALIDATE_RESULT=PASS" "cite:1"
+
+  # Seeded drift in a CITE row — the snippet is not on the cited line; Phase D
+  # fails the run with FAIL_REASON=cite while typecheck/grep/path stay green.
+  printf "CITE:node_modules/fake-ds/index.d.ts:3|'primary' | 'secondary'\n" \
+    >"$CLAIMS_TMP/claims-cite-drift.txt"
+  assert_validate "seeded CITE drift fails with FAIL_REASON=cite" \
+    claims-cite-drift.txt 1 "FAIL_REASON=cite" "reason=drift"
+
   # Test 49: strict-exports package (issue #37) — its `exports` map omits the
   # ./package.json subpath, so require.resolve('<pkg>/package.json') throws
   # ERR_PACKAGE_PATH_NOT_EXPORTED. Phase B must fall back to resolving the main
@@ -1206,8 +1222,12 @@ one page, one rendered mode. Semantic names are lost — the synthetic
 - `--probe-body-color` — `rgb(31, 35, 40)` [probe-derived]
 - `--probe-body-font-family` — `Inter, sans-serif` [probe-derived]
 EOF
-assert "pd-pass: tagged rows under a tagged section pass" \
-  "$PD_TMP/pd-pass-skill" \
+# The cited light.css must resolve at cwd or CITATION_VERIFICATION (check #16)
+# fails the run before PROBE_DERIVED_TOKENS can be judged.
+mkdir -p "$PD_TMP/node_modules/@acme/ui/dist/css"
+seq 1 20 | sed 's/^/\/* line /;s/$/ *\//' > "$PD_TMP/node_modules/@acme/ui/dist/css/light.css"
+assert_cwd "pd-pass: tagged rows under a tagged section pass" \
+  "$PD_TMP" "$PD_TMP/pd-pass-skill" \
   0 "PROBE_DERIVED_TOKENS=PASS.*"
 
 cp -R "$PRODUCED_TMP/test-produced-skill" "$PD_TMP/pd-fail-skill"
@@ -1221,6 +1241,140 @@ assert "pd-fail: tagged rows outside a tagged section fail" \
   "$PD_TMP/pd-fail-skill" \
   1 "PROBE_DERIVED_TOKENS=FAIL" \
   "no '## ... [probe-derived]' section heading"
+
+# ---------------------------------------------------------------------------
+# verify-citations.sh — Layer 1 resolution, Layer 2 snippet check, coverage
+# gate (the cite/uncovered-carryover hole), and the NONE postures.
+# ---------------------------------------------------------------------------
+CITE_SCRIPT_UNDER_TEST="$SKILL_DIR/verify-citations.sh"
+
+# Run verify-citations.sh from a fixture cwd and assert exit/tally/substring.
+# Usage: assert_verify <name> <cwd> <target> <want_exit> <tally-grep> [out-substring]
+assert_verify() {
+  local name="$1" cwd="$2" target="$3" want_exit="$4" tally="$5" out_sub="${6:-}"
+  local out got_exit=0
+  out="$( (cd "$cwd" && bash "$CITE_SCRIPT_UNDER_TEST" "$target") 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qE "^${tally}" <<<"$out"; then
+    err+=$'\n  tally line not found: '"$tally"
+  fi
+  if [[ -n "$out_sub" ]] && ! grep -qF "$out_sub" <<<"$out"; then
+    err+=$'\n  expected output substring not found: '"$out_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+CITE_TMP="$(mktemp -d)"
+# Consumer tree: a fake DS package whose lines the CITE rows anchor against.
+mkdir -p "$CITE_TMP/pass/node_modules/@acme/ui/dist/Banner" \
+         "$CITE_TMP/pass/.extract-ds-skill-scratch" \
+         "$CITE_TMP/pass/skill/references/components"
+cat >"$CITE_TMP/pass/node_modules/@acme/ui/dist/Banner/Banner.d.ts" <<'EOF'
+import * as React from 'react';
+export type BannerProps = {
+  /** Visual tone of the banner. */
+  variant?: 'default' | 'subtle' | 'critical';
+  full?: boolean;
+};
+export declare const Banner: React.FC<BannerProps>;
+EOF
+cat >"$CITE_TMP/pass/node_modules/@acme/ui/dist/Banner/Banner.js" <<'EOF'
+import React from 'react';
+export function Banner({
+  variant = 'default',
+  full = false,
+}) { return React.createElement('div'); }
+EOF
+cat >"$CITE_TMP/pass/.extract-ds-skill-scratch/claims.txt" <<'EOF'
+# CITE rows: snippet = the text that STATES the claim
+CITE:node_modules/@acme/ui/dist/Banner/Banner.js:3|variant = 'default'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:4|'default' | 'subtle' | 'critical'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:2-7|export type BannerProps
+EOF
+cat >"$CITE_TMP/pass/skill/references/components/banner.md" <<'EOF'
+# Banner
+
+- `variant` union: node_modules/@acme/ui/dist/Banner/Banner.d.ts:4 — default stated at dist/Banner/Banner.js:3
+- props block: node_modules/@acme/ui/dist/Banner/Banner.d.ts:2-7 and the pair node_modules/@acme/ui/dist/Banner/Banner.d.ts:4,5
+- upstream (skipped): packages/ui/src/Banner/Banner.tsx:12
+- repo cite (skipped): acme/ui-templates@main:app/layout.tsx
+- docs (skipped): https://example.invalid/banner
+EOF
+
+# Test: pass tree — full-form, bare-dist, range, and comma cites all resolve
+# and are covered; skipped classes are counted, not resolved.
+assert_verify "verify-citations: clean tree passes with full tally" \
+  "$CITE_TMP/pass" skill 0 \
+  "CITATION_VERIFICATION=PASS" \
+  "CITES_CHECKED=prose:4 claimed:3 skipped=upstream:1 repo:1 url:1"
+
+# Fail tree: same consumer, four seeded defects.
+cp -R "$CITE_TMP/pass" "$CITE_TMP/fail"
+cat >"$CITE_TMP/fail/.extract-ds-skill-scratch/claims.txt" <<'EOF'
+# drift seed: the d.ts union line does not contain the destructure text
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:4|variant = 'default'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:2-7|export type BannerProps
+EOF
+cat >>"$CITE_TMP/fail/skill/references/components/banner.md" <<'EOF'
+- uncovered seed: node_modules/@acme/ui/dist/Banner/Banner.js:1
+- unresolved seed: node_modules/@acme/ui/dist/Gone/Gone.d.ts:9
+- out-of-range seed: dist/Banner/Banner.js:99
+EOF
+assert_verify "verify-citations: drift seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "reason=drift"
+assert_verify "verify-citations: uncovered seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "Banner.js:1 reason=uncovered"
+assert_verify "verify-citations: unresolved seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "Gone/Gone.d.ts:9 reason=unresolved"
+assert_verify "verify-citations: out-of-range seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "Banner.js:99 reason=line-out-of-range"
+
+# Resolution-only: claims file absent → Layer 1 still runs; clean tree is
+# NONE (never a silent PASS), defective tree still FAILs.
+cp -R "$CITE_TMP/pass" "$CITE_TMP/resonly"
+rm -rf "$CITE_TMP/resonly/.extract-ds-skill-scratch"
+assert_verify "verify-citations: no claims file -> resolution-only NONE" \
+  "$CITE_TMP/resonly" skill 0 \
+  "CITATION_VERIFICATION=NONE \(resolution-only PASS - no claims file\)"
+cp -R "$CITE_TMP/fail" "$CITE_TMP/resonly-fail"
+rm -rf "$CITE_TMP/resonly-fail/.extract-ds-skill-scratch"
+assert_verify "verify-citations: NONE never hides a Layer 1 miss" \
+  "$CITE_TMP/resonly-fail" skill 1 "CITATION_VERIFICATION=FAIL" "reason=unresolved"
+
+# No node_modules at cwd → NONE, exit 0 (source-less audit posture).
+mkdir -p "$CITE_TMP/nonm/skill"
+cp "$CITE_TMP/pass/skill/references/components/banner.md" "$CITE_TMP/nonm/skill/banner.md"
+assert_verify "verify-citations: no node_modules -> NONE" \
+  "$CITE_TMP/nonm" skill 0 "CITATION_VERIFICATION=NONE \(no node_modules"
+
+# check-skill-docs.sh integration: produced-mode check #16 propagates the
+# verifier's verdict. Reuse the fail consumer with a minimal produced skill.
+cp -R "$PRODUCED_TMP/test-produced-skill" "$CITE_TMP/fail/cite-fail-skill"
+cat >"$CITE_TMP/fail/cite-fail-skill/references/components/banner.md" <<'EOF'
+# Banner
+
+- unresolved seed: node_modules/@acme/ui/dist/Gone/Gone.d.ts:9
+EOF
+assert_cwd "check-skill-docs: CITATION_VERIFICATION=FAIL propagates CHECK_RESULT=FAIL" \
+  "$CITE_TMP/fail" "$CITE_TMP/fail/cite-fail-skill" \
+  1 "CITATION_VERIFICATION=FAIL" "reason=unresolved"
+cp -R "$PRODUCED_TMP/test-produced-skill" "$CITE_TMP/nonm/cite-none-skill"
+assert_cwd "check-skill-docs: no node_modules -> CITATION_VERIFICATION=NONE, exit unchanged" \
+  "$CITE_TMP/nonm" "$CITE_TMP/nonm/cite-none-skill" \
+  0 "CITATION_VERIFICATION=NONE \(no node_modules.*"
 
 echo
 if [[ "$SKIPPED" -gt 0 ]]; then
