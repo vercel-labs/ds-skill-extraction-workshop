@@ -26,6 +26,8 @@ Exit 0 = pass. This catches "you said `Button` takes a `kind` prop, TypeScript s
 
 At extract time, every positive prop/enum claim, every negative ("never accepts") claim, and every cited local path that lands in produced prose MUST also be recorded as one line in `.extract-ds-skill-scratch/claims.txt`. `scripts/validate.sh` consumes that file to generate the prop-shape probe — the probe checks what the claims file declares, not what the prose says. A claim that never lands in the claims file is by definition unverified and must not appear in produced prose; zero positive prop/enum claims outside the claims file is the floor.
 
+Default-value claims follow the citation discipline in `references/component-extraction.md` (Shape 5): cite the d.ts line ONLY when it actually states the default (`@default` JSDoc tag or a literal default in the type); otherwise cite the implementation line where the default is destructured — citing a d.ts line for a default it does not state is an IMPRECISE claim, a citation defect even when the value is correct.
+
 One claim per line; `#` comments and blank lines are skipped. Four line forms:
 
 | Line form | Meaning | Mechanical check |
@@ -34,6 +36,7 @@ One claim per line; `#` comments and blank lines are skipped. Four line forms:
 | `NEGATIVE:<Component>.<prop>=<value>` | negative: the prop rejects the value | `// @ts-expect-error` line in the probe; `tsc` must reject the assignment. If the value is actually valid (an upstream type widening), the directive goes unused → TS2578 fails the probe |
 | `PATH:node_modules/<...>` | cited local path exists | `test -e` at validate time; a miss prints `PATH_MISS=<path>` and the run fails with `FAIL_REASON=path`. Only `node_modules/`-prefixed paths are accepted — anything else is a parse error |
 | `URL:<https-url>` | cited URL is reachable | verified as fetchable (HTTP 200) AT EXTRACT TIME by the extracting agent; `validate.sh` counts it (`url-skipped`) and does NOT re-check |
+| `CITE:node_modules/<path>:<line>[-<end>]\|<snippet>` | the cited line actually states the claim | `scripts/verify-citations.sh` checks the snippet appears on a line in the cited range; a miss prints `CITE_MISS=... reason=drift` and the run fails with `FAIL_REASON=cite`. Only `node_modules/`-prefixed paths are accepted |
 
 Generated probe line shapes (component names illustrative):
 
@@ -46,7 +49,27 @@ PATH:node_modules/@acme/ui/dist/button.d.ts  →  test -e node_modules/@acme/ui/
 
 Values `true`/`false` and bare numbers are emitted unquoted; everything else becomes a string literal. A claimed component that is missing from the surfaced-APIs file is added to the probe's import line automatically, so a claim against a component the package does not export fails the probe instead of silently skipping.
 
-`validate.sh` auto-detects `.extract-ds-skill-scratch/claims.txt`; pass `--claims <path>` to point at a different file. The summary emits `CLAIMS_CHECKED=positive:<n> negative:<n> path:<n> url-skipped:<n>` so the proof point can carry the tally verbatim.
+`validate.sh` auto-detects `.extract-ds-skill-scratch/claims.txt`; pass `--claims <path>` to point at a different file. The summary emits `CLAIMS_CHECKED=positive:<n> negative:<n> path:<n> url-skipped:<n> cite:<n>` so the proof point can carry the tally verbatim.
+
+### Citation-verification step — every file:line cite is re-read mechanically
+
+Citation discipline in prose alone does not survive regeneration: a default-value claim can cite a type line that never states the default, a cite can drift a line or two from the text it anchors, and a carried-over file can skip re-verification entirely. `scripts/verify-citations.sh` closes all three holes mechanically. It runs twice: in Phase 2 (`validate.sh` Phase D, over the scratch drafts) and in Phase 3 (over the whole persisted skill — `references/persist.md`, Citation verification).
+
+**CITE rows.** Every `file:line` cite that lands in produced prose MUST also be recorded as a `CITE:` row in the claims file. The snippet after the `|` is the text that STATES the claim — for a default-value claim that is the destructure or `@default` text, never just the value. A bare type-union line cannot contain the destructure text, so citing the type file for a default it does not state fails mechanically (`reason=drift`); a drifted line number fails the same way because the snippet is not on the cited line.
+
+**Coverage gate.** Every in-scope cite found in the prose must be covered by a CITE row on the same resolved path: a single-line cite needs a row whose range contains it; a range cite (`:N-M`) needs at least one intersecting row — the snippet anchors the block, one row per range is the floor, not one per line. Uncovered cites fail with `reason=uncovered`. Coverage spans ALL files in the target, so a regeneration that carries files over byte-for-byte must still re-register (and therefore re-read) their cites.
+
+**In-scope vs skipped cite shapes.** In scope: `node_modules/<...>.<ext>:N[,N|-N]` and bare `dist/<...>.<ext>:N[,N|-N]` (resolved against the DS package). Counted but skipped: upstream-repo source paths, `<owner>/<repo>@<ref>:<path>` cites, and URLs (verified fetchable at extract time). The tally makes the skipped classes visible so they cannot silently grow: `CITES_CHECKED=prose:<n> claimed:<n> skipped=upstream:<n> repo:<n> url:<n>`.
+
+**Verdict line.** `CITATION_VERIFICATION=PASS` when every prose cite resolves with in-range lines, every cite is covered, and every CITE row's snippet is found. `FAIL` (exit 1) on any `CITE_MISS=<file>:<line> -> <source>:<spec> reason=<unresolved|line-out-of-range|drift|uncovered>`. `NONE` only when there is no `node_modules/` tree to resolve against, or when no claims file exists and resolution-only checking passed — NONE never hides a miss.
+
+### Example shape — CITE rows (illustrative)
+
+```
+CITE:node_modules/@acme/ui/dist/Banner/Banner.js:36|variant = 'default'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:5|'default' | 'warning' | 'success' | 'danger'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:1-7|export type BannerProps
+```
 
 ### Escalation — probe-page render
 
@@ -88,6 +111,63 @@ Sequence:
 
 The step writes to scratch only; no foundation rule lands in `.claude/skills/<slug>/` until Phase 3.
 
+## Rendered-site probe step (opt-in)
+
+Runs only when BOTH hold: (a) the DS has a public docs URL accepted in Phase 1, and (b) the user has not opted out. The opt-out phrase is **"skip rendered probe"**, honored any time before the Phase 2 close. Default for CI, tests, and unattended runs is skip. Do not widen the probe beyond this trigger — it is an annotation layer for DSes with a rendered ground truth, not a new extraction source.
+
+**What it does.** `scripts/probe-rendered.sh` renders the accepted docs URL headless (playwright + chromium) and diffs the **computed** CSS custom-property values on the live page against the **declared** values the extraction pulled from source. The gap surfaces theme overrides, build-time transforms, and stale source declarations — exactly the finding class the `[VERIFY]` discipline carries.
+
+**Authority rule.** Source extraction stays authoritative; the probe ANNOTATES. A `MISMATCH` verdict never rewrites a declared value, never downgrades a source cite, and never blocks the wait-for-approval gate. It becomes one `[VERIFY: rendered-probe mismatch — ...]` line in the same tally every other Phase 2 check feeds, for the user to resolve at the gate (accept, re-read source, or drop the rule).
+
+Sequence:
+
+1. **Write the probe manifest.** One row per source-extracted token in the probe's scope (color, font-family, base spacing/size), to `.extract-ds-skill-scratch/probe-manifest.txt`. Out of scope — do not manifest: shadow tokens, gradients, transition/animation values, breakpoint tokens (the probe reads exactly one rendered mode per run; mode-conditional values beyond the page's active mode cannot be diffed from a single render).
+2. **Run the probe.** `bash scripts/probe-rendered.sh --url <accepted-docs-url> --manifest .extract-ds-skill-scratch/probe-manifest.txt --out .extract-ds-skill-scratch/probe-report.txt`. The script is read-only against the docs site (GET-only; non-GET requests aborted; no auth, no interaction).
+3. **Fold the output into the Phase 2 stream.** Append every emitted `[VERIFY: rendered-probe ...]` line (one per `MISMATCH`/`UNRESOLVED` row) to the running `[VERIFY]` tally, and append the `PROBE_RESULT=checked:<n> match:<n> mismatch:<n> unresolved:<n>` line to the proof point immediately after the `TOKEN_COVERAGE` line. `MATCH` rows need no action — they are silent corroboration.
+4. **Degrade gracefully.** `PROBE_SKIPPED=no-docs-url` / `PROBE_SKIPPED=browsers-unavailable` (exit 0) → log the line verbatim, continue Phase 2 unchanged; browser binaries are installed on the HOST (never inside a sandbox) — the script header documents the command. Any non-zero exit (`PROBE_FAILED=navigation ...`, `MANIFEST_ERROR=...`) → log `[VERIFY: rendered-probe failed — <line verbatim>]`, continue. The probe is never a blocker.
+
+### Example shape — probe manifest row (illustrative)
+
+```
+# <token-name> | <declared-value> | <source-cite file:line> [| <css-selector>]
+--color-accent  | #0070f3            | node_modules/@acme/ui/dist/css/light.css:12 | html
+--font-sans     | Inter, sans-serif  | node_modules/@acme/ui/dist/css/type.css:3
+--space-2       | 0.5rem             | node_modules/@acme/ui/dist/css/size.css:8
+```
+
+The selector defaults to `html`. Declared and computed values are canonicalized in-browser before compare (hex → rgb(), rem → px, quote/whitespace normalization for font stacks), so notation differences are not reported as mismatches.
+
+The same script also carries an audit-phase **screenshot mode** (`--screenshot`): side-by-side PNG evidence of a produced component page vs the DS docs example, every entry tagged `[needs-human-review]`. That mode is out of Phase 2 scope — it emits evidence only, never a visual verdict, and its contract is documented in the consuming audit skill and the script header. A third mode, the Phase 1 **inventory mode** (`--inventory`), enumerates the fonts/icons the rendered docs page actually loads for the discovery summary's `Assets detected:` line — also out of Phase 2 scope; see `references/discovery.md` (Rendered-site asset inventory). The fourth mode, the **recover fallback** (`--recover`), IS Phase 2 scope and has its own contract below.
+
+### Compiled-CSS fallback — probe-derived token recovery (source-blocked DSes only)
+
+The graceful-recovery path for the rare DS that ships ONLY compiled CSS: no source token files, no public token package, no readable design tokens — token-class extraction returned `[private-blocker]`. Instead of stalling Phase 2 on the gap, the probe recovers what values it can from the rendered docs page and Phase 2 continues with clearly second-class material. The default `[private-blocker]` behavior (log, proceed with the gap) stays correct for every other case — this fallback fires only when ALL THREE hold:
+
+1. Token-class source extraction (color, font, spacing) returned `[private-blocker]`.
+2. The DS has a public docs URL accepted in Phase 1.
+3. The user has not opted out (same phrase: **"skip rendered probe"**).
+
+Do NOT widen the fallback to DSes whose token source is readable, and never let probe-derived values replace source-cited ones when both are available — the fallback is a recovery path, not an alternative extraction source; anything wider breaks the source-first, citation-first contract this skill is built on.
+
+**Invocation.** `bash scripts/probe-rendered.sh --recover --url <accepted-docs-url> --out-manifest .extract-ds-skill-scratch/probe-recovered-tokens.txt`. Read-only against the docs site (GET-only, no auth, no interaction). On success the script emits `PROBE_RECOVER=captured tokens=<n> custom-props=<n> base=<n> manifest=<path> url=<url>`; append that line to the proof point next to the token tally so the gate sees how much of the token surface is recovered rather than cited.
+
+**Manifest shape.** Pipe-delimited like the diff-mode manifest, with the source-cite slot REPLACED by the `[probe-derived]` provenance tag — no `file:line` cite exists for a source-blocked DS, and every row says so. Custom properties the page still ships keep their semantic names; the synthetic `--probe-*` base rows (body color/background/font, root font size, link color, heading font) are recovered VALUES with NO semantic names. Illustrative rows:
+
+```
+# <token> | <computed-value> | [probe-derived] | <selector>
+--color-accent           | rgb(0, 112, 243)  | [probe-derived] | html
+--probe-body-font-family | Inter, sans-serif | [probe-derived] | body
+```
+
+**Second-class rules.**
+
+- **Provenance is permanent.** The `[probe-derived]` tag travels with every recovered token through the phase-2 handoff into the produced skill. A probe-derived token never acquires a `file:line` cite.
+- **Source wins on conflict.** If a token is BOTH source-cited (e.g. a partially blocked DS) and probe-derived, the source-cited entry is the one materialized; the probe-derived row is dropped and the conflict is logged as one `[VERIFY: probe-recover conflict — <token> source-cited '<v1>' vs probe-derived '<v2>'; source wins]` line in the Phase 2 tally — logged, never silenced.
+- **Semantic-name loss is documented, not hidden.** Recovered values largely lose semantic names (`#0070F3`, not `--color-accent-primary`). Phase 3 materializes recovered tokens under a dedicated `## Probe-derived tokens [probe-derived]` section in the produced tokens file — never interleaved with source-cited entries — whose preamble states the provenance and the loss (recovered from the rendered docs page because the token source was `[private-blocker]`; one page, one rendered mode; synthetic `--probe-*` names carry no DS naming authority). See `references/persist.md` (Split rules, Probe-derived tokens).
+- **Audit visibility.** `scripts/check-skill-docs.sh` produced mode emits the `PROBE_DERIVED_TOKENS=` tally: `NONE` when all tokens are source-cited, a tagged-line count when the dedicated section is present, `FAIL` when tagged rows leak outside a tagged section heading.
+
+**Degradation.** Identical to the sibling modes: `PROBE_SKIPPED=no-docs-url` / `PROBE_SKIPPED=browsers-unavailable` exit 0; `PROBE_FAILED=navigation` exit 1 with no manifest written. On any skip or failure, Phase 2 proceeds with the `[private-blocker]` gap recorded as-is — the fallback failing is never worse than the fallback not existing. Record the manifest path and any conflict lines in the phase-2 handoff so Phase 3 knows to materialize the section.
+
 ## Shell-invariant extraction step
 
 Runs whenever Phase 2 has lifted ANY verbatim wiring into scratch — either through the Reference-project extraction step above (root-entry-file code block in `.extract-ds-skill-scratch/wiring-extracted.md`, plus its `## Companion CSS file (verbatim) — <path>` blocks), or through the Foundation-docs wiring fallback (a `### Foundation wiring` snippet lifted from a foundation page), or both. Skip this entire section when no wiring was lifted (no reference project AND no foundation wiring snippet); the produced skill's Setup section will be empty and `## Hard rules` carries only the universal `[VERIFY]` + do-not-invent contract.
@@ -104,6 +184,7 @@ Sequence:
    - **Body/root paint via globals.css body rule** — when one of the Companion CSS files contains a `body { background-color: var(--<surface-default>); ... }` rule (or the equivalent `html, body { ... }`). Step phrasing: "`globals.css` MUST paint the body/root with the DS's surface token."
    - **Mode attribute on `<html>`** — when the lifted root-entry-file snippet sets `data-*-color-scheme`, `class="dark"`, or any other DS-named mode attribute on `<html>`. Step phrasing: "The mode attribute on `<html>` MUST be paired with the matching theme CSS import."
    - **Theme CSS imports matched to the mode attribute** — every theme file the DS ships per mode (light, dark, contrast) that the Companion CSS lifts as `@import "<ds-themes>/<mode>.css";`. Step phrasing: "The theme CSS imports MUST cover every mode the app declares via the mode attribute."
+   - **Fixed viewport height on the shell wrapper** — when the lifted snippet (or a lifted Companion CSS rule) sets `height: 100vh`/`100dvh` on the base-surface element, `html`, or `body`. Step phrasing: "The shell wrapper uses a FIXED viewport height in the lifted wiring; the produced Hard Rule MUST direct consumers to `minHeight` — fixed height clips content taller than the viewport." Unlike the other constructs, presence IS the trap; the lift stays verbatim and the warning is promoted alongside it. See `references/anti-patterns.md` `shell/fixed-viewport-height`.
    - **Root font loading** — when the lifted snippet wires a font (e.g. `<NextFont>` className on `<html>`, or `@import` of a font CSS file) that the DS prescribes. Step phrasing: "The DS-prescribed root font MUST load on the root element."
 
    Omit any construct the lifted material does not contain. Inventing a step to fill a row is a fabrication; the produced skill ships only the invariants its real DS surfaces.
@@ -116,6 +197,7 @@ Sequence:
    - Body/root paint omitted → "Token-painted components float on the browser-default white surface; the page renders 'card painted, body unpainted' — the canonical mode-mismatch bug."
    - Mode attribute set without matching theme import → "The mode attribute sets the token-resolution context but the unimported theme file leaves functional tokens at their fallback values; the mode toggles but the values do not."
    - Theme import set without the mode attribute → "The theme file loads but the resolution context never switches; the DS default mode renders regardless of OS or user preference."
+   - Fixed viewport height kept verbatim by the consumer → "Content taller than the viewport clips; inner scrolling dies inside the fixed-height wrapper."
    - Root font omitted → "Components render in the browser-default font; type-scale tokens still resolve but the type system's measure/leading/x-height assumptions break."
 
 3. **Promote each (step, failure-mode) pair to three sites.** Each pair lands in three places when Phase 3 materializes the scratch:
@@ -165,6 +247,8 @@ The format follows the proof-point line with a tally line on the next line:
 TOKEN_COVERAGE=PASS    (or TOKEN_COVERAGE=NOOP, or TOKEN_COVERAGE=FAIL with per-var MISSING rows above)
 ```
 
+The citation-verification verdict rides the proof point the same way whenever a claims file was in scope: the `CITATION_VERIFICATION=...` line with the `CITES_CHECKED=...` tally carried verbatim (see Citation-verification step above).
+
 ### Worked example — Phase 2 proof-point with foundation URL and reference project in scope (illustrative)
 
 The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same proof-point contract applies to whichever DS the user passes.
@@ -177,6 +261,7 @@ Validation complete.
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
 - Wiring extracted from mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
 - TOKEN_COVERAGE=PASS
+- CITATION_VERIFICATION=PASS (CITES_CHECKED=prose:31 claimed:33 skipped=upstream:0 repo:2 url:6)
 - 0 hallucinations
 - 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
@@ -263,6 +348,8 @@ _Written by /extract-ds-skill at <ISO date> after validation iteration <N>. Stat
 <verbatim proof-point line from the validation summary>
 
 TOKEN_COVERAGE=<PASS|NOOP|FAIL> (consumed: <N>, covered: <M>)
+
+CITATION_VERIFICATION=<PASS|FAIL|NONE> (CITES_CHECKED=prose:<n> claimed:<n> skipped=upstream:<n> repo:<n> url:<n>)
 
 ## Scratch artefacts (Phase 3 will materialize from these)
 

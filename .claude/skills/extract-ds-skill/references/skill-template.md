@@ -103,7 +103,7 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   This section tells the agent that the wrapper exists in the consumer surface and points at the upstream types as the prop source-of-truth. Do NOT extract per-prop entries — these components carry no DS-author-elevated rules; the upstream types are sufficient. Do NOT extract `### Best Practices`, `### Composition examples`, or any other per-component subsection — the absence of a `.docs.tsx`-style annotation IS the signal that no DS-elevated rules exist.
 
   If the source DS has zero re-exports outside the proposing set, omit the section entirely. Do NOT write an empty `## Other re-exports` heading — empty sections are a worse failure mode than absence (they imply enumeration was attempted and produced nothing, which is not true).
-- **Hard rules** — do-not-invent list + `[VERIFY]` convention + **shell invariants promoted from Phase 2 shell-invariant extraction** (per `references/validate.md` Shell-invariant extraction step). At minimum, when the DS surfaces a body-paint contract: an explicit rule paraphrasing "The body/root MUST paint with the DS's surface token. A token-painted component on an unpainted shell is the canonical mode-mismatch bug." When the DS surfaces a mode attribute on `<html>`: an explicit rule pairing the attribute with the required theme imports. When the DS surfaces a provider: an explicit rule that the provider wraps children, not renders as a sibling. State plainly: any prop, variant, token, or asset the agent cannot ground in source gets a literal `[VERIFY]` marker inline. Mark unverifiable facts `[VERIFY]`. Report blockers instead of guessing.
+- **Hard rules** — do-not-invent list + `[VERIFY]` convention + **shell invariants promoted from Phase 2 shell-invariant extraction** (per `references/validate.md` Shell-invariant extraction step). At minimum, when the DS surfaces a body-paint contract: an explicit rule paraphrasing "The body/root MUST paint with the DS's surface token. A token-painted component on an unpainted shell is the canonical mode-mismatch bug." When the DS surfaces a mode attribute on `<html>`: an explicit rule pairing the attribute with the required theme imports. When the DS surfaces a provider: an explicit rule that the provider wraps children, not renders as a sibling. When the lifted wiring sets a fixed viewport height on the shell wrapper: an explicit rule that consumer apps use `minHeight`, not fixed `height`, for viewport-fill — see `shell/fixed-viewport-height`. State plainly: any prop, variant, token, or asset the agent cannot ground in source gets a literal `[VERIFY]` marker inline. Mark unverifiable facts `[VERIFY]`. Report blockers instead of guessing.
 
   Worked example of the produced `## Hard rules` section (illustrative — substitute the DS-specific surface token name, mode attribute name, and provider name from Phase 1 discovery; omit any rule whose underlying construct is not surfaced by the DS per the omission rule in `references/anti-patterns.md`):
 
@@ -113,6 +113,7 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   - The body/root MUST paint with `var(--<surface-default>)` via either the `<BaseSurface style={{ backgroundColor: "var(--<surface-default>)" }}>` style prop OR `body { background-color: var(--<surface-default>); color: var(--<text-default>); }` in `globals.css`. A token-painted component on an unpainted shell is the canonical mode-mismatch bug — see `references/anti-patterns.md` `shell/unpainted-body`.
   - `<html data-*-color-scheme="<mode>">` MUST be paired with the matching theme CSS import (`@import "<ds-themes>/<mode>.css";`). The attribute sets the resolution context; the import provides the values — see `shell/mode-attribute-no-theme-import`.
   - `<Provider>` MUST wrap children, not render as a sibling: `<Provider><BaseSurface>{children}</BaseSurface></Provider>`. Provider context only reaches descendants — see `shell/provider-missing-content-wrap`.
+  - The shell wrapper in Setup uses `height: "100vh"` verbatim from the reference project; in YOUR app use `minHeight` — fixed height clips content taller than the viewport. See `shell/fixed-viewport-height`.
   - Any prop, variant, token, or asset the agent cannot ground in source gets a literal `[VERIFY]` marker inline.
   - Report blockers instead of guessing.
   ```
@@ -130,7 +131,7 @@ The 8-section checklist — the agent ticks each one during the reflexive-audit 
 
 1. **Public imports** — the `import` line(s) the consumer writes. Barrel form preferred.
 2. **When to use** — one or two sentences. Includes the negative case ("not for X — use `<other>`").
-3. **Key props and variants** — the props the agent will actually reach for. Cite each to source `file:line`. Skip exhaustive prop dumps; the type definitions are the exhaustive list.
+3. **Key props and variants** — the props the agent will actually reach for. Cite each to source `file:line`. Skip exhaustive prop dumps; the type definitions are the exhaustive list. Cite format: the first mention in a file uses the full `node_modules/<pkg>/...:line` form; later cites in the same file may drop to the short `dist/...:line` form. Upstream-repo cites use the `<owner>/<repo>@<ref>:<path>` form — never a bare `packages/...` or `src/...` path, which `scripts/verify-citations.sh` cannot resolve and must skip (the skipped class must not grow).
 4. **Accessibility** — required ARIA, label associations, keyboard behavior. Cite to source or to the docs a11y section.
 5. **Composition examples** — code blocks that compile. Imports included. Each example doubles as a pattern (see collapse rule below).
 6. **Source references** — repo-relative paths to the component implementation, its tests, its docs.
@@ -202,7 +203,7 @@ Plain Markdown, NOT Geist's JSX `<BestPractices>` wrapper. Heading: `## Best Pra
 
 Two shapes — pick by counting rules and axes:
 
-- **Flat bulleted list** — when the component has fewer than 10 rules AND fewer than 3 distinct axes of concern. One bullet per rule. Each rule is a single imperative sentence. Cite source `file:line` at the end of the bullet.
+- **Flat bulleted list** — when the component has fewer than 10 rules AND fewer than 3 distinct axes of concern. One bullet per rule. Each rule is a single imperative sentence. Cite source `file:line` at the end of the bullet (cite format per the Key-props bullet above: full `node_modules/...` form on first mention, `owner/repo@ref:path` for upstream cites).
 - **Subsectioned** — when the component has 10 or more rules OR 3 or more axes. Use the Geist vocabulary verbatim, in this order:
 
   ```markdown

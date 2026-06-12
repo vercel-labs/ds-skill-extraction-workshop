@@ -49,6 +49,20 @@ The report preamble must state: "Rubric is this skill's baked-in Primer contract
 
 Full report template and worked example: [REFERENCE.md](REFERENCE.md).
 
+### Step 4 — Visual evidence (screenshot probe, opt-in)
+
+When BOTH hold — (a) the audited run is reachable at a URL the operator supplies (an already-running preview; **never start a server to get one**), and (b) the DS has a public docs URL — capture side-by-side screenshot evidence for each component in scope:
+
+```
+bash .claude/skills/extract-ds-skill/scripts/probe-rendered.sh --screenshot \
+  --component <Name> --url <ds-docs-example-url> --produced-url <produced-page-url> \
+  --out-dir <audit-scratch>/screenshots
+```
+
+The probe writes `<slug>--docs.png` + `<slug>--produced.png` and emits one entry line per pair — component name, both PNG paths, both source URLs, tagged `[needs-human-review]`. Copy each `PROBE_SCREENSHOT=captured ...` line **verbatim** into a `## Visual evidence [needs-human-review]` block placed after the greppable footer, outside the table.
+
+**Discipline — evidence, never verdict.** The screenshots are artifacts FOR the human reviewer; the audit never converts them into findings. Visual DS-contract claims (color saturation, disabled palette, contrast, dark-mode legibility) are NEVER asserted from screenshot inference alone. No screenshot entry feeds a rubric cell or `FIDELITY_RESULT`; no pixel diff becomes a pass/fail score (a diff image, if ever attached, is a third artifact for the human, never a graded verdict). Probe skips/failures (`PROBE_SKIPPED=...`, `PROBE_FAILED=...`) are logged in the block verbatim and the audit proceeds — visual evidence is additive, never a gate.
+
 ## Hard rules
 
 - Rubric is the fixed catalog in REFERENCE.md only — never invent rows from the audited code, memory of other DSs, or upstream docs.
@@ -57,4 +71,5 @@ Full report template and worked example: [REFERENCE.md](REFERENCE.md).
 - `⚠️` is first-class: stricter-than-required or equivalent substitutions are not failures.
 - Cite `file:line` in every non-`✅` cell.
 - Spec/prompt fidelity is out of scope — this skill measures attachment to the Primer contract only.
-- Do not edit the audited run. Read-only; the report is the sole output.
+- Do not edit the audited run. Read-only; the report is the sole output (plus screenshot PNGs in the audit scratch dir when the probe runs).
+- Screenshot-probe entries carry `[needs-human-review]` verbatim and never produce a visual claim, rubric cell, or `FIDELITY_RESULT` contribution — the human reviewer produces visual claims, never the audit.

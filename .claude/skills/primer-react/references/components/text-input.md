@@ -16,7 +16,7 @@ Pick `TextInput` for single-line text entry (search, repo name, email). For mult
 ## Key props
 
 - `loading?: boolean` — renders a spinner inside the input. `node_modules/@primer/react/dist/TextInput/TextInput.d.ts:9`
-- `loaderPosition?: 'auto' | 'leading' | 'trailing'` — default `'auto'` (trailing unless a `leadingVisual` is present). `dist/TextInput/TextInput.d.ts:16`
+- `loaderPosition?: 'auto' | 'leading' | 'trailing'` — default `'auto'` (trailing unless a `leadingVisual` is present). `dist/TextInput/TextInput.d.ts:16` `dist/TextInput/TextInput.d.ts:12`
 - `loaderText?: string` — SR-announced loading text. `dist/TextInput/TextInput.d.ts:18`
 - `leadingVisual?: ElementType | ReactNode` — icon or node before the typing area. `dist/TextInput/TextInput.d.ts:22`
 - `trailingVisual?: ElementType | ReactNode` — icon or node after the typing area. `dist/TextInput/TextInput.d.ts:26`
@@ -24,7 +24,7 @@ Pick `TextInput` for single-line text entry (search, repo name, email). For mult
 - `characterLimit?: number` — shows a counter; exceeding it applies validation styling. `dist/TextInput/TextInput.d.ts:35`
 - `block?: boolean` — fills horizontally. `dist/TextInput/TextInput.d.ts:36` (via `StyledWrapperProps`)
 - `monospace?: boolean` — monospace font. `dist/TextInput/TextInput.d.ts:36`
-- `size?: 'small' | 'medium' | 'large'` — default `'medium'`. `dist/TextInput/TextInput.d.ts:36` + `dist/Button/types.d.ts:5`
+- `size?: 'small' | 'medium' | 'large'` — default `'medium'` — `size` has no explicit default; omitting it renders the base wrapper (the medium scale). `dist/TextInput/TextInput.d.ts:36` + `dist/internal/components/TextInputWrapper.js:135`
 - `validationStatus?: 'error' | 'success'` (`FormValidationStatus`) — visual + ARIA validation state. `dist/utils/types/FormValidationStatus.d.ts`
 - `contrast?: boolean` — higher-contrast surface. `dist/TextInput/TextInput.d.ts:36`
 - `disabled?: boolean` — native disabled. `dist/TextInput/TextInput.d.ts:36`

@@ -15,7 +15,7 @@ Pick `IconButton` for icon-only triggers (close, more, share, settings). For but
 
 ## Key props
 
-- `icon: ElementType` — REQUIRED. The icon component (e.g. `XIcon` from `@primer/octicons-react`). `node_modules/@primer/react/dist/Button/types.d.ts:73`
+- `icon: ElementType` — REQUIRED. The icon component (e.g. `XIcon` from `@primer/octicons-react`). `node_modules/@primer/react/dist/Button/types.d.ts:72`
 - `aria-label: string` — REQUIRED (or `aria-labelledby`). Doubles as the tooltip text unless `unsafeDisableTooltip`. `dist/Button/types.d.ts:7-14`
 - `unsafeDisableTooltip?: boolean` — opts out of the auto-tooltip; do NOT use unless you ship a custom tooltip wrapper. `dist/Button/types.d.ts:73`
 - `description?: string` — additional context BEYOND the `aria-label` (read after the label by SR). `dist/Button/types.d.ts:74`
@@ -35,7 +35,7 @@ Pick `IconButton` for icon-only triggers (close, more, share, settings). For but
 
 - Always pass `aria-label` (or `aria-labelledby`) — the d.ts requires it. `dist/Button/types.d.ts:7-14`
 - The `aria-label` IS the accessible name AND the tooltip text — do not duplicate it as `description`. `description` carries information the label does not. `dist/Button/types.d.ts:74`
-- Pass the icon as the `icon` prop, not as `children` — IconButton omits `children` semantics (it is icon-only). `dist/Button/types.d.ts:73`
+- Pass the icon as the `icon` prop, not as `children` — IconButton omits `children` semantics (it is icon-only). `dist/Button/types.d.ts:72`
 - Use `keybindingHint`, not the deprecated `keyshortcuts`. `dist/Button/types.d.ts:76-78`
 - `tooltipDirection` accepts COMPASS directions only — `'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw'`, NOT `'top' | 'right' | 'bottom' | 'left'`. `dist/Button/types.d.ts:75`
 

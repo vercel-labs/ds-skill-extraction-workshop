@@ -116,7 +116,7 @@ assert "pass-fixture auto-detects meta-mode" \
 # in meta-mode; produced-mode should NOT emit a NO_HARDCODED_PATHS line at
 # all (the check is meta-mode only).
 PRODUCED_TMP="$(mktemp -d)"
-trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}"' EXIT
+trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}" "${PROBE_TMP:-}" "${PD_TMP:-}" "${CITE_TMP:-}"' EXIT
 mkdir -p "$PRODUCED_TMP/test-produced-skill/references/components"
 cat >"$PRODUCED_TMP/test-produced-skill/SKILL.md" <<'EOF'
 ---
@@ -901,6 +901,22 @@ EOF
   assert_validate "seeded missing node_modules path fails test -e" \
     claims-bad-path.txt 1 "FAIL_REASON=path" "PATH_MISS=node_modules/fake-ds/missing.d.ts"
 
+  # CITE-grammar parse regression: a CITE row whose snippet contains '=' and
+  # '|' must not be swallowed by the prop-claim glob or rejected as
+  # unrecognized; Phase D verifies it (snippet on index.d.ts:2) and the
+  # tally carries cite:1.
+  printf "Button.variant=primary\nCITE:node_modules/fake-ds/index.d.ts:2|'primary' | 'secondary'\n" \
+    >"$CLAIMS_TMP/claims-cite.txt"
+  assert_validate "CITE row with = and | in snippet parses and verifies" \
+    claims-cite.txt 0 "VALIDATE_RESULT=PASS" "cite:1"
+
+  # Seeded drift in a CITE row — the snippet is not on the cited line; Phase D
+  # fails the run with FAIL_REASON=cite while typecheck/grep/path stay green.
+  printf "CITE:node_modules/fake-ds/index.d.ts:3|'primary' | 'secondary'\n" \
+    >"$CLAIMS_TMP/claims-cite-drift.txt"
+  assert_validate "seeded CITE drift fails with FAIL_REASON=cite" \
+    claims-cite-drift.txt 1 "FAIL_REASON=cite" "reason=drift"
+
   # Test 49: strict-exports package (issue #37) — its `exports` map omits the
   # ./package.json subpath, so require.resolve('<pkg>/package.json') throws
   # ERR_PACKAGE_PATH_NOT_EXPORTED. Phase B must fall back to resolving the main
@@ -937,6 +953,428 @@ else
   echo "SKIP  claims-probe tests (6) — typescript/@types/react not installed at $REPO_ROOT; run pnpm install first"
   SKIPPED=$((SKIPPED + 6))
 fi
+
+# ---------------------------------------------------------------------------
+# probe-rendered.sh tests (issue #47). Deterministic — the suite never
+# launches a real browser: skip paths are exercised directly and the
+# browsers-unavailable path is forced via the PROBE_RENDERED_BROWSERS=absent
+# test hook documented in the script header. Manifest validation runs BEFORE
+# browser detection, so those assertions hold on hosts with browsers too.
+# ---------------------------------------------------------------------------
+PROBE="$SKILL_DIR/probe-rendered.sh"
+PROBE_TMP="$(mktemp -d)"
+printf -- '--color-accent | #0070f3 | node_modules/@acme/ui/dist/css/light.css:12 | html\n' \
+  >"$PROBE_TMP/manifest.txt"
+
+# assert_probe <name> <want-exit> <stdout-substring> <cmd...>
+assert_probe() {
+  local name="$1" want_exit="$2" want_sub="$3"
+  shift 3
+  local out got_exit=0
+  out="$("$@" 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qF "$want_sub" <<<"$out"; then
+    err+=$'\n  expected substring not found: '"$want_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+# Test P1: no --url -> the documented no-docs-URL clean skip, exit 0.
+assert_probe "probe: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  bash "$PROBE" --manifest "$PROBE_TMP/manifest.txt"
+
+# Test P2: browsers forced absent -> graceful skip, exit 0, host-side
+# install hint printed (the script must NEVER install browsers itself).
+assert_probe "probe: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/manifest.txt"
+
+# Test P3: missing manifest file is a loud usage error (exit 2), even when
+# browsers are absent — manifest validation precedes browser detection.
+assert_probe "probe: missing manifest is a usage error" \
+  2 "MANIFEST_ERROR=$PROBE_TMP/missing.txt: file not found" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/missing.txt"
+
+# Test P4: malformed manifest row (missing source-cite field) names the
+# file and line, exit 2.
+printf -- '--ok-token | #ffffff | a.css:1\n--bad-token | #ffffff\n' >"$PROBE_TMP/bad.txt"
+assert_probe "probe: malformed manifest row names file:line" \
+  2 "MANIFEST_ERROR=$PROBE_TMP/bad.txt:2" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/bad.txt"
+
+# Test P5: a manifest entry that is not a CSS custom property (no leading
+# --) is rejected with the token named.
+printf -- 'color-accent | #ffffff | a.css:1\n' >"$PROBE_TMP/notoken.txt"
+assert_probe "probe: non-custom-property token rejected" \
+  2 "token must be a CSS custom property" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/notoken.txt"
+
+# ---------------------------------------------------------------------------
+# probe-rendered.sh --screenshot tests (issue #48). Same determinism rule:
+# argument validation precedes browser detection, and the browsers-absent
+# hook keeps the suite from ever launching a real browser.
+# ---------------------------------------------------------------------------
+
+# Test S1: screenshot mode with all required args but browsers absent ->
+# graceful skip, exit 0 (args parse + validation passes first).
+assert_probe "screenshot: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --url "https://example.invalid/docs/button" \
+  --produced-url "https://example.invalid/produced" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S2: screenshot mode without --url -> the same documented no-docs-URL
+# clean skip as diff mode, exit 0.
+assert_probe "screenshot: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --produced-url "https://example.invalid/produced" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S3: missing --component is a loud usage error (exit 2), even in a
+# browserless sandbox.
+assert_probe "screenshot: missing --component is a usage error" \
+  2 "error: --component is required in screenshot mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot \
+  --url "https://example.invalid/docs/button" \
+  --produced-url "https://example.invalid/produced" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S4: missing --produced-url is a loud usage error (exit 2).
+assert_probe "screenshot: missing --produced-url is a usage error" \
+  2 "error: --produced-url is required in screenshot mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --url "https://example.invalid/docs/button" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S5: missing --out-dir is a loud usage error (exit 2) — screenshot
+# mode never picks an implicit output path.
+assert_probe "screenshot: missing --out-dir is a usage error" \
+  2 "error: --out-dir is required in screenshot mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --url "https://example.invalid/docs/button" \
+  --produced-url "https://example.invalid/produced"
+
+# ---------------------------------------------------------------------------
+# probe-rendered.sh --inventory tests (issue #49). Same determinism rule:
+# argument validation precedes browser detection, and the browsers-absent
+# hook keeps the suite from ever launching a real browser.
+# ---------------------------------------------------------------------------
+
+# Test I1: inventory mode with all required args but browsers absent ->
+# graceful skip, exit 0 — Phase 1 stays on its source-only path.
+assert_probe "inventory: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory \
+  --url "https://example.invalid/docs" \
+  --out-json "$PROBE_TMP/inventory.json"
+
+# Test I2: inventory mode without --url -> the same documented no-docs-URL
+# clean skip as the other modes, exit 0.
+assert_probe "inventory: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory --out-json "$PROBE_TMP/inventory.json"
+
+# Test I3: missing --out-json is a loud usage error (exit 2), even in a
+# browserless sandbox — inventory mode never picks an implicit output path.
+assert_probe "inventory: missing --out-json is a usage error" \
+  2 "error: --out-json is required in inventory mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory --url "https://example.invalid/docs"
+
+# Test I4: --inventory and --screenshot together is a contradictory-flags
+# usage error (exit 2), caught before any skip path.
+assert_probe "inventory: --inventory + --screenshot is a usage error" \
+  2 "error: --screenshot and --inventory are mutually exclusive" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory --screenshot \
+  --url "https://example.invalid/docs" \
+  --out-json "$PROBE_TMP/inventory.json"
+
+# ---------------------------------------------------------------------------
+# probe-rendered.sh --recover tests (issue #50). Same determinism rule:
+# argument validation precedes browser detection, and the browsers-absent
+# hook keeps the suite from ever launching a real browser.
+# ---------------------------------------------------------------------------
+
+# Test R1: recover mode with all required args but browsers absent ->
+# graceful skip, exit 0 — Phase 2 proceeds with the [private-blocker] gap
+# recorded as-is (the pre-fallback default).
+assert_probe "recover: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover \
+  --url "https://example.invalid/docs" \
+  --out-manifest "$PROBE_TMP/recovered-tokens.txt"
+
+# Test R2: recover mode without --url -> the same documented no-docs-URL
+# clean skip as the other modes, exit 0 (the fallback requires an accepted
+# docs URL by construction).
+assert_probe "recover: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --out-manifest "$PROBE_TMP/recovered-tokens.txt"
+
+# Test R3: missing --out-manifest is a loud usage error (exit 2), even in a
+# browserless sandbox — recover mode never picks an implicit output path.
+assert_probe "recover: missing --out-manifest is a usage error" \
+  2 "error: --out-manifest is required in recover mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --url "https://example.invalid/docs"
+
+# Test R4: --recover and --inventory together is a contradictory-flags usage
+# error (exit 2), caught before any skip path.
+assert_probe "recover: --recover + --inventory is a usage error" \
+  2 "error: --recover and --inventory are mutually exclusive" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --inventory \
+  --url "https://example.invalid/docs" \
+  --out-manifest "$PROBE_TMP/recovered-tokens.txt" \
+  --out-json "$PROBE_TMP/inventory.json"
+
+# Test R5: --recover and --screenshot together is a contradictory-flags usage
+# error (exit 2), caught before any skip path.
+assert_probe "recover: --recover + --screenshot is a usage error" \
+  2 "error: --recover and --screenshot are mutually exclusive" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --screenshot \
+  --url "https://example.invalid/docs" \
+  --out-manifest "$PROBE_TMP/recovered-tokens.txt"
+
+# ---------------------------------------------------------------------------
+# PROBE_DERIVED_TOKENS tests (issue #50, produced-mode audit tally). The
+# produced-mode check distinguishes probe-derived tokens from source-cited
+# ones: NONE when no [probe-derived] tag appears in the tokens files, PASS
+# when tagged rows live under a dedicated tagged section heading, FAIL when
+# tagged rows leak outside one.
+# ---------------------------------------------------------------------------
+
+# Test PD1: Test 4's on-the-fly produced fixture ships no tokens file at all
+# -> the tally must be NONE (the common, all-source-cited case) and MUST
+# appear (mirroring TOKEN_COVERAGE's always-emit posture).
+if grep -qE '^PROBE_DERIVED_TOKENS=NONE' <<<"$out_produced"; then
+  echo "PASS  produced-mode reports PROBE_DERIVED_TOKENS=NONE without tokens files"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must report PROBE_DERIVED_TOKENS=NONE without tokens files"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
+# Test PD2: meta-mode skips PROBE_DERIVED_TOKENS entirely — the provenance
+# split is a produced-skill contract.
+if grep -qE '^PROBE_DERIVED_TOKENS=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit PROBE_DERIVED_TOKENS tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips PROBE_DERIVED_TOKENS"
+  PASS=$((PASS + 1))
+fi
+
+# Tests PD3/PD4: clone Test 4's produced fixture and add a tokens.md. The
+# PASS shape keeps every [probe-derived] row under a dedicated tagged
+# section heading; the FAIL shape drops the heading (rows interleaved with
+# source-cited entries — the placement the check forbids).
+PD_TMP="$(mktemp -d)"
+cp -R "$PRODUCED_TMP/test-produced-skill" "$PD_TMP/pd-pass-skill"
+cat >"$PD_TMP/pd-pass-skill/references/tokens.md" <<'EOF'
+# Tokens
+
+- `--color-accent` — `#0070f3` — node_modules/@acme/ui/dist/css/light.css:12
+
+## Probe-derived tokens [probe-derived]
+
+Recovered from the rendered docs page (token source was [private-blocker]);
+one page, one rendered mode. Semantic names are lost — the synthetic
+`--probe-*` rows carry no DS naming authority.
+
+- `--probe-body-color` — `rgb(31, 35, 40)` [probe-derived]
+- `--probe-body-font-family` — `Inter, sans-serif` [probe-derived]
+EOF
+# The cited light.css must resolve at cwd or CITATION_VERIFICATION (check #16)
+# fails the run before PROBE_DERIVED_TOKENS can be judged.
+mkdir -p "$PD_TMP/node_modules/@acme/ui/dist/css"
+seq 1 20 | sed 's/^/\/* line /;s/$/ *\//' > "$PD_TMP/node_modules/@acme/ui/dist/css/light.css"
+assert_cwd "pd-pass: tagged rows under a tagged section pass" \
+  "$PD_TMP" "$PD_TMP/pd-pass-skill" \
+  0 "PROBE_DERIVED_TOKENS=PASS.*"
+
+cp -R "$PRODUCED_TMP/test-produced-skill" "$PD_TMP/pd-fail-skill"
+cat >"$PD_TMP/pd-fail-skill/references/tokens.md" <<'EOF'
+# Tokens
+
+- `--color-accent` — `#0070f3` — node_modules/@acme/ui/dist/css/light.css:12
+- `--probe-body-color` — `rgb(31, 35, 40)` [probe-derived]
+EOF
+assert "pd-fail: tagged rows outside a tagged section fail" \
+  "$PD_TMP/pd-fail-skill" \
+  1 "PROBE_DERIVED_TOKENS=FAIL" \
+  "no '## ... [probe-derived]' section heading"
+
+# ---------------------------------------------------------------------------
+# verify-citations.sh — Layer 1 resolution, Layer 2 snippet check, coverage
+# gate (the cite/uncovered-carryover hole), and the NONE postures.
+# ---------------------------------------------------------------------------
+CITE_SCRIPT_UNDER_TEST="$SKILL_DIR/verify-citations.sh"
+
+# Run verify-citations.sh from a fixture cwd and assert exit/tally/substring.
+# Usage: assert_verify <name> <cwd> <target> <want_exit> <tally-grep> [out-substring]
+assert_verify() {
+  local name="$1" cwd="$2" target="$3" want_exit="$4" tally="$5" out_sub="${6:-}"
+  local out got_exit=0
+  out="$( (cd "$cwd" && bash "$CITE_SCRIPT_UNDER_TEST" "$target") 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qE "^${tally}" <<<"$out"; then
+    err+=$'\n  tally line not found: '"$tally"
+  fi
+  if [[ -n "$out_sub" ]] && ! grep -qF "$out_sub" <<<"$out"; then
+    err+=$'\n  expected output substring not found: '"$out_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+CITE_TMP="$(mktemp -d)"
+# Consumer tree: a fake DS package whose lines the CITE rows anchor against.
+mkdir -p "$CITE_TMP/pass/node_modules/@acme/ui/dist/Banner" \
+         "$CITE_TMP/pass/.extract-ds-skill-scratch" \
+         "$CITE_TMP/pass/skill/references/components"
+cat >"$CITE_TMP/pass/node_modules/@acme/ui/dist/Banner/Banner.d.ts" <<'EOF'
+import * as React from 'react';
+export type BannerProps = {
+  /** Visual tone of the banner. */
+  variant?: 'default' | 'subtle' | 'critical';
+  full?: boolean;
+};
+export declare const Banner: React.FC<BannerProps>;
+EOF
+cat >"$CITE_TMP/pass/node_modules/@acme/ui/dist/Banner/Banner.js" <<'EOF'
+import React from 'react';
+export function Banner({
+  variant = 'default',
+  full = false,
+}) { return React.createElement('div'); }
+EOF
+cat >"$CITE_TMP/pass/.extract-ds-skill-scratch/claims.txt" <<'EOF'
+# CITE rows: snippet = the text that STATES the claim
+CITE:node_modules/@acme/ui/dist/Banner/Banner.js:3|variant = 'default'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:4|'default' | 'subtle' | 'critical'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:2-7|export type BannerProps
+EOF
+cat >"$CITE_TMP/pass/skill/references/components/banner.md" <<'EOF'
+# Banner
+
+- `variant` union: node_modules/@acme/ui/dist/Banner/Banner.d.ts:4 — default stated at dist/Banner/Banner.js:3
+- props block: node_modules/@acme/ui/dist/Banner/Banner.d.ts:2-7 and the pair node_modules/@acme/ui/dist/Banner/Banner.d.ts:4,5
+- upstream (skipped): packages/ui/src/Banner/Banner.tsx:12
+- repo cite (skipped): acme/ui-templates@main:app/layout.tsx
+- docs (skipped): https://example.invalid/banner
+EOF
+
+# Test: pass tree — full-form, bare-dist, range, and comma cites all resolve
+# and are covered; skipped classes are counted, not resolved.
+assert_verify "verify-citations: clean tree passes with full tally" \
+  "$CITE_TMP/pass" skill 0 \
+  "CITATION_VERIFICATION=PASS" \
+  "CITES_CHECKED=prose:4 claimed:3 skipped=upstream:1 repo:1 url:1"
+
+# Fail tree: same consumer, four seeded defects.
+cp -R "$CITE_TMP/pass" "$CITE_TMP/fail"
+cat >"$CITE_TMP/fail/.extract-ds-skill-scratch/claims.txt" <<'EOF'
+# drift seed: the d.ts union line does not contain the destructure text
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:4|variant = 'default'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:2-7|export type BannerProps
+EOF
+cat >>"$CITE_TMP/fail/skill/references/components/banner.md" <<'EOF'
+- uncovered seed: node_modules/@acme/ui/dist/Banner/Banner.js:1
+- unresolved seed: node_modules/@acme/ui/dist/Gone/Gone.d.ts:9
+- out-of-range seed: dist/Banner/Banner.js:99
+EOF
+assert_verify "verify-citations: drift seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "reason=drift"
+assert_verify "verify-citations: uncovered seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "Banner.js:1 reason=uncovered"
+assert_verify "verify-citations: unresolved seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "Gone/Gone.d.ts:9 reason=unresolved"
+assert_verify "verify-citations: out-of-range seed fails" \
+  "$CITE_TMP/fail" skill 1 "CITATION_VERIFICATION=FAIL" "Banner.js:99 reason=line-out-of-range"
+
+# Resolution-only: claims file absent → Layer 1 still runs; clean tree is
+# NONE (never a silent PASS), defective tree still FAILs.
+cp -R "$CITE_TMP/pass" "$CITE_TMP/resonly"
+rm -rf "$CITE_TMP/resonly/.extract-ds-skill-scratch"
+assert_verify "verify-citations: no claims file -> resolution-only NONE" \
+  "$CITE_TMP/resonly" skill 0 \
+  "CITATION_VERIFICATION=NONE \(resolution-only PASS - no claims file\)"
+cp -R "$CITE_TMP/fail" "$CITE_TMP/resonly-fail"
+rm -rf "$CITE_TMP/resonly-fail/.extract-ds-skill-scratch"
+assert_verify "verify-citations: NONE never hides a Layer 1 miss" \
+  "$CITE_TMP/resonly-fail" skill 1 "CITATION_VERIFICATION=FAIL" "reason=unresolved"
+
+# No node_modules at cwd → NONE, exit 0 (source-less audit posture).
+mkdir -p "$CITE_TMP/nonm/skill"
+cp "$CITE_TMP/pass/skill/references/components/banner.md" "$CITE_TMP/nonm/skill/banner.md"
+assert_verify "verify-citations: no node_modules -> NONE" \
+  "$CITE_TMP/nonm" skill 0 "CITATION_VERIFICATION=NONE \(no node_modules"
+
+# check-skill-docs.sh integration: produced-mode check #16 propagates the
+# verifier's verdict. Reuse the fail consumer with a minimal produced skill.
+cp -R "$PRODUCED_TMP/test-produced-skill" "$CITE_TMP/fail/cite-fail-skill"
+cat >"$CITE_TMP/fail/cite-fail-skill/references/components/banner.md" <<'EOF'
+# Banner
+
+- unresolved seed: node_modules/@acme/ui/dist/Gone/Gone.d.ts:9
+EOF
+assert_cwd "check-skill-docs: CITATION_VERIFICATION=FAIL propagates CHECK_RESULT=FAIL" \
+  "$CITE_TMP/fail" "$CITE_TMP/fail/cite-fail-skill" \
+  1 "CITATION_VERIFICATION=FAIL" "reason=unresolved"
+cp -R "$PRODUCED_TMP/test-produced-skill" "$CITE_TMP/nonm/cite-none-skill"
+assert_cwd "check-skill-docs: no node_modules -> CITATION_VERIFICATION=NONE, exit unchanged" \
+  "$CITE_TMP/nonm" "$CITE_TMP/nonm/cite-none-skill" \
+  0 "CITATION_VERIFICATION=NONE \(no node_modules.*"
 
 echo
 if [[ "$SKIPPED" -gt 0 ]]; then

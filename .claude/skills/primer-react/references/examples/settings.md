@@ -168,8 +168,9 @@ export default function SettingsPage() {
 
 ## What to copy
 
-- Settings page uses `PageLayout` with two regions: `.Pane` (sidebar nav) and `.Content` (forms). The Pane carries `position="start"` (left side) and `width="medium"` — Pane vs Content is the right primitive for sidebar-shell layouts; do NOT build the sidebar with bare flex.
-- Sidebar nav is `<NavList>` with one `<NavList.Item>` per route. Each item carries `href` + `<NavList.LeadingVisual>` wrapping an octicon. The active item marks itself via `aria-current="page"` — screen readers announce it as the current location, no extra styling needed.
-- Content sections are separated by an `aria-hidden` `<div>` with `borderTop: "1px solid var(--borderColor-muted)"` — a token-painted divider, not a `<hr>`. The `aria-hidden` keeps the screen reader from announcing the rule.
-- Each section follows the same shape: outer vertical Stack with `gap="normal"` wrapping an inner vertical Stack with `gap="condensed"` for the H2 + muted-foreground intro, then FormControl rows, then a horizontal Stack with `justify="end"` for the submit button. Repeating the shape teaches the agent the page template by pattern, not by recipe.
-- `Textarea defaultValue` + `Select defaultValue` are uncontrolled — form widgets ship a default but the user can edit. Don't reach for state hooks unless the form needs cross-field validation.
+- Sidebar-nav shape: `PageLayout` with `PageLayout.Pane position="start" width="medium"` carrying a `NavList`, and `PageLayout.Content` carrying the form sections.
+- NavList recipe: `aria-label` on the list, octicons via `NavList.LeadingVisual`, and exactly one item with `aria-current="page"` driven by data.
+- Section shape inside Content: vertical `Stack gap="spacious"` of `<section>`s, each opening with `Heading as="h2" variant="medium"` + muted intro `Text` in a condensed Stack.
+- **Select uses `defaultValue` here (uncontrolled)** — the styled-native-wrapper trap: prefer controlled `value` + `onChange` when the selection must drive UI; the lift is verbatim, the produced Select contract carries the rule.
+- Per-section action row: horizontal Stack `justify="end"` with a single `Button variant="primary"` — each section commits independently.
+- Section divider is a bare top-bordered `<div>` with `aria-hidden`, painted with `var(--borderColor-muted)`.
