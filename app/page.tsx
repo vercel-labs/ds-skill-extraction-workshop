@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   BranchName,
   Heading,
@@ -8,14 +7,9 @@ import {
   StateLabel,
   Text,
 } from "@primer/react";
-import { PrMergedTheater } from "../components/showcase/pr-merged-theater";
-
-type Phase = "checking" | "ready" | "merging" | "merged";
+import { MergeReadinessPanel } from "../components/showcase/merge-readiness-panel";
 
 export default function Page() {
-  const [phase, setPhase] = useState<Phase>("checking");
-  const merged = phase === "merged";
-
   return (
     <main
       style={{
@@ -44,19 +38,7 @@ export default function Page() {
                 #4128
               </Text>
             </Heading>
-            <span
-              style={{
-                transition: "opacity 220ms ease-out",
-                display: "inline-flex",
-              }}
-              key={merged ? "merged" : "open"}
-            >
-              {merged ? (
-                <StateLabel status="pullMerged">Merged</StateLabel>
-              ) : (
-                <StateLabel status="pullOpened">Open</StateLabel>
-              )}
-            </span>
+            <StateLabel status="pullOpened">Open</StateLabel>
           </Stack>
 
           <Stack
@@ -67,7 +49,7 @@ export default function Page() {
           >
             <Text weight="semibold">@lena-petrov</Text>
             <Text style={{ color: "var(--fgColor-muted)" }}>
-              {merged ? "merged 14 commits into" : "wants to merge 14 commits into"}
+              wants to merge 14 commits into
             </Text>
             <BranchName as="span">main</BranchName>
             <Text style={{ color: "var(--fgColor-muted)" }}>from</Text>
@@ -75,7 +57,7 @@ export default function Page() {
           </Stack>
         </Stack>
 
-        <PrMergedTheater onPhaseChange={setPhase} />
+        <MergeReadinessPanel />
       </Stack>
     </main>
   );
