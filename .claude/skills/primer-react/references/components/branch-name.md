@@ -26,7 +26,7 @@ Pick `BranchName` to display a git branch name (in a PR row, in a merge-readines
 
 ## Best Practices
 
-- **BranchName renders `<a>` by default.** The polymorphic default is `'a'` (`PolymorphicProps<As, 'a', ...>`). For non-link chips, pass `as="span"`. `dist/BranchName/BranchName.d.ts:3` + upstream `packages/react/src/BranchName/BranchName.tsx:16`.
+- **BranchName renders `<a>` by default.** The polymorphic default is `'a'` (`PolymorphicProps<As, 'a', ...>`). For non-link chips, pass `as="span"`. `dist/BranchName/BranchName.d.ts:3` + upstream `packages/react/src/BranchName/BranchName.tsx:17`.
 - For a non-link chip inside an already-linked card or row, ALWAYS use `as="span"` — nesting an anchor inside another anchor is invalid HTML and breaks keyboard navigation. `dist/BranchName/BranchName.d.ts:3`
 - BranchName carries no `status` / `variant` axis — it is a thin chip with a fixed visual treatment. The styling axes for a non-default look go through `className` and `style`. `dist/BranchName/BranchName.d.ts:4`
 
@@ -53,7 +53,7 @@ export function MergeReadinessRow({ source, target, sourceHref }: {
 ## Source references
 
 - `node_modules/@primer/react/dist/BranchName/BranchName.d.ts:1-13` — `BranchNameProps`
-- Upstream: `primer/react@main:packages/react/src/BranchName/BranchName.tsx:16` — `as: Component = 'a'` default
+- Upstream: `primer/react@main:packages/react/src/BranchName/BranchName.tsx:17` — `as: Component = 'a'` default
 
 ## Common mistakes
 

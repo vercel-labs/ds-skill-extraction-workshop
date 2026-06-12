@@ -57,6 +57,8 @@ Source: `vercel-labs/primer-nextjs-template@app/layout.tsx`.
 
 `"use client"` is required because `ThemeProvider colorMode="auto"` reads the browser preference at runtime. `suppressHydrationWarning` on `<html>` is required because the provider writes the resolved mode attribute during hydration.
 
+NOTE — the `height: "100vh"` on `<BaseStyles style>` above is verbatim from the reference project (a single-screen showcase). In YOUR app use `minHeight` instead; see the fixed-viewport-height Hard Rule below.
+
 ### Companion CSS — app/globals.css
 
 ```css
@@ -100,7 +102,7 @@ body {
 
 Source: `vercel-labs/primer-nextjs-template@app/globals.css`.
 
-Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` is set. Importing only one branch leaves the other unpainted — the canonical mode-mismatch bug.
+Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` is set. Importing only one branch leaves the other unpainted — the canonical mode-mismatch bug. Note that this globals.css already uses the safe `min-height: 100%` form on `html, body`; the fixed `height: "100vh"` lives only on the `<BaseStyles>` element in layout.tsx.
 
 ## Import rules
 
@@ -110,9 +112,9 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 
 ## Source-of-truth rules
 
-- **Canonical source (code, wins on conflict):** `node_modules/@primer/react/dist/**/*.d.ts` — prop signatures, variant unions, native-attribute passthroughs. Every positive prop claim in `references/components/*.md` is cited to a `dist/**/*.d.ts:line`.
+- **Canonical source (code, wins on conflict):** `node_modules/@primer/react/dist/**/*.d.ts` — prop signatures, variant unions, native-attribute passthroughs. Every positive prop claim in `references/components/*.md` is cited to a `dist/**/*.d.ts:line` (or a `dist/**/*.js:line` for implementation-level behavior the d.ts cannot express, e.g. Select's `defaultValue ?? placeholder` forwarding).
 - **Tokens (code):** `node_modules/@primer/primitives/dist/css/functional/themes/{light,dark}.css` — the per-mode functional token definitions.
-- **Assets (code):** `node_modules/@primer/octicons-react/dist/icons.d.ts` — the exhaustive export inventory; never invent a `*Icon` name.
+- **Assets (code):** `node_modules/@primer/octicons-react/dist/icons.d.ts` — the exhaustive export inventory AND the closed `IconProps` surface; never invent a `*Icon` name, never pass `style` to an octicon.
 - **Docs (prose, cited not extracted for prop claims):** `https://primer.style/product/`, `https://primer.style/product/primitives/`, `https://primer.style/octicons/`, `https://primer.style/accessibility/` — extracted prose rules (tokens, octicons) live in `references/foundations/*.md` with per-URL citations.
 - **Storybook:** the Primer Storybook is JS-rendered; do not fetch it for prop claims. Story sources live alongside the component code at `packages/react/src/<Component>/<Component>.stories.tsx` in the `primer/react` repo.
 - **Reference project:** `vercel-labs/primer-nextjs-template@main` — the verbatim wiring source for Setup above and for the 6 composition exemplars under `references/examples/`.
@@ -125,12 +127,12 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 | user asks for an icon-only button | references/components/icon-button.md | aria-label is the accessible name + tooltip text |
 | user asks for a single-line input | references/components/text-input.md | leading/trailing visuals, loading, validationStatus |
 | user asks for a multi-line input | references/components/textarea.md | resize, characterLimit, validationStatus |
-| user asks for a select | references/components/select.md | styled native `<select>`; `multiple` is omitted |
-| user asks for a checkbox | references/components/checkbox.md | indeterminate, required, ARIA-only validationStatus |
+| user asks for a select | references/components/select.md | styled native `<select>`; placeholder doubles as the implicit default; `multiple` is omitted |
+| user asks for a checkbox | references/components/checkbox.md | indeterminate, required, ARIA-only validationStatus; control-first children order |
 | user wires a form (label + caption + validation) | references/components/form-control.md | a11y composition rules (Label/Caption/Validation/LeadingVisual subcomponents) |
 | user asks for a heading | references/components/heading.md | semantic `as` + visual `variant` |
 | user asks for inline text | references/components/text.md | size/weight; no semantic foreground variant |
-| user asks for a layout container | references/components/stack.md | gap/direction/align/justify/wrap/padding scales, Stack.Item |
+| user asks for a layout container | references/components/stack.md | gap/direction/align/justify/wrap/padding scales, Stack.Item; box-not-baseline alignment trap |
 | user asks for a metadata badge | references/components/label.md | metadata only — never a lifecycle capsule |
 | user asks for a numeric count badge | references/components/counter-label.md | numeric count next to a label |
 | user asks for an inline banner / alert | references/components/flash.md | variant: default/warning/success/danger; `full` for edge-to-edge |
@@ -139,6 +141,7 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 | user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |
 | user picks tokens for color, spacing, radius, shadow | references/tokens.md | consumed-token ledger (12 tokens) + foundation rule subsections |
 | user reads token and theme foundation prose | references/foundations/index.md | per-URL extracted foundation rules |
+| user colors or sizes an octicon | references/foundations/octicons.md | size buckets, name-size naming, closed prop surface (`currentColor` recipe) |
 | user reviews available composition exemplars | references/examples/index.md | one entry per composition exemplar lifted from `vercel-labs/primer-nextjs-template` |
 | home: route-index with token-painted link cards | references/examples/home.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/page.tsx |
 | repos: list page with PageHeader + table + filter | references/examples/repos.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/repos/page.tsx |
@@ -146,7 +149,7 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 | settings: sidebar-nav page | references/examples/settings.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/settings/page.tsx |
 | empty: blankslate visual + heading + action | references/examples/empty.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/empty/page.tsx |
 | dashboard: multi-section stat cards + timeline | references/examples/dashboard.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/dashboard/page.tsx |
-| user reads a known anti-pattern (shell, body-paint, mode-attr) | references/anti-patterns.md | Bad/Good/Why table, shell/* rows |
+| user reads a known anti-pattern (shell, body-paint, mode-attr, fixed height) | references/anti-patterns.md | Bad/Good/Why table, shell/* rows, asset/* registry |
 
 ## Component slate
 
@@ -154,7 +157,7 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 - `IconButton` — icon-only button; `aria-label` required, doubles as tooltip unless `unsafeDisableTooltip`
 - `TextInput` — single-line input; leading/trailingVisual, loading, validationStatus, monospace
 - `Textarea` — multi-line input; resize, characterLimit, validationStatus
-- `Select` — styled native select; block/contrast/placeholder/validationStatus
+- `Select` — styled native select; block/placeholder/validationStatus; placeholder doubles as implicit default
 - `Checkbox` — controlled boolean input; indeterminate, validationStatus
 - `FormControl` — input wrapper; Label/Caption/Validation/LeadingVisual subcomponents for label association
 - `Heading` — semantic heading; `as="h2"` default, variant scale
@@ -173,9 +176,10 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 - `<BaseStyles>` MUST receive `{children}` (not siblings) — descendants inherit Primer's reset (line-height, font, link color) only through the wrap — see `shell/content-wrap-base-styles`.
 - `<html data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">` MUST be paired with BOTH `@import "@primer/primitives/dist/css/functional/themes/light.css"` AND `@import ".../dark.css"` in `globals.css`. The attribute sets the resolution context; the imports provide the values — see `shell/mode-attribute-without-theme-import`.
 - `suppressHydrationWarning` MUST be set on `<html>` when ThemeProvider is mounted. The provider writes the resolved color-mode attribute during hydration and React would otherwise warn — see `shell/suppress-hydration-warning`.
-- Any prop, variant, token, or asset the agent cannot ground in source gets a literal `[ VERIFY ]` (no spaces in actual use) marker inline — see the skill's open VERIFY tally in references/foundations/octicons.md:23.
+- The shell wrapper in Setup uses `height: "100vh"` verbatim from the reference project (a single-screen showcase); in YOUR app use `minHeight` on the `<BaseStyles style={{ backgroundColor: "var(--bgColor-default)", minHeight: "100vh" }}>` surface — a fixed height clips content taller than the viewport and breaks page scrolling — see `shell/fixed-viewport-height`. (The companion `globals.css` already uses the safe `min-height: 100%` form.)
+- Any prop, variant, token, or asset the agent cannot ground in source gets a literal `[ VERIFY ]` (no spaces in actual use) marker inline — see the skill's open VERIFY tally in references/foundations/octicons.md:25.
 - Report blockers instead of guessing.
 
 ## Final checks
 
-After generating UI: cite each component used to its source file (`node_modules/@primer/react/dist/<Component>/<Component>.d.ts:<line>` for prop claims, `vercel-labs/primer-nextjs-template@<path>` for composition lifts); list any unverified facts (`[ VERIFY ]` markers, written without internal spaces) that had to remain; name the screen-level prompt that was built; and confirm shell parity: the page/root surface paints with `var(--bgColor-default)`, the mode-attribute trio on `<html>` matches the imported theme CSS files (`light.css` + `dark.css`), and `<ThemeProvider>` wraps `<BaseStyles>{children}</BaseStyles>` rather than rendering as a sibling. Shell parity is re-checked after ANY edit to the consumer app's `layout.tsx` / providers / `globals.css`, not only on greenfield creation.
+After generating UI: cite each component used to its source file (`node_modules/@primer/react/dist/<Component>/<Component>.d.ts:<line>` for prop claims, `vercel-labs/primer-nextjs-template@<path>` for composition lifts); list any unverified facts (`[ VERIFY ]` markers, written without internal spaces) that had to remain; name the screen-level prompt that was built; and confirm shell parity: the page/root surface paints with `var(--bgColor-default)`, the mode-attribute trio on `<html>` matches the imported theme CSS files (`light.css` + `dark.css`), `<ThemeProvider>` wraps `<BaseStyles>{children}</BaseStyles>` rather than rendering as a sibling, and the shell wrapper fills the viewport with `minHeight` (never a fixed `height` — `shell/fixed-viewport-height`). Shell parity is re-checked after ANY edit to the consumer app's `layout.tsx` / providers / `globals.css`, not only on greenfield creation.

@@ -5,9 +5,8 @@ Lifted from `vercel-labs/primer-nextjs-template/app/repos/page.tsx` (next-app).
 ## Required imports
 
 - `@primer/react`: Button, Label, PageHeader, PageLayout, RelativeTime, SelectPanel, Stack, Text, type LabelProps, type SelectPanelItemInput
-- `@primer/react/experimental`: DataTable, Table
 - `@primer/octicons-react`: PlusIcon, RepoIcon, StarIcon
-- Other: useState (from "react")
+- Other: `@primer/react/experimental`: DataTable, Table; react: useState
 
 ## Composition (verbatim)
 
@@ -185,8 +184,10 @@ export default function ReposPage() {
 
 ## What to copy
 
-- PageHeader uses three slots in this order: `.TitleArea > .Title` for the H1, `.Description` for the muted-foreground subtitle, `.Actions` for the right-aligned primary button — the slot order in JSX matches the visual order; do not reorder.
-- The primary "New" button carries `leadingVisual={PlusIcon}` — passing the icon by component reference (not as a JSX element) lets the button paint the icon with the matching size and inline alignment.
-- The filter row is a horizontal Stack with `align="center"`: a `<SelectPanel>` driven by `renderAnchor` (which returns a `<Button>` consuming the spread anchorProps) on the left, a row-count `<Text size="small">` in `var(--fgColor-muted)` on the right.
-- DataTable column for visibility metadata uses `<Label variant={VISIBILITY_VARIANT[row.visibility]}>` — a strongly-typed `Record<Visibility, LabelProps["variant"]>` constrains the variant set at compile time. Use Label here because visibility is metadata, not a lifecycle state — never reach for StateLabel just because there are two values.
-- Wrap DataTable in `<Table.Container>` with `<Table.Title>` + `<Table.Subtitle>` and pair them to the DataTable via `aria-labelledby` / `aria-describedby` — screen readers announce the title/subtitle pair before the table contents.
+- List-page shape: `PageLayout containerWidth="large"` → `PageHeader` (TitleArea + Description + Actions) → filter row → `Table.Container`.
+- The page-level primary action lives in `PageHeader.Actions` as `Button variant="primary"` with `leadingVisual={PlusIcon}` — not floating beside the title.
+- Filter row recipe: `SelectPanel` with a `renderAnchor` Button showing the current selection, fully controlled (`open`/`onOpenChange`, `selected`/`onSelectedChange`, `filterValue`/`onFilterChange`), beside a muted result-count `Text`.
+- Accessible table wiring: `Table.Title` + `Table.Subtitle` carry `id`s; `DataTable` points at them via `aria-labelledby`/`aria-describedby` — never an unlabeled table.
+- Column recipes: `rowHeader: true` on the identity column; `sortBy` per column type (`alphanumeric` / `basic` / `datetime`); numeric column right-aligned via `align: "end"`; cell composition via `renderCell` returning Stack + octicon + Text.
+- Status-as-label pattern: enum data maps to `Label` variants through a typed record (`Record<Visibility, LabelProps["variant"]>`) — variant choice is data-driven, not inline conditionals.
+- Dates render through `RelativeTime date={new Date(...)}`, not hand-formatted strings.

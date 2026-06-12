@@ -40,6 +40,7 @@ Pick `Stack` for ANY row/column layout. It is the only Primer-native layout prim
 - Direction is `'horizontal' | 'vertical'`, NOT `'row' | 'column'`. `dist/Stack/Stack.d.ts:30`
 - The gap scale is `'none' | 'tight' | 'condensed' | 'cozy' | 'normal' | 'spacious'`. There is NO `'xs'`, `'sm'`, `'md'`, `'lg'`, or `'xl'`. `dist/Stack/Stack.d.ts:25`
 - The justify scale is `'start' | 'center' | 'end' | 'space-between' | 'space-evenly'`. There is NO `'space-around'`. `dist/Stack/Stack.d.ts:45`
+- **Do not rely on a horizontal Stack's `align="end"` (or `align="center"`) to line up two form controls when one has a caption and the other does not** — Stack aligns BOXES, not baselines, so the captioned control's label rides up while the caption-less control's input sits low. Align on `start` and equalize with an explicit spacer, or give both controls a caption slot ([FormControl](./form-control.md) carries the same rule — the trap is reachable from either side). `dist/Stack/Stack.d.ts:35`
 - Use `gap="none"` for tight title/description pairs where the two lines should sit on adjacent baselines. `dist/Stack/Stack.d.ts:25`
 - Use `gap="condensed"` for icon + text inline pairs. (matches `home.tsx` exemplar in this skill's references/examples.)
 - Use `gap="spacious"` for top-level page sections.
@@ -78,6 +79,7 @@ export function RepoCardRow({ icon, title, description }: {
 - `<Stack gap="xs">` — not a union member; the scale is the named one above.
 - `<Stack justify="around">` or `<Stack justify="space-around">` — not a union member; use `space-evenly`.
 - `<Stack align="middle">` — not a union member; use `align="center"`.
+- `<Stack direction="horizontal" align="end">` over a captioned [FormControl](./form-control.md) beside a caption-less one — labels misalign because Stack aligns boxes, not baselines.
 
 ## Things to never invent
 

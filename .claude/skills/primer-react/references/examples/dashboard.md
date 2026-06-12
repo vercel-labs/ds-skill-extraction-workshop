@@ -206,8 +206,9 @@ export default function DashboardPage() {
 
 ## What to copy
 
-- Stat-card row is a horizontal Stack with `wrap="wrap"`: each card has `flex: "1 1 200px"` + `minWidth: 200` so 4 cards lay out as one row on wide screens, two-then-two on tablet, single column on phone — no media query, just flex tokens.
-- Stat card has four tokens defining the surface (`var(--bgColor-default)` + `var(--borderColor-default)` + `var(--borderRadius-large, 12px)` + `var(--shadow-resting-small)`) — same recipe as the form card but with `-small` shadow instead of `-medium` (lower elevation for a non-interactive card).
-- Section heading row is a horizontal Stack with `justify="space-between"`: the H2 heading sits left, a small horizontal Stack of `<Label variant="accent">` + `<CounterLabel>` sits right — the badges report a count adjacent to the title without competing with it.
-- `<Label variant="accent">` is the metadata badge; `<CounterLabel>` is the numeric pill. They co-occur in the same line but they are NOT lifecycle badges — for open/merged/closed status use `StateLabel`, never Label.
-- Muted-foreground text uses `style={{ color: "var(--fgColor-muted)" }}` consistently — every secondary line (delta line, body line, meta line) reads via the muted token, so the visual hierarchy is title → default-foreground → muted.
+- Multi-section page shape: `PageLayout` regions (`Header` / `Content`) with a vertical `Stack` `gap="spacious"` separating sections inside Content.
+- Stat-card recipe: a wrapping horizontal `Stack` (`wrap="wrap"`) of token-painted `<div>`s — `flex: "1 1 200px"` for fluid columns, surface from `var(--bgColor-default)`, border, `var(--borderRadius-large, 12px)`, `var(--shadow-resting-small)`, padding `var(--base-size-16, 1rem)`.
+- Section header row is a horizontal Stack with `justify="space-between"`: `Heading as="h2" variant="medium"` left, metadata chips (`Label variant="accent"` + `CounterLabel`) right.
+- **Lifecycle-transition surface** (preferred composition category): `Timeline` with `Timeline.Badge variant` keyed to the event lifecycle (`success` merged, `open`, `closed`, `accent`) and an octicon inside the badge — state is expressed by the badge variant, not by text color.
+- Three-line activity entry: vertical `Stack gap="none"` of semibold `Text`, muted body `Text size="small"`, muted meta `Text size="small"` inside `Timeline.Body`.
+- Headings carry both semantics and scale separately: `as` sets the document outline (`h2`/`h3`), `variant` sets the visual size — the two are chosen independently.

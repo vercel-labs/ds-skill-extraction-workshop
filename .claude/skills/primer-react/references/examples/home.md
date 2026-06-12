@@ -130,8 +130,9 @@ export default function Home() {
 
 ## What to copy
 
-- Route index is a centred column (`maxWidth: 768`, `margin: "0 auto"`) of token-painted link cards inside an outer vertical Stack with `gap="spacious"` — the spacious gap separates the page title block from the navigation list.
-- Each card paints with three tokens (`var(--bgColor-default)` background, `var(--borderColor-default)` border, `var(--borderRadius-medium, 8px)` corners) and uses `var(--base-size-16, 1rem)` for the inner padding — the inline fallbacks (`, 1rem`, `, 8px`) cover the case where a consumer drops a primitives import.
-- Card body is a horizontal Stack with `align="center"` so the leading icon vertically centres against the two-line title-plus-description column built from an inner vertical Stack with `gap="none"` (title and description sit on adjacent baselines, not separated by an extra row gap).
-- Page title block uses `PageHeader.TitleArea` wrapping `PageHeader.Title`, with `PageHeader.Description` outside the TitleArea — slot composition matters (TitleArea is the visual title group, Description is sibling chrome).
-- Muted-foreground prose (`color: var(--fgColor-muted)`) is applied via the `style` prop on `Text`, not via a `variant` — Text exposes `size` and `weight` but no semantic foreground variant; the token goes through `style`.
+- Route-index shape: a vertical `Stack` with `gap="spacious"` caps page width via `style={{ maxWidth: 768, margin: "0 auto" }}` — the layout primitive carries rhythm, inline style carries the measure.
+- `PageHeader` opens the page: `PageHeader.Title` inside `PageHeader.TitleArea`, prose in `PageHeader.Description` — chrome stays outside the TitleArea.
+- Card link recipe: a block-level `Link` painted entirely with tokens (`var(--borderColor-default)`, `var(--borderRadius-medium, 8px)`, `var(--bgColor-default)`) plus `textDecoration: "none", color: "inherit"` so the card does not read as inline text link.
+- Icon + two-line text row: horizontal `Stack` with `gap="condensed"` and `align="center"` wraps an octicon and a vertical `gap="none"` Stack of `Heading as="h2" variant="small"` over muted `Text`.
+- Muted secondary text is `Text` with `style={{ color: "var(--fgColor-muted)" }}` — the color comes from the functional token, never a hex value.
+- Semantic list discipline: the card grid is a `<ul>` with list styling zeroed inline, each card in an `<li>` — the Stack nests inside the list element, it does not replace it.

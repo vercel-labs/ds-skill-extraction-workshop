@@ -32,6 +32,7 @@ Pick `Checkbox` for boolean input (toggle, multi-select within a form). Wrap in 
 
 ## Best Practices
 
+- **Inside a [FormControl](./form-control.md), the Checkbox comes FIRST, then `<FormControl.Label>`, then `<FormControl.Caption>`** — the inverse of the label-first order used for TextInput/Textarea/Select rows. The lifted `new.md` exemplar shows both orders side by side; [FormControl](./form-control.md) carries the same rule. (reference exemplar: `vercel-labs/primer-nextjs-template@app/new/page.tsx`)
 - Use `indeterminate` for "some selected" rollup states (parent checkbox of a list with mixed children). `dist/Checkbox/Checkbox.d.ts:6`
 - Do not rely on Checkbox `validationStatus` for VISIBLE error state — it is ARIA-only. Pair with `<FormControl.Validation variant="error">` for the visible message. `dist/Checkbox/Checkbox.d.ts:20-22`
 - `validationStatus` does NOT accept `'warning'` — the union is `'error' | 'success'`. `dist/utils/types/FormValidationStatus.d.ts`
@@ -63,9 +64,11 @@ export function NotifyToggle({ checked, onChange }: {
 - `node_modules/@primer/react/dist/Checkbox/Checkbox.d.ts:1-34` — `CheckboxProps`
 - `node_modules/@primer/react/dist/utils/types/FormValidationStatus.d.ts`
 - Upstream: `primer/react@main:packages/react/src/Checkbox/Checkbox.tsx`
+- Reference exemplar: `vercel-labs/primer-nextjs-template@app/new/page.tsx` — control-first children order
 
 ## Common mistakes
 
+- `<FormControl><FormControl.Label>Add README</FormControl.Label><Checkbox /></FormControl>` — label-first order on a Checkbox row; the control comes FIRST for checkbox/radio.
 - `<Checkbox validationStatus="error" />` expecting a red border — Checkbox's `validationStatus` is ARIA-only; pair with `<FormControl.Validation>` for visible state. `dist/Checkbox/Checkbox.d.ts:20-22`
 - `<Checkbox validationStatus="warning">` — not a union member.
 - `<Checkbox value={42} />` — `value` is typed as `string` (Primer narrows from native `value`).

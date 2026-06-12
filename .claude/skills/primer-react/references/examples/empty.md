@@ -5,9 +5,8 @@ Lifted from `vercel-labs/primer-nextjs-template/app/empty/page.tsx` (next-app).
 ## Required imports
 
 - `@primer/react`: PageLayout, Stack
-- `@primer/react/experimental`: Blankslate
 - `@primer/octicons-react`: SearchIcon
-- Other: (none)
+- Other: `@primer/react/experimental`: Blankslate
 
 ## Composition (verbatim)
 
@@ -52,8 +51,7 @@ export default function EmptyPage() {
 
 ## What to copy
 
-- Empty state composes `Blankslate` slots in fixed order: `.Visual` (icon at 32px), `.Heading` (single short sentence), `.Description` (one short paragraph), `.PrimaryAction` (recovery path), optional `.SecondaryAction` (alternative path). Reordering the slots breaks the visual rhythm; omit instead of reorder.
-- Two outcomes get two actions: PrimaryAction is `/repos` (recover the user's original intent), SecondaryAction is `/new` (offer an adjacent route). When the recovery path is unambiguous, drop the secondary — extra choices read as indecision in an empty state.
-- `Blankslate` ships `spacious` + `border` as boolean props in this lift — `spacious` enlarges the vertical padding for landing-page-style emptiness, `border` paints a card surround. Both together turn the Blankslate from "inline empty" into "page-level empty".
-- The empty surface still sits inside `PageLayout.Content` with `containerWidth="medium"` — empty states are page content, not modals; the page chrome stays consistent with non-empty routes so navigation does not collapse.
-- The icon size 32 (twice the 16 used for inline icons) is the canonical empty-state icon scale — larger than inline use, smaller than hero imagery. `var(--base-size-32, 2rem)` aligns padding to the same scale.
+- Empty-state shape: `Blankslate` (from `@primer/react/experimental`) inside `PageLayout.Content` so the empty surface still reads as a routed page, not a floating card.
+- Full Blankslate slot order: `Blankslate.Visual` (octicon at `size={32}`) → `Blankslate.Heading` → `Blankslate.Description` → `Blankslate.PrimaryAction` → `Blankslate.SecondaryAction`.
+- `spacious` + `border` props on `Blankslate` give the empty state its own bounded surface; actions are href-driven (navigation), not onClick handlers.
+- Top breathing room comes from a token (`paddingTop: "var(--base-size-32, 2rem)"`) on the wrapping Stack, not a magic number.

@@ -1,13 +1,13 @@
-# Foundation: Primer (root)
+# Foundation: Home
 
-Source URL: https://primer.style/ (fetched 2026-06-11, HTTP 200)
+Source URL: https://primer.style/ (fetched 2026-06-12, HTTP 200)
 
 ## What this covers
 
-- The Primer landing page — the crawl root. Nav/index page only: it carries section teasers ("Primer's design tokens for color, spacing, and typography", "a set of SVG icons built by GitHub for GitHub") and links, but no extractable foundation rules.
+- The primer.style landing page — navigational hub linking Product UI, Brand UI, and the shared foundations (Accessibility, Octicons, Primitives); carries no extractable token rules itself.
 
-## Rules extracted: 0 (nav landing page)
+Rules extracted: 0
 
-No token-pairing, mode-aware, contrast-minimum, semantic-role, or fallback-element prose exists on this page. The rule yield for this root lives on its crawled in-scope sub-pages (`/product/primitives`, `/octicons`, `/accessibility`). Zero yield here is a property of the page role (crawl seed), not a wrong-source signal — the crawl surfaced rule-bearing sub-pages.
+The page is a landing page. Its only token-adjacent content is the link to the Primitives page ("Primer's design tokens for color, spacing, and typography"). The "Switch to dark mode" toggle confirms mode support but states no rule.
 
-Sub-page tree (depth-1, as accepted at Phase 1): product [in-scope], product/primitives [in-scope], octicons [in-scope], accessibility [in-scope], brand [out-of-scope: sibling-brand-ds-skill], about [out-of-scope: no-ds-content].
+Depth-1 caveat: rule-bearing pages linked from here (Primitives, Octicons, Accessibility) are covered by their own in-scope crawl entries. Brand UI / Brand Toolkit links are out of scope (sibling-brand-ds-skill, per Phase 1).
