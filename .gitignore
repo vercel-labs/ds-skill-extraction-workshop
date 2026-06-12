@@ -61,3 +61,6 @@ next-env.d.ts
 
 # RALPH AFK loop transcripts — operator artifacts, never committed
 ralph-*.log
+
+# visual self-QA scratch (screenshot scripts) — never a deliverable
+shoot.mjs
