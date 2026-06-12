@@ -26,6 +26,8 @@ Exit 0 = pass. This catches "you said `Button` takes a `kind` prop, TypeScript s
 
 At extract time, every positive prop/enum claim, every negative ("never accepts") claim, and every cited local path that lands in produced prose MUST also be recorded as one line in `.extract-ds-skill-scratch/claims.txt`. `scripts/validate.sh` consumes that file to generate the prop-shape probe — the probe checks what the claims file declares, not what the prose says. A claim that never lands in the claims file is by definition unverified and must not appear in produced prose; zero positive prop/enum claims outside the claims file is the floor.
 
+Default-value claims follow the citation discipline in `references/component-extraction.md` (Shape 5): cite the d.ts line ONLY when it actually states the default (`@default` JSDoc tag or a literal default in the type); otherwise cite the implementation line where the default is destructured — citing a d.ts line for a default it does not state is an IMPRECISE claim, a citation defect even when the value is correct.
+
 One claim per line; `#` comments and blank lines are skipped. Four line forms:
 
 | Line form | Meaning | Mechanical check |
