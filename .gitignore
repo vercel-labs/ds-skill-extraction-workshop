@@ -58,3 +58,6 @@ next-env.d.ts
 /PRDs
 
 .pnpm-store
+
+# RALPH AFK loop transcripts — operator artifacts, never committed
+ralph-*.log
