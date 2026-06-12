@@ -36,6 +36,7 @@ One claim per line; `#` comments and blank lines are skipped. Four line forms:
 | `NEGATIVE:<Component>.<prop>=<value>` | negative: the prop rejects the value | `// @ts-expect-error` line in the probe; `tsc` must reject the assignment. If the value is actually valid (an upstream type widening), the directive goes unused → TS2578 fails the probe |
 | `PATH:node_modules/<...>` | cited local path exists | `test -e` at validate time; a miss prints `PATH_MISS=<path>` and the run fails with `FAIL_REASON=path`. Only `node_modules/`-prefixed paths are accepted — anything else is a parse error |
 | `URL:<https-url>` | cited URL is reachable | verified as fetchable (HTTP 200) AT EXTRACT TIME by the extracting agent; `validate.sh` counts it (`url-skipped`) and does NOT re-check |
+| `CITE:node_modules/<path>:<line>[-<end>]\|<snippet>` | the cited line actually states the claim | `scripts/verify-citations.sh` checks the snippet appears on a line in the cited range; a miss prints `CITE_MISS=... reason=drift` and the run fails with `FAIL_REASON=cite`. Only `node_modules/`-prefixed paths are accepted |
 
 Generated probe line shapes (component names illustrative):
 
@@ -48,7 +49,27 @@ PATH:node_modules/@acme/ui/dist/button.d.ts  →  test -e node_modules/@acme/ui/
 
 Values `true`/`false` and bare numbers are emitted unquoted; everything else becomes a string literal. A claimed component that is missing from the surfaced-APIs file is added to the probe's import line automatically, so a claim against a component the package does not export fails the probe instead of silently skipping.
 
-`validate.sh` auto-detects `.extract-ds-skill-scratch/claims.txt`; pass `--claims <path>` to point at a different file. The summary emits `CLAIMS_CHECKED=positive:<n> negative:<n> path:<n> url-skipped:<n>` so the proof point can carry the tally verbatim.
+`validate.sh` auto-detects `.extract-ds-skill-scratch/claims.txt`; pass `--claims <path>` to point at a different file. The summary emits `CLAIMS_CHECKED=positive:<n> negative:<n> path:<n> url-skipped:<n> cite:<n>` so the proof point can carry the tally verbatim.
+
+### Citation-verification step — every file:line cite is re-read mechanically
+
+Citation discipline in prose alone does not survive regeneration: a default-value claim can cite a type line that never states the default, a cite can drift a line or two from the text it anchors, and a carried-over file can skip re-verification entirely. `scripts/verify-citations.sh` closes all three holes mechanically. It runs twice: in Phase 2 (`validate.sh` Phase D, over the scratch drafts) and in Phase 3 (over the whole persisted skill — `references/persist.md`, Citation verification).
+
+**CITE rows.** Every `file:line` cite that lands in produced prose MUST also be recorded as a `CITE:` row in the claims file. The snippet after the `|` is the text that STATES the claim — for a default-value claim that is the destructure or `@default` text, never just the value. A bare type-union line cannot contain the destructure text, so citing the type file for a default it does not state fails mechanically (`reason=drift`); a drifted line number fails the same way because the snippet is not on the cited line.
+
+**Coverage gate.** Every in-scope cite found in the prose must be covered by a CITE row on the same resolved path: a single-line cite needs a row whose range contains it; a range cite (`:N-M`) needs at least one intersecting row — the snippet anchors the block, one row per range is the floor, not one per line. Uncovered cites fail with `reason=uncovered`. Coverage spans ALL files in the target, so a regeneration that carries files over byte-for-byte must still re-register (and therefore re-read) their cites.
+
+**In-scope vs skipped cite shapes.** In scope: `node_modules/<...>.<ext>:N[,N|-N]` and bare `dist/<...>.<ext>:N[,N|-N]` (resolved against the DS package). Counted but skipped: upstream-repo source paths, `<owner>/<repo>@<ref>:<path>` cites, and URLs (verified fetchable at extract time). The tally makes the skipped classes visible so they cannot silently grow: `CITES_CHECKED=prose:<n> claimed:<n> skipped=upstream:<n> repo:<n> url:<n>`.
+
+**Verdict line.** `CITATION_VERIFICATION=PASS` when every prose cite resolves with in-range lines, every cite is covered, and every CITE row's snippet is found. `FAIL` (exit 1) on any `CITE_MISS=<file>:<line> -> <source>:<spec> reason=<unresolved|line-out-of-range|drift|uncovered>`. `NONE` only when there is no `node_modules/` tree to resolve against, or when no claims file exists and resolution-only checking passed — NONE never hides a miss.
+
+### Example shape — CITE rows (illustrative)
+
+```
+CITE:node_modules/@acme/ui/dist/Banner/Banner.js:36|variant = 'default'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:5|'default' | 'warning' | 'success' | 'danger'
+CITE:node_modules/@acme/ui/dist/Banner/Banner.d.ts:1-7|export type BannerProps
+```
 
 ### Escalation — probe-page render
 
@@ -226,6 +247,8 @@ The format follows the proof-point line with a tally line on the next line:
 TOKEN_COVERAGE=PASS    (or TOKEN_COVERAGE=NOOP, or TOKEN_COVERAGE=FAIL with per-var MISSING rows above)
 ```
 
+The citation-verification verdict rides the proof point the same way whenever a claims file was in scope: the `CITATION_VERIFICATION=...` line with the `CITES_CHECKED=...` tally carried verbatim (see Citation-verification step above).
+
 ### Worked example — Phase 2 proof-point with foundation URL and reference project in scope (illustrative)
 
 The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same proof-point contract applies to whichever DS the user passes.
@@ -238,6 +261,7 @@ Validation complete.
 - 6 foundation-rules extracted (5 cited, 1 [VERIFY])
 - Wiring extracted from mantinedev/next-app-template@app/layout.tsx (next-app, 28 lines, 1 CSS file lifted, 12 tokens consumed, 12 covered)
 - TOKEN_COVERAGE=PASS
+- CITATION_VERIFICATION=PASS (CITES_CHECKED=prose:31 claimed:33 skipped=upstream:0 repo:2 url:6)
 - 0 hallucinations
 - 3 open [VERIFY] markers:
   1. Button.md:42 - loading-state prop name not confirmed in types file
@@ -324,6 +348,8 @@ _Written by /extract-ds-skill at <ISO date> after validation iteration <N>. Stat
 <verbatim proof-point line from the validation summary>
 
 TOKEN_COVERAGE=<PASS|NOOP|FAIL> (consumed: <N>, covered: <M>)
+
+CITATION_VERIFICATION=<PASS|FAIL|NONE> (CITES_CHECKED=prose:<n> claimed:<n> skipped=upstream:<n> repo:<n> url:<n>)
 
 ## Scratch artefacts (Phase 3 will materialize from these)
 
