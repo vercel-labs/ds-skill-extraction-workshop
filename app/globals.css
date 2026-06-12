@@ -1,0 +1,75 @@
+@import "@primer/primitives/dist/css/base/size/size.css";
+@import "@primer/primitives/dist/css/base/typography/typography.css";
+@import "@primer/primitives/dist/css/base/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/size/border.css";
+@import "@primer/primitives/dist/css/functional/size/breakpoints.css";
+@import "@primer/primitives/dist/css/functional/size/radius.css";
+@import "@primer/primitives/dist/css/functional/size/size-coarse.css";
+@import "@primer/primitives/dist/css/functional/size/size-fine.css";
+@import "@primer/primitives/dist/css/functional/size/size.css";
+@import "@primer/primitives/dist/css/functional/size/viewport.css";
+@import "@primer/primitives/dist/css/functional/spacing/space.css";
+@import "@primer/primitives/dist/css/functional/typography/typography.css";
+
+@import "@primer/primitives/dist/css/functional/themes/light.css";
+@import "@primer/primitives/dist/css/functional/themes/dark.css";
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+@keyframes pr-beat {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pr-fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pr-state-beat[data-beat="on"] {
+  display: inline-block;
+  animation: pr-beat var(--motion-duration-medium, 300ms) var(--motion-easing-move, ease-in-out);
+}
+
+.pr-fade-in {
+  animation: pr-fade-in var(--motion-transition-enter, 300ms ease-out);
+}
+
+.pr-check-row {
+  transition: background-color var(--motion-transition-stateChange, 200ms ease-in-out);
+}
+
+.pr-check-row[data-just-resolved="on"] {
+  background-color: var(--bgColor-muted);
+}
+
+.pr-progress-fill {
+  transition: width var(--motion-transition-stateChange, 200ms ease-in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
