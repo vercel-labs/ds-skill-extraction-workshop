@@ -95,6 +95,16 @@ FIDELITY_RESULT=FAIL
 
 ≤3 file-group columns (e.g. `shell` = layout + global css; `components/*` = everything else). Evidence is one clause: worst-offender `file:line` plus a few words. No rubric-construction notes, no per-rule prose, summary ≤3 sentences.
 
+When the screenshot probe ran (SKILL.md Step 4), append after the footer:
+
+```markdown
+## Visual evidence [needs-human-review]
+
+PROBE_SCREENSHOT=captured component=<Name> docs-png=<path> produced-png=<path> docs-url=<url> produced-url=<url> [needs-human-review]
+```
+
+One verbatim probe line per component pair (skip/failure lines verbatim too). These entries are evidence for the human reviewer only — they never feed a rubric cell or `FIDELITY_RESULT`, and the audit never derives a visual claim from them.
+
 ## Worked example — two real runs
 
 **Run A (unaided — generated without skill access):**

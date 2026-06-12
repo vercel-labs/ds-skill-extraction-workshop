@@ -1,23 +1,37 @@
 #!/usr/bin/env bash
-# scripts/probe-rendered.sh — opt-in rendered-site probe. Renders the DS's
-# public docs site headless (playwright + chromium) and diffs the COMPUTED
-# CSS custom-property values against the DECLARED token values Phase 2
-# extracted from source. The gap between declared and rendered surfaces
-# theme overrides, build-time transforms, and stale source declarations.
+# scripts/probe-rendered.sh — opt-in rendered-site probe. Two modes, one
+# script (the probe family shares this entry point; no parallel pipelines):
+#
+#   DIFF MODE (default)       Phase 2 of the meta-skill. Renders the DS's
+#                             public docs site headless (playwright +
+#                             chromium) and diffs the COMPUTED CSS
+#                             custom-property values against the DECLARED
+#                             token values Phase 2 extracted from source.
+#   SCREENSHOT MODE           The consuming audit skill. Captures side-by-side
+#   (--screenshot)            PNG EVIDENCE of a produced component page vs the
+#                             DS docs example, tagged [needs-human-review].
+#                             Evidence only — the probe never grades it.
 #
 # ROLE — ANNOTATE, NEVER OVERRIDE. Source extraction stays authoritative.
-# Every MISMATCH / UNRESOLVED row is emitted as a ready-made `[VERIFY: ...]`
-# line for the same Phase 2 stream the rest of validation feeds. A mismatch
-# is a finding, not a probe failure: the script exits 0 on a completed run
-# regardless of verdicts.
+# In diff mode every MISMATCH / UNRESOLVED row is emitted as a ready-made
+# `[VERIFY: ...]` line for the same Phase 2 stream the rest of validation
+# feeds. A mismatch is a finding, not a probe failure: the script exits 0 on
+# a completed run regardless of verdicts.
 #
-# OPT-IN CONTRACT (enforced by the caller — Phase 2 of the meta-skill):
-# run only when (a) the DS has a public docs URL accepted in Phase 1, and
-# (b) the user has not opted out (opt-out phrase: "skip rendered probe").
-# Default for CI and tests is skip.
+# OPT-IN CONTRACT (enforced by the caller — Phase 2 of the meta-skill in diff
+# mode; the consuming audit skill in screenshot mode): run only when (a) the
+# DS has a public docs URL accepted in Phase 1, and (b) the user has not
+# opted out (opt-out phrase: "skip rendered probe"). Default for CI and
+# tests is skip.
 #
-# USAGE
+# USAGE — diff mode
 #   bash probe-rendered.sh --url <docs-url> --manifest <path> \
+#       [--out <report-file>] [--timeout-ms <n=30000>]
+#
+# USAGE — screenshot mode (audit phase)
+#   bash probe-rendered.sh --screenshot --component <Name> \
+#       --url <docs-example-url> --produced-url <produced-page-url> \
+#       --out-dir <dir> [--docs-selector <css>] [--produced-selector <css>] \
 #       [--out <report-file>] [--timeout-ms <n=30000>]
 #
 # BROWSER PRECONDITION. playwright must be installed as a (dev)dependency of
@@ -31,17 +45,21 @@
 # Inside a sandbox without browser binaries the script detects the gap and
 # degrades gracefully (exit 0) so the extraction run never burns on setup.
 #
-# SKIP / FAILURE CONTRACT (greppable, one line each):
+# SKIP / FAILURE CONTRACT (greppable, one line each; both modes):
 #   PROBE_SKIPPED=no-docs-url            no --url given — the DS had no
 #                                        accepted public docs URL (exit 0)
 #   PROBE_SKIPPED=browsers-unavailable   node, playwright, or the chromium
 #                                        binary is missing (exit 0)
-#   MANIFEST_ERROR=<file>:<line> ...     malformed manifest row (exit 2)
-#   PROBE_FAILED=navigation ...          the docs site did not load (exit 1 —
-#                                        the caller logs one [VERIFY] line and
-#                                        Phase 2 continues; never a blocker)
+#   MANIFEST_ERROR=<file>:<line> ...     malformed manifest row (exit 2,
+#                                        diff mode)
+#   PROBE_FAILED=navigation ...          a target page did not load (exit 1 —
+#                                        the caller logs one line and
+#                                        continues; never a blocker). In
+#                                        screenshot mode the line carries
+#                                        target=docs|produced.
 #
-# MANIFEST FORMAT (--manifest) — one token per line, pipe-delimited:
+# MANIFEST FORMAT (--manifest, diff mode) — one token per line,
+# pipe-delimited:
 #
 #   <token-name> | <declared-value> | <source-cite file:line> [| <css-selector>]
 #
@@ -52,13 +70,31 @@
 #
 #   --color-accent | #0070f3 | node_modules/@acme/ui/dist/css/light.css:12 | html
 #
-# OUTPUT (stdout; duplicated to --out when given):
+# OUTPUT — diff mode (stdout; duplicated to --out when given):
 #   PROBE_DIFF token=<t> declared='<v>' computed='<v>' verdict=MATCH|MISMATCH|UNRESOLVED source=<file:line> url=<url> selector=<sel>
 #   [VERIFY: rendered-probe ...]        one per MISMATCH / UNRESOLVED row
 #   PROBE_RESULT=checked:<n> match:<n> mismatch:<n> unresolved:<n>
 #
-# TOKEN CLASSES. In scope: color tokens, font-family tokens, and base
-# spacing/size tokens (length values). Declared and computed values are
+# OUTPUT — screenshot mode (stdout; duplicated to --out when given). Writes
+# <out-dir>/<component-slug>--docs.png and
+# <out-dir>/<component-slug>--produced.png, then emits ONE audit entry line
+# naming both files and both sources:
+#
+#   PROBE_SCREENSHOT=captured component=<Name> docs-png=<path> produced-png=<path> docs-url=<url> produced-url=<url> [needs-human-review]
+#
+# SCREENSHOT DISCIPLINE — EVIDENCE, NEVER VERDICT. The probe never emits a
+# visual claim: no pass/fail, no similarity score, no pixel-diff verdict.
+# Visual DS-contract claims (color saturation, disabled palette, contrast,
+# dark-mode legibility) are NEVER asserted from screenshot inference alone —
+# the human reviewer produces the claims; the [needs-human-review] tag
+# travels verbatim into the consuming audit's output. Selectors are
+# optional; when given, the capture clips to the first match and falls back
+# to a full-page capture (with a PROBE_SCREENSHOT_NOTE line) when the
+# selector resolves nothing. The produced-page URL must already be serving —
+# the probe never starts servers.
+#
+# TOKEN CLASSES (diff mode). In scope: color tokens, font-family tokens, and
+# base spacing/size tokens (length values). Declared and computed values are
 # canonicalized in-browser before compare (hex -> rgb(), rem -> px, quote and
 # whitespace normalization for font stacks), so notation differences are not
 # mismatches. OUT OF SCOPE: shadow tokens, gradients, transition/animation
@@ -78,37 +114,186 @@ URL=""
 MANIFEST=""
 OUT=""
 TIMEOUT_MS="30000"
+SCREENSHOT=0
+COMPONENT=""
+PRODUCED_URL=""
+OUT_DIR=""
+DOCS_SELECTOR=""
+PRODUCED_SELECTOR=""
 
 usage_error() {
   echo "$1" >&2
-  echo "usage: probe-rendered.sh --url <docs-url> --manifest <path> [--out <file>] [--timeout-ms <n>]" >&2
+  echo "usage (diff):       probe-rendered.sh --url <docs-url> --manifest <path> [--out <file>] [--timeout-ms <n>]" >&2
+  echo "usage (screenshot): probe-rendered.sh --screenshot --component <Name> --url <docs-example-url> --produced-url <url> --out-dir <dir> [--docs-selector <css>] [--produced-selector <css>] [--out <file>] [--timeout-ms <n>]" >&2
   exit 2
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --url)        URL="${2:-}"; shift 2 ;;
-    --manifest)   MANIFEST="${2:-}"; shift 2 ;;
-    --out)        OUT="${2:-}"; shift 2 ;;
-    --timeout-ms) TIMEOUT_MS="${2:-}"; shift 2 ;;
+    --url)               URL="${2:-}"; shift 2 ;;
+    --manifest)          MANIFEST="${2:-}"; shift 2 ;;
+    --out)               OUT="${2:-}"; shift 2 ;;
+    --timeout-ms)        TIMEOUT_MS="${2:-}"; shift 2 ;;
+    --screenshot)        SCREENSHOT=1; shift ;;
+    --component)         COMPONENT="${2:-}"; shift 2 ;;
+    --produced-url)      PRODUCED_URL="${2:-}"; shift 2 ;;
+    --out-dir)           OUT_DIR="${2:-}"; shift 2 ;;
+    --docs-selector)     DOCS_SELECTOR="${2:-}"; shift 2 ;;
+    --produced-selector) PRODUCED_SELECTOR="${2:-}"; shift 2 ;;
     *) usage_error "error: unknown argument: $1" ;;
   esac
 done
 
-# 1. No accepted docs URL -> clean skip. This is the documented Phase 2
+# 1. No accepted docs URL -> clean skip (both modes). This is the documented
 #    behavior for DSes without a public docs site, not an error.
 if [[ -z "$URL" ]]; then
   echo "PROBE_SKIPPED=no-docs-url"
   exit 0
 fi
 
+# 2. Browser availability detection (shared). Never installs anything — see
+#    the BROWSER PRECONDITION block in the header for the host-side command.
+skip_browsers() {
+  echo "PROBE_SKIPPED=browsers-unavailable"
+  echo "# install the browser on the HOST (never inside a sandbox): npx playwright install chromium"
+  exit 0
+}
+
+check_browsers() {
+  [[ "${PROBE_RENDERED_BROWSERS:-}" == "absent" ]] && skip_browsers
+  command -v node >/dev/null 2>&1 || skip_browsers
+  node -e "require.resolve('playwright')" >/dev/null 2>&1 || skip_browsers
+}
+
+# tee the given runner function to --out when set, preserving its exit code.
+run_with_out() {
+  if [[ -n "$OUT" ]]; then
+    "$1" | tee "$OUT"
+    exit "${PIPESTATUS[0]}"
+  else
+    "$1"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# SCREENSHOT MODE — audit-phase evidence capture. Argument validation runs
+# BEFORE browser detection so usage bugs surface loudly even in browserless
+# sandboxes.
+# ---------------------------------------------------------------------------
+run_screenshot() {
+  PROBE_COMPONENT="$COMPONENT" PROBE_SLUG="$SLUG" PROBE_OUT_DIR="$OUT_DIR" \
+  PROBE_DOCS_URL="$URL" PROBE_PRODUCED_URL="$PRODUCED_URL" \
+  PROBE_DOCS_SELECTOR="$DOCS_SELECTOR" PROBE_PRODUCED_SELECTOR="$PRODUCED_SELECTOR" \
+  PROBE_TIMEOUT_MS="$TIMEOUT_MS" node - <<'NODE_SCREENSHOT'
+const path = require('path');
+const { chromium } = require('playwright');
+
+const component = process.env.PROBE_COMPONENT;
+const slug = process.env.PROBE_SLUG;
+const outDir = process.env.PROBE_OUT_DIR;
+const timeoutMs = parseInt(process.env.PROBE_TIMEOUT_MS || '30000', 10);
+const targets = [
+  { name: 'docs', url: process.env.PROBE_DOCS_URL, selector: process.env.PROBE_DOCS_SELECTOR || '' },
+  { name: 'produced', url: process.env.PROBE_PRODUCED_URL, selector: process.env.PROBE_PRODUCED_SELECTOR || '' },
+];
+
+const firstLine = (err) => String((err && err.message) || err).split('\n')[0];
+
+(async () => {
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+  } catch (err) {
+    if (/Executable doesn't exist|playwright install|Failed to launch/i.test(String(err))) {
+      console.log('PROBE_SKIPPED=browsers-unavailable');
+      console.log('# install the browser on the HOST (never inside a sandbox): npx playwright install chromium');
+      process.exit(0);
+    }
+    throw err;
+  }
+
+  let exitCode = 0;
+  const captured = {};
+  try {
+    const page = await browser.newPage();
+    // Read-only guarantee: navigation and subresources are GETs; abort
+    // anything else (beacons, analytics POSTs, form submits).
+    await page.route('**/*', (route) =>
+      route.request().method() === 'GET' ? route.continue() : route.abort()
+    );
+    for (const t of targets) {
+      try {
+        await page.goto(t.url, { waitUntil: 'load', timeout: timeoutMs });
+      } catch (err) {
+        console.log(`PROBE_FAILED=navigation target=${t.name} url=${t.url} error=${firstLine(err)}`);
+        exitCode = 1;
+        continue;
+      }
+      const png = path.join(outDir, `${slug}--${t.name}.png`);
+      let clipped = false;
+      if (t.selector) {
+        try {
+          const loc = page.locator(t.selector).first();
+          if ((await loc.count()) > 0) {
+            await loc.screenshot({ path: png, timeout: timeoutMs });
+            clipped = true;
+          } else {
+            console.log(
+              `PROBE_SCREENSHOT_NOTE=selector-not-found target=${t.name} selector='${t.selector}' — captured full page instead`
+            );
+          }
+        } catch (err) {
+          console.log(
+            `PROBE_SCREENSHOT_NOTE=selector-capture-failed target=${t.name} selector='${t.selector}' error=${firstLine(err)} — captured full page instead`
+          );
+        }
+      }
+      if (!clipped) {
+        await page.screenshot({ path: png, fullPage: true });
+      }
+      captured[t.name] = png;
+      console.log(`PROBE_SCREENSHOT_TARGET=${t.name} png=${png} url=${t.url}`);
+    }
+    if (captured.docs && captured.produced) {
+      // The ONE audit entry line. Evidence only — no verdict, no score, no
+      // visual claim; the [needs-human-review] tag travels verbatim.
+      console.log(
+        `PROBE_SCREENSHOT=captured component=${component} docs-png=${captured.docs} produced-png=${captured.produced} docs-url=${targets[0].url} produced-url=${targets[1].url} [needs-human-review]`
+      );
+      console.log('# evidence for the human reviewer — the probe asserts nothing about visual fidelity');
+    }
+  } catch (err) {
+    console.log(`PROBE_FAILED=internal error=${firstLine(err)}`);
+    exitCode = 1;
+  } finally {
+    await browser.close();
+  }
+  process.exit(exitCode);
+})();
+NODE_SCREENSHOT
+}
+
+if [[ "$SCREENSHOT" -eq 1 ]]; then
+  [[ -n "$COMPONENT" ]] || usage_error "error: --component is required in screenshot mode"
+  [[ -n "$PRODUCED_URL" ]] || usage_error "error: --produced-url is required in screenshot mode"
+  [[ -n "$OUT_DIR" ]] || usage_error "error: --out-dir is required in screenshot mode"
+  check_browsers
+  mkdir -p "$OUT_DIR"
+  SLUG="$(printf '%s' "$COMPONENT" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
+  run_with_out run_screenshot
+  exit $?
+fi
+
+# ---------------------------------------------------------------------------
+# DIFF MODE — Phase 2 computed-vs-declared token cross-check.
+# ---------------------------------------------------------------------------
 [[ -n "$MANIFEST" ]] || usage_error "error: --manifest is required"
 if [[ ! -f "$MANIFEST" ]]; then
   echo "MANIFEST_ERROR=$MANIFEST: file not found"
   exit 2
 fi
 
-# 2. Parse + validate the manifest BEFORE browser detection, so manifest
+# 3. Parse + validate the manifest BEFORE browser detection, so manifest
 #    bugs surface loudly even in sandboxes without browser binaries.
 TSV="$(mktemp)"
 trap 'rm -f "$TSV"' EXIT
@@ -160,17 +345,7 @@ if [[ "$ENTRIES" -eq 0 ]]; then
   exit 2
 fi
 
-# 3. Browser availability detection. Never installs anything — see the
-#    BROWSER PRECONDITION block in the header for the host-side command.
-skip_browsers() {
-  echo "PROBE_SKIPPED=browsers-unavailable"
-  echo "# install the browser on the HOST (never inside a sandbox): npx playwright install chromium"
-  exit 0
-}
-
-[[ "${PROBE_RENDERED_BROWSERS:-}" == "absent" ]] && skip_browsers
-command -v node >/dev/null 2>&1 || skip_browsers
-node -e "require.resolve('playwright')" >/dev/null 2>&1 || skip_browsers
+check_browsers
 
 # 4. Run the probe. The node runner re-checks the chromium binary at launch
 #    time (the module can be installed while the binary cache is empty) and
@@ -318,9 +493,4 @@ const firstLine = (err) => String((err && err.message) || err).split('\n')[0];
 NODE_RUNNER
 }
 
-if [[ -n "$OUT" ]]; then
-  run_probe | tee "$OUT"
-  exit "${PIPESTATUS[0]}"
-else
-  run_probe
-fi
+run_with_out run_probe

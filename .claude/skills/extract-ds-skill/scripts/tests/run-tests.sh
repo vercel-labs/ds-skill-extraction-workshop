@@ -1011,6 +1011,58 @@ assert_probe "probe: non-custom-property token rejected" \
   env PROBE_RENDERED_BROWSERS=absent \
   bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/notoken.txt"
 
+# ---------------------------------------------------------------------------
+# probe-rendered.sh --screenshot tests (issue #48). Same determinism rule:
+# argument validation precedes browser detection, and the browsers-absent
+# hook keeps the suite from ever launching a real browser.
+# ---------------------------------------------------------------------------
+
+# Test S1: screenshot mode with all required args but browsers absent ->
+# graceful skip, exit 0 (args parse + validation passes first).
+assert_probe "screenshot: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --url "https://example.invalid/docs/button" \
+  --produced-url "https://example.invalid/produced" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S2: screenshot mode without --url -> the same documented no-docs-URL
+# clean skip as diff mode, exit 0.
+assert_probe "screenshot: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --produced-url "https://example.invalid/produced" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S3: missing --component is a loud usage error (exit 2), even in a
+# browserless sandbox.
+assert_probe "screenshot: missing --component is a usage error" \
+  2 "error: --component is required in screenshot mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot \
+  --url "https://example.invalid/docs/button" \
+  --produced-url "https://example.invalid/produced" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S4: missing --produced-url is a loud usage error (exit 2).
+assert_probe "screenshot: missing --produced-url is a usage error" \
+  2 "error: --produced-url is required in screenshot mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --url "https://example.invalid/docs/button" \
+  --out-dir "$PROBE_TMP/shots"
+
+# Test S5: missing --out-dir is a loud usage error (exit 2) — screenshot
+# mode never picks an implicit output path.
+assert_probe "screenshot: missing --out-dir is a usage error" \
+  2 "error: --out-dir is required in screenshot mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --screenshot --component Button \
+  --url "https://example.invalid/docs/button" \
+  --produced-url "https://example.invalid/produced"
+
 echo
 if [[ "$SKIPPED" -gt 0 ]]; then
   echo "PASSED=$PASS FAILED=$FAIL SKIPPED=$SKIPPED"

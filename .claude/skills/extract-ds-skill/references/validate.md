@@ -114,6 +114,8 @@ Sequence:
 
 The selector defaults to `html`. Declared and computed values are canonicalized in-browser before compare (hex → rgb(), rem → px, quote/whitespace normalization for font stacks), so notation differences are not reported as mismatches.
 
+The same script also carries an audit-phase **screenshot mode** (`--screenshot`): side-by-side PNG evidence of a produced component page vs the DS docs example, every entry tagged `[needs-human-review]`. That mode is out of Phase 2 scope — it emits evidence only, never a visual verdict, and its contract is documented in the consuming audit skill and the script header.
+
 ## Shell-invariant extraction step
 
 Runs whenever Phase 2 has lifted ANY verbatim wiring into scratch — either through the Reference-project extraction step above (root-entry-file code block in `.extract-ds-skill-scratch/wiring-extracted.md`, plus its `## Companion CSS file (verbatim) — <path>` blocks), or through the Foundation-docs wiring fallback (a `### Foundation wiring` snippet lifted from a foundation page), or both. Skip this entire section when no wiring was lifted (no reference project AND no foundation wiring snippet); the produced skill's Setup section will be empty and `## Hard rules` carries only the universal `[VERIFY]` + do-not-invent contract.
