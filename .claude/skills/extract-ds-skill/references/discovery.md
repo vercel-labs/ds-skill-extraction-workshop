@@ -73,7 +73,7 @@ Render inline, not as a file. Every summary contains:
 - DS identity in one line — `<name> - <one-sentence description>`
 - Components found (N), proposing (M) — bulleted, one line each (auto-discover output)
 - Tokens detected — one line summary (count + families, e.g. color/space/type/motion)
-- Assets detected — one line summary (omit entirely if none)
+- Assets detected — one line summary (omit entirely if none). When the rendered-site asset inventory ran (see **Rendered-site asset inventory** below), the SAME line carries the probe segment, tagged `[probe-derived]`; on probe skip/failure it instead carries a one-phrase parenthetical skip note. One line either way — the probe never adds a line.
 - Foundation docs — one block tagged `[docs:foundation]`. Every URL the user passed gets its own line, accepted or rejected. Never silently drop a URL; either it lands in the accepted block with its crawl tree, or it lands in the rejected block with a one-phrase reason. Omit the block entirely if the user did not provide any foundation URL. Format:
 
   ```
@@ -93,6 +93,31 @@ Render inline, not as a file. Every summary contains:
 - Closing sentence asking the user to confirm or adjust
 
 Budget note: the foundation block adds one accepted-or-rejected line per input URL plus one short crawl-tree segment per accepted root. Cap the per-root sub-page enumeration in the summary at 6 visible slugs followed by `+N more` so the 30-line ceiling holds even with 3 accepted roots × 12 crawled children each. The worst case (3 roots, each at the depth-1 cap, plus reference project, soft nudge, out-of-scope routing) still lands inside the 30-line target — the user reads the abbreviated tree here and the full enumeration lands in the Phase 2 proof-point line.
+
+### Rendered-site asset inventory (opt-in probe)
+
+When the user's inputs include a public docs URL that Phase 1 accepts AND the user has not opted out (opt-out phrase: **"skip rendered probe"** — shared with the Phase 2 diff probe; default for CI and unattended runs is skip), run the inventory mode of the shared probe script before rendering the discovery summary:
+
+```
+bash scripts/probe-rendered.sh --inventory --url <accepted-docs-url> \
+    --out-json .extract-ds-skill-scratch/probe-inventory.json
+```
+
+The probe renders the docs page headless and writes a compact JSON manifest of the **fonts actually loaded** (FontFaceSet entries with status `loaded`) and the **icons actually referenced** (sprite fragments, labeled/classed inline SVGs, `.svg` file basenames, content-hash fallbacks). This is ground truth for the gap between a DS's theoretical export surface and its in-the-wild surface — "package exports 800 icons but the docs render 40" — which sizes Phase 2 work and informs the foundation-docs crawl tree. It never changes the proposing slate by itself.
+
+Render the result as ONE line — the existing `Assets detected:` line with the probe segment appended, never an enumeration (the 30-line ceiling holds because no new line is added):
+
+```
+Assets detected: <source-derived counts> · docs render <I> icons, <F> font families [probe-derived]
+```
+
+The `[probe-derived]` tag is mandatory: it distinguishes rendered ground truth from source-derived counts and flags that the numbers come from ONE page load (heavily lazy-loaded catalogs undercount — treat the probe numbers as a floor, never as the export surface). Degradation is additive-context, never a gate: on any `PROBE_SKIPPED=` / `PROBE_FAILED=` line (no docs URL, browser binaries absent, navigation failure or timeout), render the source-derived counts only and append a one-phrase parenthetical, e.g.:
+
+```
+Assets detected: 800 icons (package exports) (rendered inventory skipped: browsers-unavailable)
+```
+
+Phase 1 then proceeds unchanged on its source-only path. Browser binaries install on the HOST, never inside a sandbox — the script header documents the command. Full mode contract (flags, JSON manifest shape, greppable output lines): the `scripts/probe-rendered.sh` header.
 
 ### Crawl rules (depth-1, per accepted root)
 

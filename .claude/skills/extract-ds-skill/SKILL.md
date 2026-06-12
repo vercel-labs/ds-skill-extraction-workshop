@@ -60,6 +60,8 @@ The discovery summary covers: proposed skill name and target path, DS one-liner,
 
 Inspect-but-do-not-enumerate is the rule. Read enough to know what each source contains (package exports, top-level folders, docs index, example apps); do not list every component, token, or icon yet. The full enumeration happens in Phase 2, against the pruned set the user confirms.
 
+If a public docs URL is accepted AND the user has not opted out (opt-out phrase: **"skip rendered probe"**, shared with the Phase 2 diff probe; default for CI and unattended runs is skip), run the rendered-site **asset inventory** before rendering the summary: `bash scripts/probe-rendered.sh --inventory --url <accepted-docs-url> --out-json .extract-ds-skill-scratch/probe-inventory.json`. The probe enumerates the fonts and icons the rendered docs page ACTUALLY loads, and the `Assets detected:` line carries both provenances in one line: `Assets detected: <source-derived counts> · docs render <I> icons, <F> font families [probe-derived]`. Additive context, never a gate — on any `PROBE_SKIPPED=`/`PROBE_FAILED=` line the summary renders source-derived counts with a one-phrase parenthetical skip note and discovery proceeds on its source-only path. Line format, degradation contract, and the JSON manifest shape: `references/discovery.md` (Rendered-site asset inventory) and the script header.
+
 ### Worked example — Phase 1 summary against a public-DS-shaped target (illustrative)
 
 The block below uses a public-DS-shaped target to ground the shape. The skill makes no assumption that the user's DS is the one in the example; the same summary contract applies to whichever DS the user passes. Substitute real cites for the DS you are extracting. The example shows the upstream-package case (large N, small demand-driven M). When the target includes a local wrapper surface, the components block instead defaults to proposing the full local surface (M = N) — see the local-surface worked example in `references/discovery.md`.
@@ -258,7 +260,7 @@ Progressive disclosure is the contract. Load each reference file only at the gat
 
 | When you are... | Load references | Internal pass |
 |---|---|---|
-| Framing Phase 1, classifying sources, rendering the discovery summary | `references/discovery.md` | Source-role taxonomy, auto-discover-and-prune, budget rules |
+| Framing Phase 1, classifying sources, rendering the discovery summary | `references/discovery.md` | Source-role taxonomy, auto-discover-and-prune, budget rules, rendered asset inventory (opt-in, `scripts/probe-rendered.sh --inventory`) |
 | Running Phase 2 validation in `.extract-ds-skill-scratch/` | `references/validate.md` | Typecheck + grep-resolves protocol, `[VERIFY]` tally, wait-gate, rendered-site probe contract (opt-in, `scripts/probe-rendered.sh`) |
 | About to write the first file under `.claude/skills/<slug>/` in Phase 3 | `references/persist.md` + `references/skill-template.md` | Slug-collision check, file layout, SKILL.md contract |
 | After closing message, considering the optional `dry-runs/` snapshot prompt | `references/persist.md` (`## Optional: dry-run snapshot`) | Conditional on `dry-runs/` existing at project root; prompt shape, copy + RUBRIC stub |

@@ -114,7 +114,7 @@ Sequence:
 
 The selector defaults to `html`. Declared and computed values are canonicalized in-browser before compare (hex → rgb(), rem → px, quote/whitespace normalization for font stacks), so notation differences are not reported as mismatches.
 
-The same script also carries an audit-phase **screenshot mode** (`--screenshot`): side-by-side PNG evidence of a produced component page vs the DS docs example, every entry tagged `[needs-human-review]`. That mode is out of Phase 2 scope — it emits evidence only, never a visual verdict, and its contract is documented in the consuming audit skill and the script header.
+The same script also carries an audit-phase **screenshot mode** (`--screenshot`): side-by-side PNG evidence of a produced component page vs the DS docs example, every entry tagged `[needs-human-review]`. That mode is out of Phase 2 scope — it emits evidence only, never a visual verdict, and its contract is documented in the consuming audit skill and the script header. A third mode, the Phase 1 **inventory mode** (`--inventory`), enumerates the fonts/icons the rendered docs page actually loads for the discovery summary's `Assets detected:` line — also out of Phase 2 scope; see `references/discovery.md` (Rendered-site asset inventory).
 
 ## Shell-invariant extraction step
 

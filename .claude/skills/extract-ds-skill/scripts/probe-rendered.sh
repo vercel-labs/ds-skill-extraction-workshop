@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/probe-rendered.sh — opt-in rendered-site probe. Two modes, one
+# scripts/probe-rendered.sh — opt-in rendered-site probe. Three modes, one
 # script (the probe family shares this entry point; no parallel pipelines):
 #
 #   DIFF MODE (default)       Phase 2 of the meta-skill. Renders the DS's
@@ -11,6 +11,14 @@
 #   (--screenshot)            PNG EVIDENCE of a produced component page vs the
 #                             DS docs example, tagged [needs-human-review].
 #                             Evidence only — the probe never grades it.
+#   INVENTORY MODE            Phase 1 of the meta-skill. Enumerates the fonts
+#   (--inventory)             and icons ACTUALLY LOADED by the rendered docs
+#                             page and writes a compact JSON manifest. Ground
+#                             truth for the discovery summary's `Assets
+#                             detected:` line ("package exports 800 icons but
+#                             the docs render 40"). Additive context, never a
+#                             gate — a skip or failure leaves Phase 1 on its
+#                             source-only path.
 #
 # ROLE — ANNOTATE, NEVER OVERRIDE. Source extraction stays authoritative.
 # In diff mode every MISMATCH / UNRESOLVED row is emitted as a ready-made
@@ -19,10 +27,10 @@
 # a completed run regardless of verdicts.
 #
 # OPT-IN CONTRACT (enforced by the caller — Phase 2 of the meta-skill in diff
-# mode; the consuming audit skill in screenshot mode): run only when (a) the
-# DS has a public docs URL accepted in Phase 1, and (b) the user has not
-# opted out (opt-out phrase: "skip rendered probe"). Default for CI and
-# tests is skip.
+# mode; the consuming audit skill in screenshot mode; Phase 1 of the
+# meta-skill in inventory mode): run only when (a) the DS has a public docs
+# URL accepted in Phase 1, and (b) the user has not opted out (opt-out
+# phrase: "skip rendered probe"). Default for CI and tests is skip.
 #
 # USAGE — diff mode
 #   bash probe-rendered.sh --url <docs-url> --manifest <path> \
@@ -32,6 +40,10 @@
 #   bash probe-rendered.sh --screenshot --component <Name> \
 #       --url <docs-example-url> --produced-url <produced-page-url> \
 #       --out-dir <dir> [--docs-selector <css>] [--produced-selector <css>] \
+#       [--out <report-file>] [--timeout-ms <n=30000>]
+#
+# USAGE — inventory mode (Phase 1 discovery)
+#   bash probe-rendered.sh --inventory --url <docs-url> --out-json <path> \
 #       [--out <report-file>] [--timeout-ms <n=30000>]
 #
 # BROWSER PRECONDITION. playwright must be installed as a (dev)dependency of
@@ -57,6 +69,10 @@
 #                                        continues; never a blocker). In
 #                                        screenshot mode the line carries
 #                                        target=docs|produced.
+#
+# In inventory mode every skip/failure line above means Phase 1 renders the
+# `Assets detected:` line from source-derived counts only, with a one-phrase
+# skip note — the probe is additive context, never a discovery gate.
 #
 # MANIFEST FORMAT (--manifest, diff mode) — one token per line,
 # pipe-delimited:
@@ -93,6 +109,32 @@
 # selector resolves nothing. The produced-page URL must already be serving —
 # the probe never starts servers.
 #
+# OUTPUT — inventory mode (stdout; duplicated to --out when given). Writes
+# the JSON manifest to --out-json (directories created as needed), then
+# emits ONE summary line:
+#
+#   PROBE_INVENTORY=captured fonts=<n> icons=<n> json=<path> url=<url>
+#
+# Manifest shape (deterministic key order, sorted entries):
+#
+#   {
+#     "url": "<docs-url>",
+#     "fonts": ["<family>", ...],                 // FontFaceSet entries with
+#                                                 // status "loaded" — webfonts
+#                                                 // the page actually fetched
+#     "icons": [{"id": "<identifier>", "kind": "sprite|labeled|class|file|hash", "count": <n>}, ...],
+#     "counts": { "fonts": <n>, "icons": <n> }
+#   }
+#
+# Icon identifiers are best-effort, in priority order: SVG sprite fragment
+# (<use href="#name">), aria-label / data-testid, an icon-ish class token,
+# the basename of an <img src="*.svg">, else a content hash of the inline
+# markup (id "svg-<hex>", kind "hash"). The inventory reads ONE page load —
+# heavily lazy-loaded catalogs undercount, which is why the discovery line
+# tags these numbers [probe-derived] instead of treating them as the export
+# surface. Counts, not enumeration: Phase 1 renders one summary line from
+# this manifest, never the icon list itself.
+#
 # TOKEN CLASSES (diff mode). In scope: color tokens, font-family tokens, and
 # base spacing/size tokens (length values). Declared and computed values are
 # canonicalized in-browser before compare (hex -> rgb(), rem -> px, quote and
@@ -120,11 +162,14 @@ PRODUCED_URL=""
 OUT_DIR=""
 DOCS_SELECTOR=""
 PRODUCED_SELECTOR=""
+INVENTORY=0
+OUT_JSON=""
 
 usage_error() {
   echo "$1" >&2
   echo "usage (diff):       probe-rendered.sh --url <docs-url> --manifest <path> [--out <file>] [--timeout-ms <n>]" >&2
   echo "usage (screenshot): probe-rendered.sh --screenshot --component <Name> --url <docs-example-url> --produced-url <url> --out-dir <dir> [--docs-selector <css>] [--produced-selector <css>] [--out <file>] [--timeout-ms <n>]" >&2
+  echo "usage (inventory):  probe-rendered.sh --inventory --url <docs-url> --out-json <path> [--out <file>] [--timeout-ms <n>]" >&2
   exit 2
 }
 
@@ -140,9 +185,16 @@ while [[ $# -gt 0 ]]; do
     --out-dir)           OUT_DIR="${2:-}"; shift 2 ;;
     --docs-selector)     DOCS_SELECTOR="${2:-}"; shift 2 ;;
     --produced-selector) PRODUCED_SELECTOR="${2:-}"; shift 2 ;;
+    --inventory)         INVENTORY=1; shift ;;
+    --out-json)          OUT_JSON="${2:-}"; shift 2 ;;
     *) usage_error "error: unknown argument: $1" ;;
   esac
 done
+
+# Contradictory mode flags are a caller bug — loud, before any skip path.
+if [[ "$SCREENSHOT" -eq 1 && "$INVENTORY" -eq 1 ]]; then
+  usage_error "error: --screenshot and --inventory are mutually exclusive"
+fi
 
 # 1. No accepted docs URL -> clean skip (both modes). This is the documented
 #    behavior for DSes without a public docs site, not an error.
@@ -281,6 +333,134 @@ if [[ "$SCREENSHOT" -eq 1 ]]; then
   mkdir -p "$OUT_DIR"
   SLUG="$(printf '%s' "$COMPONENT" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
   run_with_out run_screenshot
+  exit $?
+fi
+
+# ---------------------------------------------------------------------------
+# INVENTORY MODE — Phase 1 ground-truth asset enumeration. Argument
+# validation runs BEFORE browser detection so usage bugs surface loudly even
+# in browserless sandboxes.
+# ---------------------------------------------------------------------------
+run_inventory() {
+  PROBE_URL="$URL" PROBE_OUT_JSON="$OUT_JSON" PROBE_TIMEOUT_MS="$TIMEOUT_MS" node - <<'NODE_INVENTORY'
+const fs = require('fs');
+const { chromium } = require('playwright');
+
+const url = process.env.PROBE_URL;
+const outJson = process.env.PROBE_OUT_JSON;
+const timeoutMs = parseInt(process.env.PROBE_TIMEOUT_MS || '30000', 10);
+
+const firstLine = (err) => String((err && err.message) || err).split('\n')[0];
+
+(async () => {
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+  } catch (err) {
+    if (/Executable doesn't exist|playwright install|Failed to launch/i.test(String(err))) {
+      console.log('PROBE_SKIPPED=browsers-unavailable');
+      console.log('# install the browser on the HOST (never inside a sandbox): npx playwright install chromium');
+      process.exit(0);
+    }
+    throw err;
+  }
+
+  let exitCode = 0;
+  try {
+    const page = await browser.newPage();
+    // Read-only guarantee: navigation and subresources are GETs; abort
+    // anything else (beacons, analytics POSTs, form submits).
+    await page.route('**/*', (route) =>
+      route.request().method() === 'GET' ? route.continue() : route.abort()
+    );
+    try {
+      await page.goto(url, { waitUntil: 'load', timeout: timeoutMs });
+    } catch (err) {
+      console.log(`PROBE_FAILED=navigation url=${url} error=${firstLine(err)}`);
+      exitCode = 1;
+    }
+
+    if (exitCode === 0) {
+      const inv = await page.evaluate(async () => {
+        // Fonts: FontFaceSet entries with status "loaded" — webfonts the page
+        // actually fetched. System-stack fallbacks never appear here, which
+        // is the point: the inventory reports what loaded, not what CSS asks
+        // for. Wait for in-flight loads so lazy @font-face rules count.
+        await document.fonts.ready;
+        const fonts = new Set();
+        document.fonts.forEach((f) => {
+          if (f.status === 'loaded') fonts.add(String(f.family).replace(/^["']|["']$/g, ''));
+        });
+
+        // Icons: best-effort identifiers, priority order documented in the
+        // script header. The hash fallback (djb2 over whitespace-normalized
+        // markup) keeps anonymous inline SVGs dedup-able without naming them.
+        const icons = new Map();
+        const add = (id, kind) => {
+          const key = `${kind}:${id}`;
+          icons.set(key, (icons.get(key) || 0) + 1);
+        };
+        document.querySelectorAll('svg').forEach((svg) => {
+          const use = svg.querySelector('use');
+          const href = use && (use.getAttribute('href') || use.getAttribute('xlink:href'));
+          if (href && href.includes('#')) return add(href.slice(href.indexOf('#') + 1), 'sprite');
+          const label = svg.getAttribute('aria-label') || svg.getAttribute('data-testid');
+          if (label) return add(label, 'labeled');
+          const cls = (svg.getAttribute('class') || '')
+            .split(/\s+/)
+            .find((c) => /icon/i.test(c));
+          if (cls) return add(cls, 'class');
+          let h = 5381;
+          const s = svg.outerHTML.replace(/\s+/g, ' ');
+          for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+          add(`svg-${h.toString(16)}`, 'hash');
+        });
+        document.querySelectorAll('img').forEach((img) => {
+          const src = img.getAttribute('src') || '';
+          if (!/\.svg(\?|#|$)/i.test(src)) return;
+          add(src.split('/').pop().split(/[?#]/)[0], 'file');
+        });
+
+        return {
+          fonts: [...fonts].sort(),
+          icons: [...icons.entries()]
+            .map(([key, count]) => {
+              // ids may contain the separator (aria-labels are free text) —
+              // split on the FIRST ':' only; kind is a fixed enum.
+              const cut = key.indexOf(':');
+              return { id: key.slice(cut + 1), kind: key.slice(0, cut), count };
+            })
+            .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
+        };
+      });
+
+      const manifest = {
+        url,
+        fonts: inv.fonts,
+        icons: inv.icons,
+        counts: { fonts: inv.fonts.length, icons: inv.icons.length },
+      };
+      fs.mkdirSync(require('path').dirname(outJson), { recursive: true });
+      fs.writeFileSync(outJson, JSON.stringify(manifest, null, 2) + '\n');
+      console.log(
+        `PROBE_INVENTORY=captured fonts=${manifest.counts.fonts} icons=${manifest.counts.icons} json=${outJson} url=${url}`
+      );
+    }
+  } catch (err) {
+    console.log(`PROBE_FAILED=internal error=${firstLine(err)}`);
+    exitCode = 1;
+  } finally {
+    await browser.close();
+  }
+  process.exit(exitCode);
+})();
+NODE_INVENTORY
+}
+
+if [[ "$INVENTORY" -eq 1 ]]; then
+  [[ -n "$OUT_JSON" ]] || usage_error "error: --out-json is required in inventory mode"
+  check_browsers
+  run_with_out run_inventory
   exit $?
 fi
 

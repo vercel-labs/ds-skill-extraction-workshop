@@ -1063,6 +1063,44 @@ assert_probe "screenshot: missing --out-dir is a usage error" \
   --url "https://example.invalid/docs/button" \
   --produced-url "https://example.invalid/produced"
 
+# ---------------------------------------------------------------------------
+# probe-rendered.sh --inventory tests (issue #49). Same determinism rule:
+# argument validation precedes browser detection, and the browsers-absent
+# hook keeps the suite from ever launching a real browser.
+# ---------------------------------------------------------------------------
+
+# Test I1: inventory mode with all required args but browsers absent ->
+# graceful skip, exit 0 — Phase 1 stays on its source-only path.
+assert_probe "inventory: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory \
+  --url "https://example.invalid/docs" \
+  --out-json "$PROBE_TMP/inventory.json"
+
+# Test I2: inventory mode without --url -> the same documented no-docs-URL
+# clean skip as the other modes, exit 0.
+assert_probe "inventory: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory --out-json "$PROBE_TMP/inventory.json"
+
+# Test I3: missing --out-json is a loud usage error (exit 2), even in a
+# browserless sandbox — inventory mode never picks an implicit output path.
+assert_probe "inventory: missing --out-json is a usage error" \
+  2 "error: --out-json is required in inventory mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory --url "https://example.invalid/docs"
+
+# Test I4: --inventory and --screenshot together is a contradictory-flags
+# usage error (exit 2), caught before any skip path.
+assert_probe "inventory: --inventory + --screenshot is a usage error" \
+  2 "error: --screenshot and --inventory are mutually exclusive" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --inventory --screenshot \
+  --url "https://example.invalid/docs" \
+  --out-json "$PROBE_TMP/inventory.json"
+
 echo
 if [[ "$SKIPPED" -gt 0 ]]; then
   echo "PASSED=$PASS FAILED=$FAIL SKIPPED=$SKIPPED"
