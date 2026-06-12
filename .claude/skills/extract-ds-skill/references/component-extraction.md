@@ -34,6 +34,7 @@ The shape is distinct from Shape 1 (positive peer-graph routing) because the tri
 - **Find in:** TypeScript types (`*.d.ts`, prop interfaces), JSDoc on the prop, prop tables in docs, runtime warnings inside the implementation.
 - **Extract:** bullet under `### Key props` or `### Behavior` in the component's reference file. Wrap every prop / value / literal API token in backticks: `disabled`, `primary`, `oclif/core`. Cite source as `file:line` inline.
 - **Worked example (from Geist `button.mdx`):** "Pass `loading` instead of swapping in a spinner so the button stays focusable and announces the busy state to assistive tech. (button.tsx:88)" The prop is in backticks; the rationale (focus + ARIA) is preserved; the citation points at the implementation line that proves the behavior.
+- **Worked example (illustrative, joint-prop pairing):** when a component exposes BOTH `loading` and `disabled`, extract the pairing rule, not just each prop: "`loading` keeps the button focusable and announces busy to assistive tech; `disabled` removes it from the tab order. Choose deliberately — use `loading` alone for in-flight submits; add `disabled` only when the action must be unreachable. (button.tsx:<line>)" A prop pair whose members alter each other's semantics is one rule, not two.
 
 ### Shape 3 — Naming / casing / copy
 
@@ -55,12 +56,28 @@ The shape is distinct from Shape 1 (positive peer-graph routing) because the tri
 - **Find in:** implementation defaults (`useState(initial)`, default-prop destructuring), Storybook default stories, prop-table default columns.
 - **Extract:** bullet under `### Behavior` in the component's reference file. State the default and the consequence of overriding it incorrectly.
 - **Worked example (from Geist `modal.mdx`):** "Default focus to `Cancel` on any destructive Modal. Enter must never trigger the destructive action without a typed confirmation. (modal.tsx:`initialFocusRef` default)" The default is concrete, the override risk is explicit, the citation points at the implementation primitive that enforces it.
+- **Styled-native-wrapper check:** when the component is a styled wrapper around a native element (`<select>`, `<input>`, `<textarea>`), verify that uncontrolled-default props (`defaultValue`, `defaultChecked`) actually reach the rendered native element — read the implementation's prop forwarding, or check for an open issue / test. When evidence shows the default does NOT propagate, extract a rule preferring controlled `value` + `onChange`, and write the component's composition example in the controlled form. Record the rule with a `[VERIFY]` marker if propagation could not be confirmed either way.
+- **Worked example (illustrative, styled-native wrapper):** a DS `Select` that wraps native `<select>` but does not forward `defaultValue` — the visible value silently diverges from the prop. Extracted into `select.md` under `### Behavior`: "Prefer controlled `value` + `onChange`; `defaultValue` does not propagate to the native `<select>`. (select.tsx:<line>)"
 
 ### Shape 6 — Cross-skill back-reference
 
 - **Looks like:** a rule that depends on a sibling skill — "use the icon skill's primitive, not raw SVG", "error toast copy lives in the copy skill, mirror it here".
 - **Find in:** prose docs that cross-link other skills, bidirectional rule mirrors (Geist toast rules mirrored in product-copywriting).
 - **Extract:** **DEFER for v1.** No sibling skills exist in the workshop scaffold yet. Mark the rule `[DEFER]` in the rule list during extraction so it is visible to the user but does not pollute the routing table. Pick up when the second skill in the cluster lands.
+
+---
+
+## Closed-prop-surface check (icon / asset components)
+
+Icon and glyph components from asset packages often expose a prop surface NARROWER than `React.SVGProps` — a closed interface (e.g. only `aria-label` / `className` / `fill` / `size`). The natural consumer move `<Icon style={{ color: ... }} />` then fails typecheck, and nothing in prose docs warns about it. During extraction of any icon/asset component:
+
+1. Read the component's d.ts prop interface. Check whether `style` and `className` passthrough exist.
+2. When `style` passthrough is ABSENT: record a negative claim in `.extract-ds-skill-scratch/claims.txt` (`NEGATIVE:<Icon>.style=...` — see `references/validate.md`, Claims file contract) so the gap is mechanically verified, AND emit into the produced reference file:
+   - a `## Best Practices` bullet: "Never pass `style` to `<Icon>` — the prop interface is closed; it fails typecheck. (<d.ts path>:<line>)"
+   - a "colored glyph" recipe under `## Composition examples`: wrap in a parent element that sets `color`, so the SVG inherits via `fill="currentColor"`: `<span style={{ color: 'var(--<status-token>)' }}><Icon /></span>`
+3. When `fill` is the sanctioned color prop, document it under `### Key props` with the token-not-hex discipline.
+
+Worked example (illustrative): an icon package whose `IconProps` is exactly `aria-label` / `className` / `fill` / `size` / `verticalAlign` rejects `style`; the produced `icon.md` ships the parent-`span` + `currentColor` recipe and the Never-bullet, cited to the d.ts line. Registered as `asset/closed-prop-surface` in `references/anti-patterns.md`.
 
 ---
 
@@ -71,7 +88,7 @@ Most behavioral rules do not live in types or test names. They live in prose —
 - **Negative imperatives** — sentences that start with "Don't wrap...", "Never pass...", "Avoid...", "Do not...". These are almost always Shape 2, 4, or 5.
 - **Naming / casing prescriptions** — "Title Case", "lowercase", "action-oriented", "starts with a verb". Route out as Shape 3.
 - **Fuzzy thresholds** — "under ~10 items", "for fewer than 5 options", "past 3 tabs". The threshold is the rule. Preserve verbatim, do not round.
-- **Cross-component anti-patterns** — "X next to Y produces Z", "do not put X inside Y". These are Shape 1 expressed as a trap; extract into both X's and Y's reference files (see cross-component duplication below).
+- **Cross-component anti-patterns** — "X next to Y produces Z", "do not put X inside Y". These are Shape 1 expressed as a trap; extract into both X's and Y's reference files (see cross-component duplication below). A recurring instance: a layout primitive's alignment prop (`align="end"`, `align="center"`) against form-field children of asymmetric height (one child carries a caption/description, one does not) — labels misalign because the primitive aligns boxes, not baselines.
 - **Runtime-validator complements** — a runtime warning or dev-mode assertion the type system cannot enforce. "Throws in dev if children include another `<Modal>`", "warns if `aria-label` is set on a Button that renders text". Shape 2 or Shape 4.
 - **Anti-substitution prose** — sentences containing `"not <PeerComponent>"`, `"do not reach for <PeerComponent>"`, `"<PeerComponent> is reserved for..."`, `"only reach for <PeerComponent> when..."`. These are Shape 7. The avoided peer is almost always outside the proposing set (experimental, deprecated, upstream-only) — that is precisely why the DS author wrote the rule.
 
@@ -144,7 +161,13 @@ has no sibling in the in-scope set.>
 ```
 
 <One short, real, copy-pasteable example. Lifted from a real consumer file
-or setup docs verbatim — do not reconstruct from memory.>
+or setup docs verbatim — do not reconstruct from memory. When the source
+offers them, prefer the high-leverage composition categories:
+- status/lifecycle components (badges, state labels): a transition between
+  two states (e.g. open → merged) including the cross-fade/swap pattern the
+  DS sanctions;
+- message surfaces (alerts, flashes, banners): the variant paired with its
+  leading semantic icon, showing the sanctioned icon + variant pairing.>
 
 ## Source references
 
@@ -195,6 +218,8 @@ Skipping the section breaks the routing table. The meta-skill's `check-skill-doc
 The same rule lives in EACH component file where the trap can fire. Do NOT normalize to a single file.
 
 Concrete example from Geist: the rule "don't wrap a labelled Input or Select in a Tooltip — put the hint on a sibling icon button" lives in `input.mdx`, `select.mdx`, and `tooltip.mdx`. Three copies, same prose. This is intentional.
+
+Second example (illustrative, layout-primitive × form-field): "do not rely on a horizontal stack's `align="end"` to line up two form controls when one has a caption and the other does not — the captioned control's label rides up; align on `start` and equalize with an explicit spacer, or give both controls a caption slot." The rule lives in BOTH the layout primitive's file (stack.md-equivalent) and the form-field's file (form-control.md-equivalent) — the trap is reachable from either side.
 
 The reasoning: an agent loading only `references/components/button.md` to extract a Button must see the `button-loading-not-inactive` rule in that file, even though the inactive-vs-disabled distinction might also be relevant when reasoning about other interactive components. Normalizing the rule into a shared `interaction-states.md` saves bytes and breaks correctness — the agent reading Button alone would miss it. Duplication is correctness; normalization is brittle.
 

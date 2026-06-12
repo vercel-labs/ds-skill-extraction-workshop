@@ -104,6 +104,7 @@ Sequence:
    - **Body/root paint via globals.css body rule** — when one of the Companion CSS files contains a `body { background-color: var(--<surface-default>); ... }` rule (or the equivalent `html, body { ... }`). Step phrasing: "`globals.css` MUST paint the body/root with the DS's surface token."
    - **Mode attribute on `<html>`** — when the lifted root-entry-file snippet sets `data-*-color-scheme`, `class="dark"`, or any other DS-named mode attribute on `<html>`. Step phrasing: "The mode attribute on `<html>` MUST be paired with the matching theme CSS import."
    - **Theme CSS imports matched to the mode attribute** — every theme file the DS ships per mode (light, dark, contrast) that the Companion CSS lifts as `@import "<ds-themes>/<mode>.css";`. Step phrasing: "The theme CSS imports MUST cover every mode the app declares via the mode attribute."
+   - **Fixed viewport height on the shell wrapper** — when the lifted snippet (or a lifted Companion CSS rule) sets `height: 100vh`/`100dvh` on the base-surface element, `html`, or `body`. Step phrasing: "The shell wrapper uses a FIXED viewport height in the lifted wiring; the produced Hard Rule MUST direct consumers to `minHeight` — fixed height clips content taller than the viewport." Unlike the other constructs, presence IS the trap; the lift stays verbatim and the warning is promoted alongside it. See `references/anti-patterns.md` `shell/fixed-viewport-height`.
    - **Root font loading** — when the lifted snippet wires a font (e.g. `<NextFont>` className on `<html>`, or `@import` of a font CSS file) that the DS prescribes. Step phrasing: "The DS-prescribed root font MUST load on the root element."
 
    Omit any construct the lifted material does not contain. Inventing a step to fill a row is a fabrication; the produced skill ships only the invariants its real DS surfaces.
@@ -116,6 +117,7 @@ Sequence:
    - Body/root paint omitted → "Token-painted components float on the browser-default white surface; the page renders 'card painted, body unpainted' — the canonical mode-mismatch bug."
    - Mode attribute set without matching theme import → "The mode attribute sets the token-resolution context but the unimported theme file leaves functional tokens at their fallback values; the mode toggles but the values do not."
    - Theme import set without the mode attribute → "The theme file loads but the resolution context never switches; the DS default mode renders regardless of OS or user preference."
+   - Fixed viewport height kept verbatim by the consumer → "Content taller than the viewport clips; inner scrolling dies inside the fixed-height wrapper."
    - Root font omitted → "Components render in the browser-default font; type-scale tokens still resolve but the type system's measure/leading/x-height assumptions break."
 
 3. **Promote each (step, failure-mode) pair to three sites.** Each pair lands in three places when Phase 3 materializes the scratch:
