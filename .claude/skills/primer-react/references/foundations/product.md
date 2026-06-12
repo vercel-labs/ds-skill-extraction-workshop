@@ -1,11 +1,18 @@
-# Foundation: Product UI
+# Foundation: Product
 
-Source URL: https://primer.style/product/ (fetched 2026-06-11, HTTP 200)
+Source URL: https://primer.style/product/ (fetched 2026-06-12, HTTP 200)
 
 ## What this covers
 
-- The Product UI docs index — "Primer product UI is a set of guidelines, principles, and patterns for designing and building UI at GitHub." Nav page; no CSS variable names, contrast minimums, or mode rules on the page itself.
+- The Product UI documentation index — purely navigational ("a set of guidelines, principles, and patterns for designing and building UI at GitHub"); carries no extractable token rules or DS-taste prose itself.
 
-## Rules extracted: 0 (nav landing page)
+Rules extracted: 0
 
-The page is a link directory. Deeper rule-bearing pages it links to (NOT fetched this run — out of the accepted depth-1 set, candidates for a future foundation pass): `/product/primitives/token-names/`, `/product/primitives/color/`, `/product/getting-started/foundations/color-usage/`, `/product/ui-patterns/empty-states/` (DS-taste candidate), `/product/getting-started/react/theming/`.
+Depth-1 caveat — future foundation-pass candidates sitting one level below this index (outside the accepted crawl set this run):
+
+- Primitives sub-guides: Color, Size, Typography, Token Names, Migrating to CSS Variables
+- Foundations: Color usage, Typography, Layout, Responsive, Icons
+- UI Patterns (DS-taste candidates): Empty states, Degraded experiences, Loading, Notification messaging, Progressive disclosure, Forms, Saving, Navigation
+- React: Theming, Theme Reference
+
+These are where Primer's token-pairing, contrast-minimum, and density/empty-state taste rules live. A future run that accepts these URLs at Phase 1 would extract them; this run records the pointer only.

@@ -136,8 +136,10 @@ export default function NewRepoPage() {
 
 ## What to copy
 
-- Form lives inside a token-painted card div: four tokens fully define its surface (`var(--bgColor-default)` background, `var(--borderColor-default)` border, `var(--borderRadius-large, 12px)` corners, `var(--shadow-resting-medium)` elevation) — no raw hex, no Tailwind classes.
-- A page header sits OUTSIDE the card: `PageLayout.Header` carries the H1 + muted-foreground subtitle; the card holds the form body only. Splitting the chrome from the surface is what makes the page read as a real page, not a centered modal.
-- The form is a vertical Stack with `gap="normal"`: a contextual `Flash variant="default"` (informational, not error) leads, then FormControl rows, then a divider, then the action footer. Each FormControl wraps `.Label`, the input, and (when needed) `.Caption` — Checkbox flips the order: `<Checkbox />` first, `.Label` second, `.Caption` third.
-- The action footer is a horizontal Stack with `justify="end"` separated from the form by an explicit `borderTop` line painted in `var(--borderColor-muted)` and `paddingTop: var(--base-size-16, 1rem)` — Cancel is `variant="invisible"` (low-emphasis cancel pattern), submit is `variant="primary"`. Invisible before primary, never the reverse.
-- `Textarea resize="vertical"` constrains the user to a single axis of resize — multi-line textareas in dense forms rarely need horizontal resize and unconstrained corner drag breaks the surrounding layout.
+- Form-page shape: `PageLayout containerWidth="medium"` with the title block in `PageLayout.Header` (Heading + muted descriptive `Text` in a condensed vertical Stack) and the form card in `PageLayout.Content`.
+- Token-painted card recipe: background `var(--bgColor-default)` + border `var(--borderColor-default)` + `var(--borderRadius-large, 12px)` + `var(--shadow-resting-medium)` + padding `var(--base-size-24, 1.5rem)` — every visual attribute from a var, zero hex.
+- **Message surface + leading icon** (preferred composition category): a `Flash variant="default"` context banner leads the form body, and the first `TextInput` carries `leadingVisual={RepoIcon}` — the icon is passed as a component reference, not an element.
+- FormControl row recipe: `FormControl.Label` then the input then `FormControl.Caption`; `required` lives on the `FormControl` wrapper, not the input.
+- **Checkbox children order inverts text inputs** (asymmetric form-children trap): `Checkbox` comes FIRST, then `FormControl.Label`, then `FormControl.Caption` — the opposite of the label-first order used for TextInput/Textarea/Select rows.
+- Action footer: a top-bordered (`var(--borderColor-muted)`) strip with a horizontal Stack `justify="end"` — `Button variant="invisible"` Cancel before `Button variant="primary"` submit.
+- Inputs that should fill the card width take `block`; Textarea adds `rows` + `resize="vertical"`.

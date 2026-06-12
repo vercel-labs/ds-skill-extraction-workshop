@@ -35,6 +35,8 @@ Pick `FormControl` whenever a [TextInput](./text-input.md), [Textarea](./textare
 ## Best Practices
 
 - Always render `<FormControl.Label>` inside `<FormControl>` — without it, the input has no programmatic label. `dist/FormControl/FormControl.d.ts:24`
+- **Children order inverts for Checkbox/Radio rows**: text inputs are label-first (`<FormControl.Label>` → input → `<FormControl.Caption>`), but a Checkbox row puts the CONTROL first (`<Checkbox />` → `<FormControl.Label>` → `<FormControl.Caption>`) — the lifted `new.md` exemplar shows both orders side by side. [Checkbox](./checkbox.md) carries the same rule. (reference exemplar: `vercel-labs/primer-nextjs-template@app/new/page.tsx`)
+- **Do not rely on a horizontal [Stack](./stack.md)'s `align="end"` (or `align="center"`) to line up two FormControls when one has a `<FormControl.Caption>` and the other does not** — the stack aligns boxes, not baselines, so the captioned control's label rides up. Align on `start` and equalize with an explicit spacer, or give both controls a caption slot ([Stack](./stack.md) carries the same rule — the trap is reachable from either side). `dist/Stack/Stack.d.ts:35`
 - For error states, render `<FormControl.Validation variant="error">{msg}</FormControl.Validation>` AND set the input's `validationStatus="error"` — the validation slot is what the SR reads.
 - Do NOT wrap the children with a bare `<label htmlFor>` — FormControl already provides this; double-labelling breaks SR association.
 - `layout='horizontal'` is the right choice for Checkbox/Radio FormControls (Primer's default for checkbox/radio inputs per the JSDoc). `dist/FormControl/FormControl.d.ts:16-18`
@@ -69,15 +71,35 @@ export function RepoNameField({ value, onChange, error }: {
 }
 ```
 
+Checkbox row — control FIRST, then label, then caption (the inverse of the text-input order above; lifted from `vercel-labs/primer-nextjs-template@app/new/page.tsx`):
+
+```tsx
+import { Checkbox, FormControl } from '@primer/react'
+
+export function ReadmeToggle() {
+  return (
+    <FormControl>
+      <Checkbox defaultChecked />
+      <FormControl.Label>Add a README file</FormControl.Label>
+      <FormControl.Caption>
+        This is where you can write a long description for your project.
+      </FormControl.Caption>
+    </FormControl>
+  )
+}
+```
+
 ## Source references
 
 - `node_modules/@primer/react/dist/FormControl/FormControl.d.ts:1-30` — `FormControlProps` + subcomponents
 - Upstream: `primer/react@main:packages/react/src/FormControl/FormControl.tsx`
+- Reference exemplar: `vercel-labs/primer-nextjs-template@app/new/page.tsx` — both children orders in one form
 
 ## Common mistakes
 
 - `<FormControl layout="stacked">` — not a union member; values are `'horizontal' | 'vertical'`.
 - `<FormControl><label>Name</label><TextInput /></FormControl>` — use `<FormControl.Label>`, not a bare `<label>`; FormControl wires the association.
+- `<FormControl><FormControl.Label>Add README</FormControl.Label><Checkbox /></FormControl>` — label-first order on a Checkbox row; the control comes FIRST for checkbox/radio (see the exemplar order above).
 - `<FormControl><TextInput validationStatus="error" /></FormControl>` (no `<FormControl.Validation>`) — the input shows red but the SR has no message to announce.
 
 ## Things to never invent
