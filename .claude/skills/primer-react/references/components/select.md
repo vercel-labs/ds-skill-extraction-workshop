@@ -15,7 +15,7 @@ Pick `Select` for short, fixed lists where the user picks ONE option. Primer Sel
 
 ## Key props
 
-- `placeholder?: string` — adds a leading option AND doubles as the implicit default value (see Best Practices). `node_modules/@primer/react/dist/Select/Select.d.ts:4`
+- `placeholder?: string` — adds a leading option AND doubles as the implicit default value (see Best Practices). `node_modules/@primer/react/dist/Select/Select.d.ts:5`
 - `defaultValue?: string` (native passthrough) — uncontrolled initial value; DOES propagate to the native `<select>` (`defaultValue ?? placeholder ?? undefined` is forwarded). `dist/Select/Select.js:133,158`
 - `required?: boolean` (native passthrough) — also gates whether the placeholder option is selectable (see Best Practices). `dist/Select/Select.js:135-141`
 - `size?: 'small' | 'medium' | 'large'` (via `StyledWrapperProps`). `dist/Select/Select.d.ts:4`

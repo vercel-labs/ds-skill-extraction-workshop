@@ -15,9 +15,9 @@ Pick `CounterLabel` for a numeric count next to a label, tab, or button (e.g. "I
 
 ## Key props
 
-- `variant?: 'primary' | 'secondary'` — color scheme. `node_modules/@primer/react/dist/CounterLabel/CounterLabel.d.ts:5`
+- `variant?: 'primary' | 'secondary'` — color scheme. `node_modules/@primer/react/dist/CounterLabel/CounterLabel.d.ts:6`
 - `scheme?: 'primary' | 'secondary'` — **DEPRECATED**, use `variant`. `dist/CounterLabel/CounterLabel.d.ts:4`
-- `className?: string`. `dist/CounterLabel/CounterLabel.d.ts:6`
+- `className?: string`. `dist/CounterLabel/CounterLabel.d.ts:7`
 - Native passthrough: `HTMLAttributes<HTMLSpanElement>` (renders a `<span>`). `dist/CounterLabel/CounterLabel.d.ts:3`
 
 ## Accessibility
@@ -27,7 +27,7 @@ Pick `CounterLabel` for a numeric count next to a label, tab, or button (e.g. "I
 ## Best Practices
 
 - Use `variant`, NOT the deprecated `scheme`. `dist/CounterLabel/CounterLabel.d.ts:4-5`
-- `variant` accepts `'primary' | 'secondary'` only — no `'danger'`, `'success'`, or other semantic colors. `dist/CounterLabel/CounterLabel.d.ts:5`
+- `variant` accepts `'primary' | 'secondary'` only — no `'danger'`, `'success'`, or other semantic colors. `dist/CounterLabel/CounterLabel.d.ts:6`
 - For a count INSIDE a Button, use the Button's `count` prop — do NOT append a CounterLabel as a sibling. See [Button](./button.md). `dist/Button/types.d.ts:69`
 
 ## Composition examples
@@ -46,7 +46,7 @@ export function TabLabel({ label, count }: { label: string; count: number }) {
 
 ## Source references
 
-- `node_modules/@primer/react/dist/CounterLabel/CounterLabel.d.ts:1-22` — `CounterLabelProps`
+- `node_modules/@primer/react/dist/CounterLabel/CounterLabel.d.ts:1-20` — `CounterLabelProps`
 - Upstream: `primer/react@main:packages/react/src/CounterLabel/CounterLabel.tsx`
 
 ## Common mistakes

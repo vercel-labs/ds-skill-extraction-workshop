@@ -15,7 +15,7 @@ Pick `Flash` for inline status messages tied to a section (a successful save, a 
 
 ## Key props
 
-- `variant?: 'default' | 'warning' | 'success' | 'danger'` — default `'default'`. `node_modules/@primer/react/dist/Flash/Flash.d.ts:5`
+- `variant?: 'default' | 'warning' | 'success' | 'danger'` — default `'default'`. `dist/Flash/Flash.d.ts:5` `dist/Flash/Flash.js:36`
 - `full?: boolean` — edge-to-edge (no rounded border-radius), for page-top banners. `dist/Flash/Flash.d.ts:6`
 - `className?: string`. `dist/Flash/Flash.d.ts:4`
 - Polymorphic on `<div>` (default). `dist/Flash/Flash.d.ts:8`

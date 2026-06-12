@@ -15,21 +15,21 @@ Pick `Stack` for ANY row/column layout. It is the only Primer-native layout prim
 
 ## Key props (Stack)
 
-- `as?: ElementType` — polymorphic; defaults to `'div'`. `node_modules/@primer/react/dist/Stack/Stack.d.ts:18-22`
+- `as?: ElementType` — polymorphic; defaults to `'div'`. `node_modules/@primer/react/dist/Stack/Stack.d.ts:18-22` `dist/Stack/Stack.js:64`
 - `gap?: 'none' | 'tight' | 'condensed' | 'cozy' | 'normal' | 'spacious'` — named scale (or responsive object). `dist/Stack/Stack.d.ts:25`
-- `direction?: 'horizontal' | 'vertical'` — default `'vertical'`. `dist/Stack/Stack.d.ts:30`
-- `align?: 'stretch' | 'start' | 'center' | 'end' | 'baseline'` — cross-axis; default `'stretch'`. `dist/Stack/Stack.d.ts:35`
-- `wrap?: 'wrap' | 'nowrap'` — default `'nowrap'`. `dist/Stack/Stack.d.ts:40`
-- `justify?: 'start' | 'center' | 'end' | 'space-between' | 'space-evenly'` — main-axis; default `'start'`. `dist/Stack/Stack.d.ts:45`
-- `padding?: 'none' | 'tight' | 'condensed' | 'cozy' | 'normal' | 'spacious'` — default `'none'`. `dist/Stack/Stack.d.ts:50`
+- `direction?: 'horizontal' | 'vertical'` — default `'vertical'`. `dist/Stack/Stack.d.ts:28-30`
+- `align?: 'stretch' | 'start' | 'center' | 'end' | 'baseline'` — cross-axis; default `'stretch'`. `dist/Stack/Stack.d.ts:33-35`
+- `wrap?: 'wrap' | 'nowrap'` — default `'nowrap'`. `dist/Stack/Stack.d.ts:38-40`
+- `justify?: 'start' | 'center' | 'end' | 'space-between' | 'space-evenly'` — main-axis; default `'start'`. `dist/Stack/Stack.d.ts:43-45`
+- `padding?: 'none' | 'tight' | 'condensed' | 'cozy' | 'normal' | 'spacious'` — default `'none'`. `dist/Stack/Stack.d.ts:48-50`
 - `paddingBlock?` / `paddingInline?` — axis-specific padding override. `dist/Stack/Stack.d.ts:55,60`
-- `className?: string`. `dist/Stack/Stack.d.ts:62`
+- `className?: string`. `dist/Stack/Stack.d.ts:61`
 
 ## Key props (StackItem)
 
 - `as?: ElementType` — polymorphic. `dist/Stack/Stack.d.ts:67-71`
-- `grow?: boolean` — default `false`. `dist/Stack/Stack.d.ts:75`
-- `shrink?: boolean` — default `true`. `dist/Stack/Stack.d.ts:80`
+- `grow?: boolean` — default `false`. `dist/Stack/Stack.d.ts:71-73`
+- `shrink?: boolean` — default `true`. `dist/Stack/Stack.d.ts:76-78`
 
 ## Accessibility
 
@@ -44,7 +44,7 @@ Pick `Stack` for ANY row/column layout. It is the only Primer-native layout prim
 - Use `gap="none"` for tight title/description pairs where the two lines should sit on adjacent baselines. `dist/Stack/Stack.d.ts:25`
 - Use `gap="condensed"` for icon + text inline pairs. (matches `home.tsx` exemplar in this skill's references/examples.)
 - Use `gap="spacious"` for top-level page sections.
-- Stack supports responsive values (e.g. `gap={{ narrow: 'condensed', wide: 'normal' }}`); see `ResponsiveValue` in the d.ts. `dist/Stack/Stack.d.ts:5`
+- Stack supports responsive values (e.g. `gap={{ narrow: 'condensed', wide: 'normal' }}`); see `ResponsiveValue` in the d.ts. `dist/Stack/Stack.d.ts:3`
 
 ## Composition examples
 
@@ -70,7 +70,7 @@ export function RepoCardRow({ icon, title, description }: {
 
 ## Source references
 
-- `node_modules/@primer/react/dist/Stack/Stack.d.ts:1-95` — `StackProps`, `StackItemProps`
+- `node_modules/@primer/react/dist/Stack/Stack.d.ts:1-84` — `StackProps`, `StackItemProps`
 - Upstream: `primer/react@main:packages/react/src/Stack/Stack.tsx`
 
 ## Common mistakes

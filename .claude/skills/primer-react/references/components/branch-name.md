@@ -15,7 +15,7 @@ Pick `BranchName` to display a git branch name (in a PR row, in a merge-readines
 
 ## Key props
 
-- `as?: ElementType` — polymorphic; **default `'a'`** (renders an anchor by default). `node_modules/@primer/react/dist/BranchName/BranchName.d.ts:3` (`PolymorphicProps<As, 'a', ...>`).
+- `as?: ElementType` — polymorphic; **default `'a'`** (renders an anchor by default). `node_modules/@primer/react/dist/BranchName/BranchName.d.ts:3` (`PolymorphicProps<As, 'a', ...>`); runtime: `node_modules/@primer/react/dist/BranchName/BranchName.js:32` (`t0 === undefined ? "a" : t0`).
 - `className?: string`. `dist/BranchName/BranchName.d.ts:4`
 - Native passthrough: props for the chosen `as` element. When `as="a"` (default), `href`/`target`/`rel`/etc. are accepted via `React.ComponentPropsWithRef<...>`. `dist/BranchName/BranchName.d.ts:5-11`
 

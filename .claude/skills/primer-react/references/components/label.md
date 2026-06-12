@@ -15,9 +15,9 @@ Pick `Label` for METADATA — topic tags, language indicators, "private" / "fork
 
 ## Key props
 
-- `variant?: 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'attention' | 'severe' | 'danger' | 'done' | 'sponsors'` — color scheme; default `'default'`. `node_modules/@primer/react/dist/Label/Label.d.ts:2,7`
-- `size?: 'small' | 'large'` — default `'small'`. `dist/Label/Label.d.ts:8`
-- Polymorphic on `<span>` (forward ref). `dist/Label/Label.d.ts:9`
+- `variant?: 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'attention' | 'severe' | 'danger' | 'done' | 'sponsors'` — color scheme; default `'default'`. `node_modules/@primer/react/dist/Label/Label.d.ts:4,8` `node_modules/@primer/react/dist/Label/Label.js:37`
+- `size?: 'small' | 'large'` — default `'small'`. `node_modules/@primer/react/dist/Label/Label.d.ts:9` `node_modules/@primer/react/dist/Label/Label.js:36`
+- Polymorphic on `<span>` (forward ref). `node_modules/@primer/react/dist/Label/Label.d.ts:10`
 
 ## Accessibility
 
@@ -26,9 +26,9 @@ Pick `Label` for METADATA — topic tags, language indicators, "private" / "fork
 ## Best Practices
 
 - **Lifecycle states (open, merged, closed, draft) belong on [StateLabel](./state-label.md), not Label.** Never build a lifecycle capsule out of `Label` — StateLabel's required `status` is keyed to the lifecycle octicon map (issueOpened, pullMerged, issueClosed, …); Label has no equivalent semantic guarantee. `dist/StateLabel/StateLabel.d.ts:2-21` + `packages/react/src/StateLabel/StateLabel.tsx:71` (upstream).
-- The 10-value `variant` scale covers metadata-flavored color schemes (`accent` for topics, `success` for "ready", `attention` for "needs review", `danger` for "blocked", `done` for completed, `sponsors` for sponsor badges). `dist/Label/Label.d.ts:7`
-- There is no `variant="open"` or `variant="closed"` on Label. The lifecycle vocabulary lives on StateLabel. `dist/Label/Label.d.ts:7`
-- `size` accepts `'small' | 'large'` only — there is NO `'medium'`. `dist/Label/Label.d.ts:8`
+- The 10-value `variant` scale covers metadata-flavored color schemes (`accent` for topics, `success` for "ready", `attention` for "needs review", `danger` for "blocked", `done` for completed, `sponsors` for sponsor badges). `node_modules/@primer/react/dist/Label/Label.d.ts:8`
+- There is no `variant="open"` or `variant="closed"` on Label. The lifecycle vocabulary lives on StateLabel. `node_modules/@primer/react/dist/Label/Label.d.ts:8`
+- `size` accepts `'small' | 'large'` only — there is NO `'medium'`. `node_modules/@primer/react/dist/Label/Label.d.ts:9`
 
 ## Composition examples
 
