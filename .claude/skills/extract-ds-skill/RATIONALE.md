@@ -69,6 +69,14 @@ Before the workshop, the meta-skill needs at least 3 dry-runs against the worksh
 - **Q2 risk** — the typecheck + grep validation may produce a flat or unconvincing signal. Dry-run check: run `validate.sh` against the scratch extraction and confirm it emits something like "14 props verified against source, 0 hallucinations" — concrete enough to land as a proof point in the workshop.
 - **Q1 risk** — the per-project persist target may feel arbitrary if attendees don't connect it to ownership. Dry-run check: after persistence, confirm `.claude/skills/<slug>/` shows up in `git status` and an attendee can `git add` it in one motion. The ownership story needs to be visible.
 
+## Rendered-site probe (2026-06-12)
+
+`scripts/probe-rendered.sh` adds an opt-in Phase 2 annotation layer: render the DS's public docs site headless (playwright + chromium) and diff the computed CSS custom-property values against the token values extracted from source. The single borrowed idea — rendered computed CSS is ground truth for token *values* — comes from observing CLI-first extractors that work URL-inward; we consciously did NOT adopt that architecture. No parallel artifact pipeline, no URL-first extraction: the probe folds into the existing source-first, citation-first flow as `[VERIFY]` annotations.
+
+Why annotation and not extraction: a rendered page proves what a value *is* in one mode on one page, but carries no semantic name authority, no file:line cite, and no claim about the other modes. So the probe can corroborate or dispute a source-extracted value (theme override, build-time transform, stale declaration — each becomes a `[VERIFY: rendered-probe ...]` line for the human gate), but it can never replace the source cite. Source wins on conflict, always.
+
+Operational posture: opt-in (docs URL accepted in Phase 1 + no opt-out), read-only against the docs site, heavy dependency gated (playwright is a consumer-project devDependency; browser binaries install on the host, never inside a sandbox — the script degrades to `PROBE_SKIPPED=browsers-unavailable` exit 0). The probe is the infrastructure-carrying slice for a family of rendered-site probes (audit screenshots, asset inventory, compiled-CSS fallback) that all reuse this one script rather than growing parallel pipelines.
+
 ## What this skill consciously does NOT do
 
 - Does not author a top-level DS-design document for the user's DS (D3 — the workshop maintainer authors that for the starter DS, separately).

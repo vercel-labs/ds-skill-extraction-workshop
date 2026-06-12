@@ -116,7 +116,7 @@ assert "pass-fixture auto-detects meta-mode" \
 # in meta-mode; produced-mode should NOT emit a NO_HARDCODED_PATHS line at
 # all (the check is meta-mode only).
 PRODUCED_TMP="$(mktemp -d)"
-trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}"' EXIT
+trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}" "${PROBE_TMP:-}"' EXIT
 mkdir -p "$PRODUCED_TMP/test-produced-skill/references/components"
 cat >"$PRODUCED_TMP/test-produced-skill/SKILL.md" <<'EOF'
 ---
@@ -937,6 +937,79 @@ else
   echo "SKIP  claims-probe tests (6) — typescript/@types/react not installed at $REPO_ROOT; run pnpm install first"
   SKIPPED=$((SKIPPED + 6))
 fi
+
+# ---------------------------------------------------------------------------
+# probe-rendered.sh tests (issue #47). Deterministic — the suite never
+# launches a real browser: skip paths are exercised directly and the
+# browsers-unavailable path is forced via the PROBE_RENDERED_BROWSERS=absent
+# test hook documented in the script header. Manifest validation runs BEFORE
+# browser detection, so those assertions hold on hosts with browsers too.
+# ---------------------------------------------------------------------------
+PROBE="$SKILL_DIR/probe-rendered.sh"
+PROBE_TMP="$(mktemp -d)"
+printf -- '--color-accent | #0070f3 | node_modules/@acme/ui/dist/css/light.css:12 | html\n' \
+  >"$PROBE_TMP/manifest.txt"
+
+# assert_probe <name> <want-exit> <stdout-substring> <cmd...>
+assert_probe() {
+  local name="$1" want_exit="$2" want_sub="$3"
+  shift 3
+  local out got_exit=0
+  out="$("$@" 2>&1)" || got_exit=$?
+  local err=""
+  if [[ "$got_exit" -ne "$want_exit" ]]; then
+    err="  exit got=$got_exit want=$want_exit"
+  fi
+  if ! grep -qF "$want_sub" <<<"$out"; then
+    err+=$'\n  expected substring not found: '"$want_sub"
+  fi
+  if [[ -z "$err" ]]; then
+    echo "PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  $name"
+    echo "$err"
+    echo "  --- script output ---"
+    echo "$out" | sed 's/^/  /'
+    echo "  ---"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+# Test P1: no --url -> the documented no-docs-URL clean skip, exit 0.
+assert_probe "probe: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  bash "$PROBE" --manifest "$PROBE_TMP/manifest.txt"
+
+# Test P2: browsers forced absent -> graceful skip, exit 0, host-side
+# install hint printed (the script must NEVER install browsers itself).
+assert_probe "probe: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/manifest.txt"
+
+# Test P3: missing manifest file is a loud usage error (exit 2), even when
+# browsers are absent — manifest validation precedes browser detection.
+assert_probe "probe: missing manifest is a usage error" \
+  2 "MANIFEST_ERROR=$PROBE_TMP/missing.txt: file not found" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/missing.txt"
+
+# Test P4: malformed manifest row (missing source-cite field) names the
+# file and line, exit 2.
+printf -- '--ok-token | #ffffff | a.css:1\n--bad-token | #ffffff\n' >"$PROBE_TMP/bad.txt"
+assert_probe "probe: malformed manifest row names file:line" \
+  2 "MANIFEST_ERROR=$PROBE_TMP/bad.txt:2" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/bad.txt"
+
+# Test P5: a manifest entry that is not a CSS custom property (no leading
+# --) is rejected with the token named.
+printf -- 'color-accent | #ffffff | a.css:1\n' >"$PROBE_TMP/notoken.txt"
+assert_probe "probe: non-custom-property token rejected" \
+  2 "token must be a CSS custom property" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --url "https://example.invalid/docs" --manifest "$PROBE_TMP/notoken.txt"
 
 echo
 if [[ "$SKIPPED" -gt 0 ]]; then

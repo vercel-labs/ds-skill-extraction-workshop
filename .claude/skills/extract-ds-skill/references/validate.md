@@ -88,6 +88,32 @@ Sequence:
 
 The step writes to scratch only; no foundation rule lands in `.claude/skills/<slug>/` until Phase 3.
 
+## Rendered-site probe step (opt-in)
+
+Runs only when BOTH hold: (a) the DS has a public docs URL accepted in Phase 1, and (b) the user has not opted out. The opt-out phrase is **"skip rendered probe"**, honored any time before the Phase 2 close. Default for CI, tests, and unattended runs is skip. Do not widen the probe beyond this trigger — it is an annotation layer for DSes with a rendered ground truth, not a new extraction source.
+
+**What it does.** `scripts/probe-rendered.sh` renders the accepted docs URL headless (playwright + chromium) and diffs the **computed** CSS custom-property values on the live page against the **declared** values the extraction pulled from source. The gap surfaces theme overrides, build-time transforms, and stale source declarations — exactly the finding class the `[VERIFY]` discipline carries.
+
+**Authority rule.** Source extraction stays authoritative; the probe ANNOTATES. A `MISMATCH` verdict never rewrites a declared value, never downgrades a source cite, and never blocks the wait-for-approval gate. It becomes one `[VERIFY: rendered-probe mismatch — ...]` line in the same tally every other Phase 2 check feeds, for the user to resolve at the gate (accept, re-read source, or drop the rule).
+
+Sequence:
+
+1. **Write the probe manifest.** One row per source-extracted token in the probe's scope (color, font-family, base spacing/size), to `.extract-ds-skill-scratch/probe-manifest.txt`. Out of scope — do not manifest: shadow tokens, gradients, transition/animation values, breakpoint tokens (the probe reads exactly one rendered mode per run; mode-conditional values beyond the page's active mode cannot be diffed from a single render).
+2. **Run the probe.** `bash scripts/probe-rendered.sh --url <accepted-docs-url> --manifest .extract-ds-skill-scratch/probe-manifest.txt --out .extract-ds-skill-scratch/probe-report.txt`. The script is read-only against the docs site (GET-only; non-GET requests aborted; no auth, no interaction).
+3. **Fold the output into the Phase 2 stream.** Append every emitted `[VERIFY: rendered-probe ...]` line (one per `MISMATCH`/`UNRESOLVED` row) to the running `[VERIFY]` tally, and append the `PROBE_RESULT=checked:<n> match:<n> mismatch:<n> unresolved:<n>` line to the proof point immediately after the `TOKEN_COVERAGE` line. `MATCH` rows need no action — they are silent corroboration.
+4. **Degrade gracefully.** `PROBE_SKIPPED=no-docs-url` / `PROBE_SKIPPED=browsers-unavailable` (exit 0) → log the line verbatim, continue Phase 2 unchanged; browser binaries are installed on the HOST (never inside a sandbox) — the script header documents the command. Any non-zero exit (`PROBE_FAILED=navigation ...`, `MANIFEST_ERROR=...`) → log `[VERIFY: rendered-probe failed — <line verbatim>]`, continue. The probe is never a blocker.
+
+### Example shape — probe manifest row (illustrative)
+
+```
+# <token-name> | <declared-value> | <source-cite file:line> [| <css-selector>]
+--color-accent  | #0070f3            | node_modules/@acme/ui/dist/css/light.css:12 | html
+--font-sans     | Inter, sans-serif  | node_modules/@acme/ui/dist/css/type.css:3
+--space-2       | 0.5rem             | node_modules/@acme/ui/dist/css/size.css:8
+```
+
+The selector defaults to `html`. Declared and computed values are canonicalized in-browser before compare (hex → rgb(), rem → px, quote/whitespace normalization for font stacks), so notation differences are not reported as mismatches.
+
 ## Shell-invariant extraction step
 
 Runs whenever Phase 2 has lifted ANY verbatim wiring into scratch — either through the Reference-project extraction step above (root-entry-file code block in `.extract-ds-skill-scratch/wiring-extracted.md`, plus its `## Companion CSS file (verbatim) — <path>` blocks), or through the Foundation-docs wiring fallback (a `### Foundation wiring` snippet lifted from a foundation page), or both. Skip this entire section when no wiring was lifted (no reference project AND no foundation wiring snippet); the produced skill's Setup section will be empty and `## Hard rules` carries only the universal `[VERIFY]` + do-not-invent contract.
