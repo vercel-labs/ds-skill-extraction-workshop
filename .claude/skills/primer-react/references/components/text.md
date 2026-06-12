@@ -19,7 +19,7 @@ Pick `Text` for inline text needing a size or weight that differs from the surro
 - `size?: 'large' | 'medium' | 'small'`. `dist/Text/Text.d.ts:4`
 - `weight?: 'light' | 'normal' | 'medium' | 'semibold'`. `dist/Text/Text.d.ts:5`
 - `className?: string`. `dist/Text/Text.d.ts:6`
-- Native passthrough: props for the chosen `as` element. `dist/Text/Text.d.ts:9`
+- Native passthrough: props for the chosen `as` element. `dist/Text/Text.d.ts:8`
 
 ## Accessibility
 
@@ -27,7 +27,7 @@ Pick `Text` for inline text needing a size or weight that differs from the surro
 
 ## Best Practices
 
-- Text has NO semantic foreground variant — there is no `color="muted"` or `variant="muted"`. To muted-color a Text, pass `style={{ color: 'var(--fgColor-muted)' }}`. `dist/Text/Text.d.ts:1-22`
+- Text has NO semantic foreground variant — there is no `color="muted"` or `variant="muted"`. To muted-color a Text, pass `style={{ color: 'var(--fgColor-muted)' }}`. `dist/Text/Text.d.ts:1-20`
 - `weight` accepts `'light' | 'normal' | 'medium' | 'semibold'` only — there is NO `'bold'`. `dist/Text/Text.d.ts:5`
 - `size` accepts `'large' | 'medium' | 'small'` only — there is NO `'xs'` or `'xl'`. `dist/Text/Text.d.ts:4`
 
@@ -50,7 +50,7 @@ export function CardSummary() {
 
 ## Source references
 
-- `node_modules/@primer/react/dist/Text/Text.d.ts:1-22` — `TextProps`
+- `node_modules/@primer/react/dist/Text/Text.d.ts:1-20` — `TextProps`
 - Upstream: `primer/react@main:packages/react/src/Text/Text.tsx`
 
 ## Common mistakes

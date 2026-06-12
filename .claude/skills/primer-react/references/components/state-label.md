@@ -16,7 +16,7 @@ Pick `StateLabel` for PR/issue **lifecycle** state — open, closed, merged, dra
 ## Key props
 
 - `status: keyof typeof octiconMap` — REQUIRED. The lifecycle key picks the icon and color. Members: `'issueOpened' | 'pullOpened' | 'issueClosed' | 'issueClosedNotPlanned' | 'pullClosed' | 'pullMerged' | 'draft' | 'issueDraft' | 'pullQueued' | 'unavailable' | 'alertOpened' | 'alertFixed' | 'alertDismissed' | 'alertClosed' | 'open' | 'closed' | 'archived'`. `node_modules/@primer/react/dist/StateLabel/StateLabel.d.ts:2-21,25`
-- `size?: 'small' | 'medium'` — default `'medium'`. `dist/StateLabel/StateLabel.d.ts:22`
+- `size?: 'small' | 'medium'` — no prop default; falls back to `'medium'` unless `variant` is the (deprecated) `'small'`. `node_modules/@primer/react/dist/StateLabel/StateLabel.d.ts:22` `node_modules/@primer/react/dist/StateLabel/StateLabel.js:80`
 - `variant?: 'normal' | 'small'` — **DEPRECATED**, use `size`. `dist/StateLabel/StateLabel.d.ts:23-24`
 - Native passthrough: `React.HTMLAttributes<HTMLSpanElement>`. `dist/StateLabel/StateLabel.d.ts:21`
 
@@ -30,7 +30,7 @@ Pick `StateLabel` for PR/issue **lifecycle** state — open, closed, merged, dra
 - `status` is REQUIRED — the type makes it non-optional. `dist/StateLabel/StateLabel.d.ts:25`
 - Use `size`, NOT the deprecated `variant`. `dist/StateLabel/StateLabel.d.ts:23-24`
 - The status union is the literal `keyof typeof octiconMap` from the source — do NOT pass `'merged'` (the merged-PR key is `'pullMerged'`). `dist/StateLabel/StateLabel.d.ts:2-21`
-- `size` accepts `'small' | 'medium'` only — there is NO `'large'`. `dist/StateLabel/StateLabel.d.ts:22`
+- `size` accepts `'small' | 'medium'` only — there is NO `'large'`. `node_modules/@primer/react/dist/StateLabel/StateLabel.d.ts:22`
 
 ## Composition examples
 

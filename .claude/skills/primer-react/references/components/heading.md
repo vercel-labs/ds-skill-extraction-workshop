@@ -16,8 +16,8 @@ Pick `Heading` for any semantic page heading. Always pair `as` (semantic level �
 ## Key props
 
 - `as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'` — semantic level. `node_modules/@primer/react/dist/Heading/Heading.d.ts:3,5`
-- `variant?: 'large' | 'medium' | 'small'` — visual size; default `'large'`. `dist/Heading/Heading.d.ts:6`
-- Native passthrough: heading-element props for the chosen `as`. `dist/Heading/Heading.d.ts:7`
+- `variant?: 'large' | 'medium' | 'small'` — visual size; default `'large'` (set by the CSS base rule; `Heading.js` defaults only `as` to `'h2'`, `variant` is unset). `dist/Heading/Heading.d.ts:6` `dist/Heading/Heading-26b4879b.css:1`
+- Native passthrough: heading-element props for the chosen `as`. `dist/Heading/Heading.d.ts:8`
 
 ## Accessibility
 

@@ -16,15 +16,15 @@ Pick `FormControl` whenever a [TextInput](./text-input.md), [Textarea](./textare
 ## Key props
 
 - `id?: string` — generates `htmlFor` on `<FormControl.Label>` and `id` on the input automatically when omitted. `node_modules/@primer/react/dist/FormControl/FormControl.d.ts:9-10`
-- `disabled?: boolean` — propagates to all subcomponents. `dist/FormControl/FormControl.d.ts:7`
+- `disabled?: boolean` — propagates to all subcomponents. `dist/FormControl/FormControl.d.ts:8`
 - `required?: boolean` — propagates required indicator to Label. `dist/FormControl/FormControl.d.ts:14`
-- `layout?: 'horizontal' | 'vertical'` — default `'vertical'`, horizontal for checkbox/radio. `dist/FormControl/FormControl.d.ts:18`
-- `className?: string`. `dist/FormControl/FormControl.d.ts:20`
+- `layout?: 'horizontal' | 'vertical'` — default `'vertical'`, horizontal for checkbox/radio. `dist/FormControl/FormControl.d.ts:18` `dist/FormControl/FormControl.js:38`
+- `className?: string`. `dist/FormControl/FormControl.d.ts:22`
 - Subcomponents:
-  - `<FormControl.Label>` — labels the input; `htmlFor` is wired automatically. `dist/FormControl/FormControl.d.ts:24`
-  - `<FormControl.Caption>` — helper text below the input. `dist/FormControl/FormControl.d.ts:23`
-  - `<FormControl.Validation variant="error" | "success">` — paired error/success message. `dist/FormControl/FormControl.d.ts:25`
-  - `<FormControl.LeadingVisual>` — icon BEFORE the label (typically for Checkbox/Radio rows). `dist/FormControl/FormControl.d.ts:25`
+  - `<FormControl.Label>` — labels the input; `htmlFor` is wired automatically. `dist/FormControl/FormControl.d.ts:28`
+  - `<FormControl.Caption>` — helper text below the input. `dist/FormControl/FormControl.d.ts:27`
+  - `<FormControl.Validation variant="error" | "success">` — paired error/success message. `dist/FormControl/FormControl.d.ts:36`
+  - `<FormControl.LeadingVisual>` — icon BEFORE the label (typically for Checkbox/Radio rows). `dist/FormControl/FormControl.d.ts:33`
 
 ## Accessibility
 
@@ -34,7 +34,7 @@ Pick `FormControl` whenever a [TextInput](./text-input.md), [Textarea](./textare
 
 ## Best Practices
 
-- Always render `<FormControl.Label>` inside `<FormControl>` — without it, the input has no programmatic label. `dist/FormControl/FormControl.d.ts:24`
+- Always render `<FormControl.Label>` inside `<FormControl>` — without it, the input has no programmatic label. `dist/FormControl/FormControl.d.ts:28`
 - **Children order inverts for Checkbox/Radio rows**: text inputs are label-first (`<FormControl.Label>` → input → `<FormControl.Caption>`), but a Checkbox row puts the CONTROL first (`<Checkbox />` → `<FormControl.Label>` → `<FormControl.Caption>`) — the lifted `new.md` exemplar shows both orders side by side. [Checkbox](./checkbox.md) carries the same rule. (reference exemplar: `vercel-labs/primer-nextjs-template@app/new/page.tsx`)
 - **Do not rely on a horizontal [Stack](./stack.md)'s `align="end"` (or `align="center"`) to line up two FormControls when one has a `<FormControl.Caption>` and the other does not** — the stack aligns boxes, not baselines, so the captioned control's label rides up. Align on `start` and equalize with an explicit spacer, or give both controls a caption slot ([Stack](./stack.md) carries the same rule — the trap is reachable from either side). `dist/Stack/Stack.d.ts:35`
 - For error states, render `<FormControl.Validation variant="error">{msg}</FormControl.Validation>` AND set the input's `validationStatus="error"` — the validation slot is what the SR reads.

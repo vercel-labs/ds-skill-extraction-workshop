@@ -15,16 +15,16 @@ Pick `Textarea` for multi-line text entry (issue body, description, comment). Fo
 
 ## Key props
 
-- `resize?: 'none' | 'both' | 'horizontal' | 'vertical'` — default `'both'`. `node_modules/@primer/react/dist/Textarea/Textarea.d.ts:5,26`
-- `validationStatus?: 'error' | 'success'` (`FormValidationStatus`). `dist/Textarea/Textarea.d.ts:14`
-- `block?: boolean` — fills horizontally. `dist/Textarea/Textarea.d.ts:18`
-- `disabled?: boolean`. `dist/Textarea/Textarea.d.ts:11`
-- `contrast?: boolean` — higher-contrast surface. `dist/Textarea/Textarea.d.ts:30`
-- `className?: string` — applied to the wrapper element. `dist/Textarea/Textarea.d.ts:34`
-- `minHeight?: number` / `maxHeight?: number` — bound the auto-resize. `dist/Textarea/Textarea.d.ts:38,42`
-- `style?: React.CSSProperties`. `dist/Textarea/Textarea.d.ts:46`
-- `characterLimit?: number` — shows a counter; exceeding it applies validation styling. `dist/Textarea/Textarea.d.ts:51`
-- Native passthrough: `TextareaHTMLAttributes<HTMLTextAreaElement>` (value, placeholder, onChange, rows, cols, …). `dist/Textarea/Textarea.d.ts:53`
+- `resize?: 'none' | 'both' | 'horizontal' | 'vertical'` — default `'both'`. `node_modules/@primer/react/dist/Textarea/Textarea.d.ts:7,24`
+- `validationStatus?: 'error' | 'success'` (`FormValidationStatus`). `dist/Textarea/Textarea.d.ts:16`
+- `block?: boolean` — fills horizontally. `dist/Textarea/Textarea.d.ts:20`
+- `disabled?: boolean`. `dist/Textarea/Textarea.d.ts:12`
+- `contrast?: boolean` — higher-contrast surface. `dist/Textarea/Textarea.d.ts:28`
+- `className?: string` — applied to the wrapper element. `dist/Textarea/Textarea.d.ts:32`
+- `minHeight?: number` / `maxHeight?: number` — bound the auto-resize. `dist/Textarea/Textarea.d.ts:36,40`
+- `style?: React.CSSProperties`. `dist/Textarea/Textarea.d.ts:44`
+- `characterLimit?: number` — shows a counter; exceeding it applies validation styling. `dist/Textarea/Textarea.d.ts:49`
+- Native passthrough: `TextareaHTMLAttributes<HTMLTextAreaElement>` (value, placeholder, onChange, rows, cols, …). `dist/Textarea/Textarea.d.ts:50`
 - Defaults: `DEFAULT_TEXTAREA_ROWS = 7`, `DEFAULT_TEXTAREA_COLS = 30`, `DEFAULT_TEXTAREA_RESIZE = "both"`. `dist/Textarea/Textarea.d.ts:5-7`
 
 ## Accessibility
@@ -35,9 +35,9 @@ Pick `Textarea` for multi-line text entry (issue body, description, comment). Fo
 ## Best Practices
 
 - `validationStatus` accepts `'error' | 'success'` only — there is NO `'warning'` value. For warnings, use a sibling [Flash](./flash.md) `variant="warning"`. `dist/utils/types/FormValidationStatus.d.ts`
-- Use `characterLimit` to get the counter + over-limit validation styling automatically. `dist/Textarea/Textarea.d.ts:51`
-- The default `resize='both'` allows user resizing in both directions; pass `resize='vertical'` for the typical issue-body pattern (height grows, width is layout-controlled). `dist/Textarea/Textarea.d.ts:26`
-- `resize='auto'` DOES NOT EXIST. Use `'none' | 'both' | 'horizontal' | 'vertical'` only. `dist/Textarea/Textarea.d.ts:26`
+- Use `characterLimit` to get the counter + over-limit validation styling automatically. `dist/Textarea/Textarea.d.ts:49`
+- The default `resize='both'` allows user resizing in both directions; pass `resize='vertical'` for the typical issue-body pattern (height grows, width is layout-controlled). `dist/Textarea/Textarea.d.ts:24`
+- `resize='auto'` DOES NOT EXIST. Use `'none' | 'both' | 'horizontal' | 'vertical'` only. `dist/Textarea/Textarea.d.ts:24`
 
 ## Composition examples
 
