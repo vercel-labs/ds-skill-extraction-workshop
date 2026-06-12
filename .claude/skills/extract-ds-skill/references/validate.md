@@ -114,7 +114,36 @@ Sequence:
 
 The selector defaults to `html`. Declared and computed values are canonicalized in-browser before compare (hex → rgb(), rem → px, quote/whitespace normalization for font stacks), so notation differences are not reported as mismatches.
 
-The same script also carries an audit-phase **screenshot mode** (`--screenshot`): side-by-side PNG evidence of a produced component page vs the DS docs example, every entry tagged `[needs-human-review]`. That mode is out of Phase 2 scope — it emits evidence only, never a visual verdict, and its contract is documented in the consuming audit skill and the script header. A third mode, the Phase 1 **inventory mode** (`--inventory`), enumerates the fonts/icons the rendered docs page actually loads for the discovery summary's `Assets detected:` line — also out of Phase 2 scope; see `references/discovery.md` (Rendered-site asset inventory).
+The same script also carries an audit-phase **screenshot mode** (`--screenshot`): side-by-side PNG evidence of a produced component page vs the DS docs example, every entry tagged `[needs-human-review]`. That mode is out of Phase 2 scope — it emits evidence only, never a visual verdict, and its contract is documented in the consuming audit skill and the script header. A third mode, the Phase 1 **inventory mode** (`--inventory`), enumerates the fonts/icons the rendered docs page actually loads for the discovery summary's `Assets detected:` line — also out of Phase 2 scope; see `references/discovery.md` (Rendered-site asset inventory). The fourth mode, the **recover fallback** (`--recover`), IS Phase 2 scope and has its own contract below.
+
+### Compiled-CSS fallback — probe-derived token recovery (source-blocked DSes only)
+
+The graceful-recovery path for the rare DS that ships ONLY compiled CSS: no source token files, no public token package, no readable design tokens — token-class extraction returned `[private-blocker]`. Instead of stalling Phase 2 on the gap, the probe recovers what values it can from the rendered docs page and Phase 2 continues with clearly second-class material. The default `[private-blocker]` behavior (log, proceed with the gap) stays correct for every other case — this fallback fires only when ALL THREE hold:
+
+1. Token-class source extraction (color, font, spacing) returned `[private-blocker]`.
+2. The DS has a public docs URL accepted in Phase 1.
+3. The user has not opted out (same phrase: **"skip rendered probe"**).
+
+Do NOT widen the fallback to DSes whose token source is readable, and never let probe-derived values replace source-cited ones when both are available — the fallback is a recovery path, not an alternative extraction source; anything wider breaks the source-first, citation-first contract this skill is built on.
+
+**Invocation.** `bash scripts/probe-rendered.sh --recover --url <accepted-docs-url> --out-manifest .extract-ds-skill-scratch/probe-recovered-tokens.txt`. Read-only against the docs site (GET-only, no auth, no interaction). On success the script emits `PROBE_RECOVER=captured tokens=<n> custom-props=<n> base=<n> manifest=<path> url=<url>`; append that line to the proof point next to the token tally so the gate sees how much of the token surface is recovered rather than cited.
+
+**Manifest shape.** Pipe-delimited like the diff-mode manifest, with the source-cite slot REPLACED by the `[probe-derived]` provenance tag — no `file:line` cite exists for a source-blocked DS, and every row says so. Custom properties the page still ships keep their semantic names; the synthetic `--probe-*` base rows (body color/background/font, root font size, link color, heading font) are recovered VALUES with NO semantic names. Illustrative rows:
+
+```
+# <token> | <computed-value> | [probe-derived] | <selector>
+--color-accent           | rgb(0, 112, 243)  | [probe-derived] | html
+--probe-body-font-family | Inter, sans-serif | [probe-derived] | body
+```
+
+**Second-class rules.**
+
+- **Provenance is permanent.** The `[probe-derived]` tag travels with every recovered token through the phase-2 handoff into the produced skill. A probe-derived token never acquires a `file:line` cite.
+- **Source wins on conflict.** If a token is BOTH source-cited (e.g. a partially blocked DS) and probe-derived, the source-cited entry is the one materialized; the probe-derived row is dropped and the conflict is logged as one `[VERIFY: probe-recover conflict — <token> source-cited '<v1>' vs probe-derived '<v2>'; source wins]` line in the Phase 2 tally — logged, never silenced.
+- **Semantic-name loss is documented, not hidden.** Recovered values largely lose semantic names (`#0070F3`, not `--color-accent-primary`). Phase 3 materializes recovered tokens under a dedicated `## Probe-derived tokens [probe-derived]` section in the produced tokens file — never interleaved with source-cited entries — whose preamble states the provenance and the loss (recovered from the rendered docs page because the token source was `[private-blocker]`; one page, one rendered mode; synthetic `--probe-*` names carry no DS naming authority). See `references/persist.md` (Split rules, Probe-derived tokens).
+- **Audit visibility.** `scripts/check-skill-docs.sh` produced mode emits the `PROBE_DERIVED_TOKENS=` tally: `NONE` when all tokens are source-cited, a tagged-line count when the dedicated section is present, `FAIL` when tagged rows leak outside a tagged section heading.
+
+**Degradation.** Identical to the sibling modes: `PROBE_SKIPPED=no-docs-url` / `PROBE_SKIPPED=browsers-unavailable` exit 0; `PROBE_FAILED=navigation` exit 1 with no manifest written. On any skip or failure, Phase 2 proceeds with the `[private-blocker]` gap recorded as-is — the fallback failing is never worse than the fallback not existing. Record the manifest path and any conflict lines in the phase-2 handoff so Phase 3 knows to materialize the section.
 
 ## Shell-invariant extraction step
 

@@ -77,6 +77,8 @@ Why annotation and not extraction: a rendered page proves what a value *is* in o
 
 Operational posture: opt-in (docs URL accepted in Phase 1 + no opt-out), read-only against the docs site, heavy dependency gated (playwright is a consumer-project devDependency; browser binaries install on the host, never inside a sandbox — the script degrades to `PROBE_SKIPPED=browsers-unavailable` exit 0). The probe is the infrastructure-carrying slice for a family of rendered-site probes (audit screenshots, asset inventory, compiled-CSS fallback) that all reuse this one script rather than growing parallel pipelines.
 
+The compiled-CSS recover fallback (`--recover`, 2026-06-12) is the ONE place the probe crosses from annotation into extraction, and it is deliberately fenced: it fires only when token-class source extraction returned `[private-blocker]` (a DS shipping only compiled CSS), with an accepted docs URL and no opt-out. Without it that DS dead-ends Phase 2; with it Phase 2 continues on clearly second-class material — every recovered row carries `[probe-derived]` in place of a `file:line` cite, semantic names are mostly lost (synthetic `--probe-*` rows), source wins every conflict (logged, never silenced), and the produced skill quarantines the rows under a dedicated tagged section the produced-mode audit (`PROBE_DERIVED_TOKENS=`) gates. The fallback is not a default and must not widen: for any DS with readable token source, the source-first contract stands untouched.
+
 ## What this skill consciously does NOT do
 
 - Does not author a top-level DS-design document for the user's DS (D3 — the workshop maintainer authors that for the starter DS, separately).

@@ -116,7 +116,7 @@ assert "pass-fixture auto-detects meta-mode" \
 # in meta-mode; produced-mode should NOT emit a NO_HARDCODED_PATHS line at
 # all (the check is meta-mode only).
 PRODUCED_TMP="$(mktemp -d)"
-trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}" "${PROBE_TMP:-}"' EXIT
+trap 'rm -rf "$PRODUCED_TMP" "${CLAIMS_TMP:-}" "${PROBE_TMP:-}" "${PD_TMP:-}"' EXIT
 mkdir -p "$PRODUCED_TMP/test-produced-skill/references/components"
 cat >"$PRODUCED_TMP/test-produced-skill/SKILL.md" <<'EOF'
 ---
@@ -1100,6 +1100,127 @@ assert_probe "inventory: --inventory + --screenshot is a usage error" \
   bash "$PROBE" --inventory --screenshot \
   --url "https://example.invalid/docs" \
   --out-json "$PROBE_TMP/inventory.json"
+
+# ---------------------------------------------------------------------------
+# probe-rendered.sh --recover tests (issue #50). Same determinism rule:
+# argument validation precedes browser detection, and the browsers-absent
+# hook keeps the suite from ever launching a real browser.
+# ---------------------------------------------------------------------------
+
+# Test R1: recover mode with all required args but browsers absent ->
+# graceful skip, exit 0 — Phase 2 proceeds with the [private-blocker] gap
+# recorded as-is (the pre-fallback default).
+assert_probe "recover: browsers-unavailable skips gracefully" \
+  0 "PROBE_SKIPPED=browsers-unavailable" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover \
+  --url "https://example.invalid/docs" \
+  --out-manifest "$PROBE_TMP/recovered-tokens.txt"
+
+# Test R2: recover mode without --url -> the same documented no-docs-URL
+# clean skip as the other modes, exit 0 (the fallback requires an accepted
+# docs URL by construction).
+assert_probe "recover: no docs URL skips cleanly" \
+  0 "PROBE_SKIPPED=no-docs-url" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --out-manifest "$PROBE_TMP/recovered-tokens.txt"
+
+# Test R3: missing --out-manifest is a loud usage error (exit 2), even in a
+# browserless sandbox — recover mode never picks an implicit output path.
+assert_probe "recover: missing --out-manifest is a usage error" \
+  2 "error: --out-manifest is required in recover mode" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --url "https://example.invalid/docs"
+
+# Test R4: --recover and --inventory together is a contradictory-flags usage
+# error (exit 2), caught before any skip path.
+assert_probe "recover: --recover + --inventory is a usage error" \
+  2 "error: --recover and --inventory are mutually exclusive" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --inventory \
+  --url "https://example.invalid/docs" \
+  --out-manifest "$PROBE_TMP/recovered-tokens.txt" \
+  --out-json "$PROBE_TMP/inventory.json"
+
+# Test R5: --recover and --screenshot together is a contradictory-flags usage
+# error (exit 2), caught before any skip path.
+assert_probe "recover: --recover + --screenshot is a usage error" \
+  2 "error: --recover and --screenshot are mutually exclusive" \
+  env PROBE_RENDERED_BROWSERS=absent \
+  bash "$PROBE" --recover --screenshot \
+  --url "https://example.invalid/docs" \
+  --out-manifest "$PROBE_TMP/recovered-tokens.txt"
+
+# ---------------------------------------------------------------------------
+# PROBE_DERIVED_TOKENS tests (issue #50, produced-mode audit tally). The
+# produced-mode check distinguishes probe-derived tokens from source-cited
+# ones: NONE when no [probe-derived] tag appears in the tokens files, PASS
+# when tagged rows live under a dedicated tagged section heading, FAIL when
+# tagged rows leak outside one.
+# ---------------------------------------------------------------------------
+
+# Test PD1: Test 4's on-the-fly produced fixture ships no tokens file at all
+# -> the tally must be NONE (the common, all-source-cited case) and MUST
+# appear (mirroring TOKEN_COVERAGE's always-emit posture).
+if grep -qE '^PROBE_DERIVED_TOKENS=NONE' <<<"$out_produced"; then
+  echo "PASS  produced-mode reports PROBE_DERIVED_TOKENS=NONE without tokens files"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL  produced-mode must report PROBE_DERIVED_TOKENS=NONE without tokens files"
+  echo "  --- script output ---"
+  echo "$out_produced" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+fi
+
+# Test PD2: meta-mode skips PROBE_DERIVED_TOKENS entirely — the provenance
+# split is a produced-skill contract.
+if grep -qE '^PROBE_DERIVED_TOKENS=' <<<"$out_meta_self"; then
+  echo "FAIL  meta-mode must NOT emit PROBE_DERIVED_TOKENS tally"
+  echo "  --- script output ---"
+  echo "$out_meta_self" | sed 's/^/  /'
+  echo "  ---"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS  meta-mode skips PROBE_DERIVED_TOKENS"
+  PASS=$((PASS + 1))
+fi
+
+# Tests PD3/PD4: clone Test 4's produced fixture and add a tokens.md. The
+# PASS shape keeps every [probe-derived] row under a dedicated tagged
+# section heading; the FAIL shape drops the heading (rows interleaved with
+# source-cited entries — the placement the check forbids).
+PD_TMP="$(mktemp -d)"
+cp -R "$PRODUCED_TMP/test-produced-skill" "$PD_TMP/pd-pass-skill"
+cat >"$PD_TMP/pd-pass-skill/references/tokens.md" <<'EOF'
+# Tokens
+
+- `--color-accent` — `#0070f3` — node_modules/@acme/ui/dist/css/light.css:12
+
+## Probe-derived tokens [probe-derived]
+
+Recovered from the rendered docs page (token source was [private-blocker]);
+one page, one rendered mode. Semantic names are lost — the synthetic
+`--probe-*` rows carry no DS naming authority.
+
+- `--probe-body-color` — `rgb(31, 35, 40)` [probe-derived]
+- `--probe-body-font-family` — `Inter, sans-serif` [probe-derived]
+EOF
+assert "pd-pass: tagged rows under a tagged section pass" \
+  "$PD_TMP/pd-pass-skill" \
+  0 "PROBE_DERIVED_TOKENS=PASS.*"
+
+cp -R "$PRODUCED_TMP/test-produced-skill" "$PD_TMP/pd-fail-skill"
+cat >"$PD_TMP/pd-fail-skill/references/tokens.md" <<'EOF'
+# Tokens
+
+- `--color-accent` — `#0070f3` — node_modules/@acme/ui/dist/css/light.css:12
+- `--probe-body-color` — `rgb(31, 35, 40)` [probe-derived]
+EOF
+assert "pd-fail: tagged rows outside a tagged section fail" \
+  "$PD_TMP/pd-fail-skill" \
+  1 "PROBE_DERIVED_TOKENS=FAIL" \
+  "no '## ... [probe-derived]' section heading"
 
 echo
 if [[ "$SKIPPED" -gt 0 ]]; then

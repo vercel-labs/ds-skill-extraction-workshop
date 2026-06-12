@@ -660,6 +660,44 @@ if [[ "$MODE" == "produced" ]]; then
     fi
   fi
 
+  # 15. PROBE_DERIVED_TOKENS (produced-skill mode only). Provenance split
+  #     for the source-blocked recovery fallback (references/validate.md,
+  #     Compiled-CSS fallback). A produced skill may carry probe-derived
+  #     tokens ONLY when Phase 2 hit the [private-blocker] token case: every
+  #     such row keeps the [probe-derived] tag in place of a file:line cite
+  #     and lives under a dedicated section heading that itself carries the
+  #     tag — never interleaved with source-cited token tables. The tally
+  #     makes the two provenances visually distinct in audit output: NONE
+  #     (the common, all-source-cited case), or a tagged-line count plus
+  #     PASS/FAIL on the dedicated-section placement rule.
+  PD_FILES=()
+  [[ -f "$TOKENS_MD" ]] && PD_FILES+=("$TOKENS_MD")
+  if [[ -d "$TOKENS_DIR" ]]; then
+    while IFS= read -r f; do PD_FILES+=("$f"); done \
+      < <(find "$TOKENS_DIR" -type f -name '*.md' | sort)
+  fi
+  PD_COUNT=0
+  PD_FAILS=()
+  for f in "${PD_FILES[@]+"${PD_FILES[@]}"}"; do
+    n="$(grep -c '\[probe-derived\]' "$f" 2>/dev/null || true)"
+    [[ "${n:-0}" -gt 0 ]] || continue
+    if ! grep -qE '^#{2,3}[[:space:]].*\[probe-derived\]' "$f"; then
+      PD_FAILS+=("$f carries $n [probe-derived] line(s) but no '## ... [probe-derived]' section heading — probe-derived tokens live under a dedicated tagged section, never mixed into source-cited tables (references/validate.md, Compiled-CSS fallback)")
+    fi
+    PD_COUNT=$((PD_COUNT + n))
+  done
+  if [[ "$PD_COUNT" -eq 0 ]]; then
+    echo "PROBE_DERIVED_TOKENS=NONE (all tokens source-cited)"
+  elif [[ ${#PD_FAILS[@]} -eq 0 ]]; then
+    echo "PROBE_DERIVED_TOKENS=PASS ($PD_COUNT tagged line(s) under a dedicated [probe-derived] section)"
+  else
+    echo "PROBE_DERIVED_TOKENS=FAIL"
+    for r in "${PD_FAILS[@]}"; do
+      echo "  $r"
+    done
+    FAILED=1
+  fi
+
 fi  # end produced-mode checks
 
 # 8. NO_HARDCODED_PATHS (meta-skill self-mode only). Every filesystem path,
