@@ -426,11 +426,12 @@ for ((i=1; i<=ITERATIONS; i++)); do
   # the project, and may clone a fresh copy when the prompt has no relative
   # path hints (e.g. issues mode where the prompt only contains the issue
   # JSON, no plan/PRD file references).
-  # MAX_THINKING_TOKENS=0 disables extended thinking on the CLI side. Opus 4.7
-  # requires the new thinking.type.adaptive schema, but Claude Code 2.1.71 still
-  # emits thinking.type.enabled, so the request is rejected. Suppressing the
-  # thinking block entirely sidesteps the schema mismatch until the CLI catches
-  # up; remove this env once Claude Code ships adaptive thinking.
+  # CLAUDE_CODE_EFFORT_LEVEL=max runs Opus 4.8 at maximum reasoning effort.
+  # Opus 4.8 uses adaptive thinking governed by the effort parameter — it does
+  # NOT accept a manual MAX_THINKING_TOKENS budget (sending one returns a 400),
+  # so the old MAX_THINKING_TOKENS=0 workaround is removed. Effort defaults to
+  # `high` for Opus 4.8; `max` is the ceiling. (Sandbox CC is 2.1.162, well past
+  # the 2.1.71 schema mismatch that originally forced thinking off.)
   #
   # The payload is piped via stdin rather than passed as argv to claude. With
   # 25+ open issues including bodies and comments, the combined argv used to
@@ -444,7 +445,7 @@ for ((i=1; i<=ITERATIONS; i++)); do
     -e ANTHROPIC_BASE_URL="$GATEWAY_URL" \
     -e ANTHROPIC_AUTH_TOKEN="$TOKEN" \
     -e ANTHROPIC_MODEL="$MODEL" \
-    -e MAX_THINKING_TOKENS=0 \
+    -e CLAUDE_CODE_EFFORT_LEVEL=max \
     "$SANDBOX" \
     claude \
       --verbose \
