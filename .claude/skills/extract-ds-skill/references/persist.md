@@ -46,7 +46,7 @@ The validation gate at the end of Phase 2 is the only checkpoint. Past that gate
     │                               when no exemplars exist — see split rules)
     ├── examples/index.md          (sub-index of every examples/<name>.md;
     │   OR (omitted)                co-required with examples/<name>.md)
-    ├── anti-patterns.md
+    ├── anti-patterns.md           (slug registry: shell table + asset registry — see Anti-patterns materialization)
     └── design-craft.md             (always written — DS-agnostic design-craft
                                      defaults, copied verbatim by scaffold.sh;
                                      omitted ONLY on explicit Phase 1 opt-out)
@@ -97,6 +97,15 @@ When the Phase 2 scratch file `.extract-ds-skill-scratch/shell-invariants.md` ca
 3. **A `## Final checks` entry in the produced `SKILL.md`** — one self-check line per scratch block, woven into the shell-parity clause of the Final checks paragraph per the template in `references/skill-template.md` (Final checks bullet). The shell-parity clause names the constructs collectively ("the page/root surface paints with a surface token; the mode attribute (when present) matches the imported theme CSS files; the provider (when present) wraps children, not siblings") rather than enumerating one clause per scratch block — the structural shape is the same regardless of how many shell invariants were lifted.
 
 When the scratch file is absent (Phase 2 lifted no wiring, so no shell invariants surfaced), Phase 3 emits no shell-rule bullets in `## Hard rules`, no `shell/<slug>` Layer B rows in `references/anti-patterns.md`, and omits the shell-parity clause from `## Final checks`. The Setup section will likewise be empty per the Companion CSS materialization rule above; the produced skill's `## Hard rules` carries only the universal `[VERIFY]` + report-blockers bullets, and `## Final checks` carries only the universal cite-components + list-VERIFY-markers + name-prompt clause. Inventing a shell rule when no construct was lifted is a fabrication — the omission rule in `references/anti-patterns.md` (Pre-seeded `shell/` rows section) applies. The audit hook `scripts/check-skill-docs.sh` check `SHELL_INVARIANTS` re-verifies post-emit that the produced `## Hard rules` carries at least one shell-vocabulary + token-shape rule whenever Setup ships a triggering construct (provider mount, Companion CSS subheading, or Foundation wiring subheading); the same check resolves each cited `shell/<slug>` against the produced `references/anti-patterns.md`.
+
+## Anti-patterns materialization
+
+The produced `references/anti-patterns.md` is a slug-resolution / audit registry, not a generation-time reference (see `references/skill-template.md`, "Produced `references/anti-patterns.md` contract", and `references/anti-patterns.md`, "What lands in the produced skill"). Phase 3 writes exactly two things into it:
+
+- The `shell/*` Layer B Bad/Good/Why table from the Shell invariant materialization step above (omitted when no wiring was lifted).
+- A thin `asset/*` registry — one line per `asset/*` slug, naming the rule and pointing at the foundation page that holds the prose. Required only because `scripts/check-skill-docs.sh` check #4 resolves `asset/*` slugs against `anti-patterns.md`; the prose stays in `references/foundations/<assets-page>.md`.
+
+Do NOT materialize into the produced `anti-patterns.md`: a component-trap table (component traps live in the per-component files; `component/*` slugs resolve in the component directory), token-discipline rows (they live in `references/tokens.md`; `token/<slug>` subsections resolve there), or any meta-skill governance (`wiring/`, `state/`, `craft/`, `cite/`, Layer-C `component/*`). Those Layer C rules govern this meta-skill during the run — copying them into the produced file ships governance a UI-building consumer cannot act on.
 
 ## Design-craft materialization
 
