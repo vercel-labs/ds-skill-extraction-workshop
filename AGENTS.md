@@ -3,7 +3,7 @@
 
 Before producing snapshot artefacts (`/extract-ds-skill`, a PRD build `/primer-react implement prompts/*.md`, `prompts/issues.md`, `prompts/audit.md`, anything frozen under `dry-runs/`): run `git worktree list`. Outputs go in the matching `.claude/worktrees/dryrun-NN-<label>-iN/` (branch `dryrun/NN-<label>-iN`) — never a durable branch.
 
-Worktree needs root's config to run builds: `ln -s ../../../node_modules node_modules`.
+Worktree needs root's config to run builds: `ln -sfn ../../../node_modules node_modules`. The `-fn` is load-bearing — plain `ln -s` follows the existing link and nests a stray `node_modules/node_modules` (pointing out of the repo) inside root's `node_modules`, which breaks Turbopack for *every* worktree (`Can't resolve 'scheduler'`).
 
 ## Where a change goes
 
