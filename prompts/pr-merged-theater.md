@@ -38,5 +38,5 @@ The point of this encore is breadth: a real merge box leans on far more of the d
 ## Working rules
 
 - Follow the rules of the extracted design-system skill installed under `.claude/skills/` (when present).
-- Run the dev server, watch the full sequence in both color modes — checks resolving, the box opening, the flip to merged — and fix what you see before you finish.
+- Run the dev server, watch the full sequence in both color modes — checks resolving, the box opening, the flip to merged — and fix what you see before you finish. Then report what you verified, how, and your confidence in each claim — keeping what you confirmed through the DOM, interactions, and the console separate from visual impressions, which still need a human to confirm.
 - Do not commit or stage anything — leave the working tree dirty for review.
