@@ -27,6 +27,7 @@ token lookups or single-component API questions.
 ## Hierarchy & density
 
 - MUST: give every screen roughly three prominence levels (lead, support, detail); a reader should resolve what leads within two seconds.
+- MUST: a lead figure is not a headline — pair any hero stat with a worded line that says what the number means.
 - MUST: one primary action per screen — everything else renders as secondary or tertiary.
 - MUST: design all four data states for every data-dependent view — loading, empty, error, populated. Empty states name one clear next action.
 - SHOULD: match density to the job — spacious for marketing and landing surfaces, dense for dashboards and tables. One density everywhere is a default, not a decision.
@@ -37,6 +38,7 @@ token lookups or single-component API questions.
 - MUST: keep display headings to 2–3 lines maximum — widen the container or cut the copy rather than wrapping a headline down a narrow column.
 - SHOULD: when the DS does not mandate fonts, pair a distinctive display face with a refined body face — one generic sans-serif doing both jobs is the most recognizable generated-UI tell.
 - SHOULD: `text-wrap: balance` on headings, `text-wrap: pretty` on body, `tabular-nums` on numbers that change; leave letter-spacing alone unless the DS sets it.
+- SHOULD: hold running prose to a comfortable measure (~45–75 characters per line) — constrain the text container, since shorter reads choppy and wider loses the eye on the return sweep.
 - NEVER: italicize headings as a default emphasis device.
 
 ## Color
@@ -66,17 +68,20 @@ token lookups or single-component API questions.
 ## Interactive states & accessibility floor
 
 - MUST: handle every state that applies to an interactive element — default, hover, focus-visible, active, disabled — plus loading, error, and success wherever the element can be in them.
-- MUST: keep a visible focus ring (never removed, never animated), text contrast at 4.5:1 or better, and touch targets ≥44px that never overlap.
+- MUST: keep a visible focus ring (never removed, never animated), text contrast at 4.5:1 or better, and touch targets ≥44px that never overlap. When a surface flips lightness, recolor its text in the same change and confirm children inherit it; never let button text equal its fill.
 - MUST: render errors adjacent to the field that caused them, not only in a distant summary.
+- NEVER: signal state by color alone — pair every status hue (error/success/warning) with an icon, shape, or text label, so meaning survives color-blindness and grayscale.
+- NEVER: put a menu, control, or information-bearing tooltip behind hover alone — anything that appears on hover must also open on keyboard focus and on a touch (coarse) pointer.
+- NEVER: let a clickable label (button, nav link, CTA, breadcrumb) wrap to two lines — a two-line affordance reads as a styling error. Shorten the label first, else `white-space: nowrap` and let the layout reflow, else collapse the nav.
 - NEVER: horizontal scroll on mobile viewports — verify narrow widths before calling a layout done.
 - NEVER: emoji as icons or as bullet decoration.
 
 ## Honesty & restraint
 
-- NEVER: fabricate metrics, testimonials, customer logos, star ratings, or user counts. Use real data, a clearly labeled placeholder, or a layout that needs neither.
+- NEVER: fabricate metrics, testimonials, customer logos, star ratings, or user counts; placeholder names ("John Doe", "Acme"); or cliché AI-filler state copy ("Herding pixels…") — each reads as machine-generated. Use real data, a clearly labeled placeholder, or copy that says what the product is actually doing.
 - NEVER: re-draw fake chrome — browser bars with traffic-light dots, phone frames, IDE windows. Use a real screenshot or drop the frame.
 - SHOULD: reach for typography and plain CSS before decorative imagery or animation libraries; ornament added because a section "felt empty" is filler by definition.
-- SHOULD: be able to answer "why this?" for every visible choice. If the honest answer is "it's common" or "it looks clean", that was a default, not a decision — choose again, deliberately.
+- SHOULD: anchor the direction to one concrete reference before composing (a real product, brand, or genre — not adjectives like "modern" or "clean"); unanchored restraint defaults to bland. Then be able to answer "why this?" for every visible choice — if the honest answer is "it's common" or "it looks clean", that was a default, not a decision; choose again, deliberately.
 
 ## Before presenting: self-critique
 
