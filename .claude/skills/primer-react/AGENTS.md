@@ -4,7 +4,7 @@ Any agent touching this skill reads `SKILL.md` first, then the per-domain files 
 
 ## Letter to future agents
 
-The Primer React surface is large (78 components in `@primer/react@38.26.0`), but this skill covers a **pinned 15-component slate** chosen to support the two wow prompts (form/status surfaces). If a screen the user asks for needs a component outside the slate (`PageHeader`, `DataTable`, `SelectPanel`, `ActionMenu`, `ActionList`, `Dialog`, …), say so — do not invent a substitute from inside the slate. Coverage gaps land via the harvest convergence loop (workshop issue #33) before the final extraction run, not by hallucinating inside individual screens.
+The Primer React surface is large (78 components in `@primer/react@38.26.0`), but this skill covers a **pinned 19-component slate** chosen to support the two wow prompts (form/status surfaces). If a screen the user asks for needs a component outside the slate (`PageHeader`, `DataTable`, `SelectPanel`, `ActionMenu`, `ActionList`, `Dialog`, …), say so — do not invent a substitute from inside the slate. Coverage gaps land via the harvest convergence loop (workshop issue #33) before the final extraction run, not by hallucinating inside individual screens.
 
 The d.ts files in `node_modules/@primer/react/dist/**/*.d.ts` are the canonical source. Whenever a `references/components/*.md` claim feels uncertain, read the d.ts line cited in the bullet and confirm. Docs sites lag; the types do not.
 
