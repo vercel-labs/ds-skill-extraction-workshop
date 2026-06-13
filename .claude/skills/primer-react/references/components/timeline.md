@@ -40,12 +40,12 @@ Pick `Timeline` for a vertical feed of chronological events along a connecting r
 
 ### `Timeline.Body`
 
-- `className?: string`. `dist/Timeline/Timeline.d.ts:24-25`
+- `className?: string`. `dist/Timeline/Timeline.d.ts:25`
 - Native passthrough: `React.ComponentPropsWithoutRef<'div'>` (renders a `<div>`). `dist/Timeline/Timeline.d.ts:26`
 
 ### `Timeline.Break`
 
-- `className?: string` — a visual break in the rail between groups of items (no other props). `dist/Timeline/Timeline.d.ts:28-29`
+- `className?: string` — a visual break in the rail between groups of items (no other props). `dist/Timeline/Timeline.d.ts:29`
 - Native passthrough: `React.ComponentPropsWithoutRef<'div'>` (renders a `<div>`). `dist/Timeline/Timeline.d.ts:30`
 
 ## Accessibility

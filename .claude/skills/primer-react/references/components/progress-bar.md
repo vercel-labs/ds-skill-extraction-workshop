@@ -9,7 +9,7 @@ description: Horizontal progress indicator — single-fill or multi-segment via 
 import { ProgressBar } from '@primer/react'
 ```
 
-`ProgressBar.Item` is the multi-segment child (exported as `Item`, attached to `ProgressBar` and given `displayName` `'ProgressBar.Item'`). `dist/ProgressBar/ProgressBar.d.ts:16`
+`ProgressBar.Item` is the multi-segment child — exported as `Item` (`dist/ProgressBar/ProgressBar.d.ts:16`), attached to `ProgressBar` via `Object.assign` (`dist/ProgressBar/index.js:6`) and given `displayName` `'ProgressBar.Item'` (`dist/ProgressBar/ProgressBar.js:136`).
 
 ## When to use
 
@@ -20,34 +20,34 @@ Use `ProgressBar` to show determinate completion of a single task (upload, insta
 ### `ProgressBar`
 
 - `progress?: string | number` — fill percentage for the single-segment case (0–100). `dist/ProgressBar/ProgressBar.d.ts:4` (via `ProgressProp`, spread at `:23`)
-- `bg?: string` — fill color as a Primer token path (e.g. `'success.emphasis'`, `'accent.emphasis'`), resolved to `var(--bgColor-<area>-<role>)`. Defaults to `'success.emphasis'`. `dist/ProgressBar/ProgressBar.d.ts:21` (default: `ProgressBar.js:188`)
-- `barSize?: 'small' | 'default' | 'large'` — track height. Defaults to `'default'`. `dist/ProgressBar/ProgressBar.d.ts:9` (via `StyledProgressContainerProps`; default: `ProgressBar.js:189`)
-- `inline?: boolean` — render the container inline (`data-progress-display="inline"`) rather than block. `dist/ProgressBar/ProgressBar.d.ts:8` (rendered: `ProgressBar.js:206`)
-- `animated?: boolean` — forwarded to the auto-generated single `Item` as `data-animated` for a fill animation. Only applies in the single-segment (`progress`) path. `dist/ProgressBar/ProgressBar.d.ts:10` (forwarded: `ProgressBar.js:213`)
+- `bg?: string` — fill color as a Primer token path (e.g. `'success.emphasis'`, `'accent.emphasis'`), resolved to `var(--bgColor-<area>-<role>)`. Defaults to `'success.emphasis'`. `dist/ProgressBar/ProgressBar.d.ts:21` (default: `ProgressBar.js:189`)
+- `barSize?: 'small' | 'default' | 'large'` — track height. Defaults to `'default'`. `dist/ProgressBar/ProgressBar.d.ts:9` (via `StyledProgressContainerProps`; default: `ProgressBar.js:190`)
+- `inline?: boolean` — render the container inline (`data-progress-display="inline"`) rather than block. `dist/ProgressBar/ProgressBar.d.ts:8` (`inline`→display mapped at `ProgressBar.js:211`, rendered at `:239`)
+- `animated?: boolean` — forwarded to the auto-generated single `Item` as `data-animated` for a fill animation. Only applies in the single-segment (`progress`) path. `dist/ProgressBar/ProgressBar.d.ts:10` (forwarded: `ProgressBar.js:215`)
 - `className?: string`. `dist/ProgressBar/ProgressBar.d.ts:22`
 - Native passthrough: `HTMLAttributes<HTMLSpanElement>` (renders a `<span>`). `dist/ProgressBar/ProgressBar.d.ts:20`
 
 ### `ProgressBar.Item`
 
 - `progress?: string | number` — this segment's share of the track (0–100). `dist/ProgressBar/ProgressBar.d.ts:15` (via `ProgressProp`)
-- `bg?: string` — segment color as a Primer token path; defaults to `success.emphasis` when unset. `dist/ProgressBar/ProgressBar.d.ts:5` (resolution + fallback: `ProgressBar.js:89`)
+- `bg?: string` — segment color as a Primer token path; defaults to `success.emphasis` when unset. `dist/ProgressBar/ProgressBar.d.ts:5` (resolution + fallback: `ProgressBar.js:86`)
 - `aria-label?: string` — accessible name for the individual segment. `dist/ProgressBar/ProgressBar.d.ts:13`
 - `className?: string`. `dist/ProgressBar/ProgressBar.d.ts:14`
 - Native passthrough: `HTMLAttributes<HTMLSpanElement>` (renders a `<span role="progressbar">`). `dist/ProgressBar/ProgressBar.d.ts:12`
 
 ## Accessibility
 
-- Each rendered segment is a `<span role="progressbar">` with `aria-valuemin={0}` and `aria-valuemax={100}` set automatically; `aria-valuenow` is derived from `progress` (`Math.round`, clamped to 0 when negative/undefined) unless you pass `aria-valuenow` explicitly. `ProgressBar.js:116-122` (Item: `ProgressBar.js:64-77`)
-- Provide an `aria-label` (or `aria-valuetext`) so screen readers announce what the bar measures — the percentage alone is not self-describing. `aria-label`/`aria-valuetext` flow through to the segment. `dist/ProgressBar/ProgressBar.d.ts:13` (Item passthrough: `ProgressBar.js:118-121`)
+- Each rendered segment is a `<span role="progressbar">` with `aria-valuemin={0}` and `aria-valuemax={100}` set automatically; `aria-valuenow` is derived from `progress` (`Math.round`, clamped to 0 when negative/undefined) unless you pass `aria-valuenow` explicitly. `ProgressBar.js:61-64` (the `aria-valuemin`/`aria-valuemax`/`aria-valuenow` object), `:51` (the `Math.round`/clamp), `:115-123` (the `role="progressbar"` `<span>`)
+- Provide an `aria-label` (or `aria-valuetext`) so screen readers announce what the bar measures — the percentage alone is not self-describing. `aria-label`/`aria-valuetext` flow through to the segment. `dist/ProgressBar/ProgressBar.d.ts:13` (Item passthrough: `ProgressBar.js:119` for `aria-label`, `:122` for the `aria-*` spread)
 - In the multi-segment case, label each `ProgressBar.Item` individually — the container does not synthesize a combined label.
 
 ## Best Practices
 
-- Pass `progress` **or** `ProgressBar.Item` children, never both — the component throws `"You should pass `progress` or children, not both."` at render. `ProgressBar.js:190-192`
-- Set `bg` to a Primer semantic token path (`'success.emphasis'`, `'accent.emphasis'`, `'danger.emphasis'`), never a hardcoded hex — the value is split on `.` and rebuilt as `var(--bgColor-<area>-<role>)`, so a raw color silently breaks the CSS-variable lookup. `ProgressBar.js:89`
+- Pass `progress` **or** `ProgressBar.Item` children, never both — the component throws `"You should pass `progress` or children, not both."` at render. `ProgressBar.js:191-193`
+- Set `bg` to a Primer semantic token path (`'success.emphasis'`, `'accent.emphasis'`, `'danger.emphasis'`), never a hardcoded hex — the value is split on `.` and rebuilt as `var(--bgColor-<area>-<role>)`, so a raw color silently breaks the CSS-variable lookup. `ProgressBar.js:86`
 - `barSize` accepts only `'small' | 'default' | 'large'` — no numeric/pixel sizes. `dist/ProgressBar/ProgressBar.d.ts:9`
-- `animated` only animates the single-segment (`progress`) render path; it is forwarded as `data-animated` to the auto-generated `Item` and has no effect when you supply your own `ProgressBar.Item` children. `ProgressBar.js:213`
-- Width comes from the `--progress-width` CSS variable derived from `progress` (`"0%"` when unset) — drive the bar through `progress`, not by styling width directly. `ProgressBar.js:88`
+- `animated` only animates the single-segment (`progress`) render path; it is forwarded as `data-animated` to the auto-generated `Item` and has no effect when you supply your own `ProgressBar.Item` children. `ProgressBar.js:215`
+- Width comes from the `--progress-width` CSS variable derived from `progress` (`"0%"` when unset) — drive the bar through `progress`, not by styling width directly. `ProgressBar.js:85`
 
 ## Composition examples
 
@@ -80,8 +80,9 @@ export function LanguageBar() {
 ## Source references
 
 - `node_modules/@primer/react/dist/ProgressBar/ProgressBar.d.ts:1-28` — `ProgressBarProps`, `ProgressBarItemProps`, `ProgressProp`, `StyledProgressContainerProps`
-- `node_modules/@primer/react/dist/ProgressBar/ProgressBar.js:188-192` — `bg`/`barSize` defaults and the both-props guard
-- `node_modules/@primer/react/dist/ProgressBar/ProgressBar.js:64-122` — `Item` ARIA derivation and token-to-CSS-variable resolution
+- `node_modules/@primer/react/dist/ProgressBar/ProgressBar.js:189-193` — `bg`/`barSize` defaults and the both-props guard
+- `node_modules/@primer/react/dist/ProgressBar/ProgressBar.js:45-123` — `Item` ARIA derivation and token-to-CSS-variable resolution
+- `node_modules/@primer/react/dist/ProgressBar/index.js:6` — `ProgressBar.Item` attachment via `Object.assign`
 - Upstream: `primer/react@main:packages/react/src/ProgressBar/ProgressBar.tsx`
 
 ## Common mistakes
