@@ -1,6 +1,6 @@
 ---
 name: primer-react
-description: Build accessible UI with Primer React, GitHub's design system (Button, IconButton, TextInput, Textarea, Select, Checkbox, FormControl, Heading, Text, Stack, Label, CounterLabel, Flash, StateLabel, BranchName). Use when the user asks for a Primer-styled page, a GitHub-style screen, or wires Primer tokens through @primer/primitives. Triggers: 'primer', 'primer react', '@primer/react', 'github ui', 'octicons'. Scope: components, tokens, assets. Out of scope: tone of voice and marketing copy — route copy rules to a sibling skill. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient.
+description: Build accessible UI with Primer React, GitHub's design system (Button, IconButton, TextInput, Textarea, Select, Checkbox, FormControl, Heading, Text, Stack, Label, CounterLabel, Flash, StateLabel, BranchName, ProgressBar, Spinner, Timeline, RelativeTime). Use when the user asks for a Primer-styled page, a GitHub-style screen, or wires Primer tokens through @primer/primitives. Triggers: 'primer', 'primer react', '@primer/react', 'github ui', 'octicons'. Scope: components, tokens, assets. Out of scope: tone of voice and marketing copy — route copy rules to a sibling skill. IMPORTANT: this file is an orchestrator. Load the references/ files named in the routing table; SKILL.md alone is insufficient.
 ---
 
 ## Mission
@@ -138,6 +138,10 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 | user asks for an inline banner / alert | references/components/flash.md | variant: default/warning/success/danger; `full` for edge-to-edge |
 | user asks for a PR/issue lifecycle pill | references/components/state-label.md | required `status` keyed to the lifecycle octicon map |
 | user asks for a branch chip / branch name | references/components/branch-name.md | renders `<a>` by default; `as="span"` for non-link chips |
+| user asks for a progress meter / determinate bar | references/components/progress-bar.md | determinate progress track; `ProgressBar.Item` for multi-segment; semantic-token fill |
+| user asks for a loading / busy indicator | references/components/spinner.md | standalone animated loader; `srText` (string\|null); reduced-motion gated |
+| user asks for an event / activity feed (CI checks, history) | references/components/timeline.md | compound `Timeline.Item/Badge/Body/Break`; `Badge` variant carries lifecycle color |
+| user asks for a relative timestamp ("N hours ago") | references/components/relative-time.md | wraps `<relative-time>`; `date` prop; formats on the client (hydration) |
 | user composes a screen, page, or section layout | references/design-craft.md | DS-agnostic design-craft defaults, shipped verbatim by the meta-skill — the DS wins on conflict |
 | user picks tokens for color, spacing, radius, shadow | references/tokens.md | consumed-token ledger (12 tokens) + foundation rule subsections |
 | user reads token and theme foundation prose | references/foundations/index.md | per-URL extracted foundation rules |
@@ -168,6 +172,10 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 - `Flash` — inline banner; variant default/success/warning/danger, full-width option
 - `StateLabel` — lifecycle state capsule; required `status` keyed to the lifecycle octicon map (open/merged/closed)
 - `BranchName` — branch chip; renders `<a>` by default (`as` defaults to `'a'`)
+- `ProgressBar` — determinate progress meter; `progress` value, `ProgressBar.Item` for multi-segment, semantic-token fill
+- `Spinner` — standalone busy indicator; `size`, `srText` (`string | null`), reduced-motion gated
+- `Timeline` — event/activity feed; compound `Timeline.Item/Badge/Body/Break`, `Badge` variant carries lifecycle color
+- `RelativeTime` — live relative timestamp; `date`, with `tense`/`format`/`precision` forwarded to `<relative-time>`
 
 ## Hard rules
 
