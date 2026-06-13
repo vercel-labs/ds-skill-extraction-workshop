@@ -1,0 +1,111 @@
+/* Primer Primitives — design tokens (CSS custom properties).
+   Base + functional primitives establish the token baseline that the
+   composition exemplars read (size, border, shadow, typography, motion).
+   Themes live in this file too so all primitives CSS lives in one place. */
+@import "@primer/primitives/dist/css/base/size/size.css";
+@import "@primer/primitives/dist/css/base/typography/typography.css";
+@import "@primer/primitives/dist/css/base/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/size/border.css";
+@import "@primer/primitives/dist/css/functional/size/breakpoints.css";
+@import "@primer/primitives/dist/css/functional/size/radius.css";
+@import "@primer/primitives/dist/css/functional/size/size-coarse.css";
+@import "@primer/primitives/dist/css/functional/size/size-fine.css";
+@import "@primer/primitives/dist/css/functional/size/size.css";
+@import "@primer/primitives/dist/css/functional/size/viewport.css";
+@import "@primer/primitives/dist/css/functional/spacing/space.css";
+@import "@primer/primitives/dist/css/functional/typography/typography.css";
+
+@import "@primer/primitives/dist/css/functional/themes/light.css";
+@import "@primer/primitives/dist/css/functional/themes/dark.css";
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Accessible visually-hidden utility (a11y plumbing, not design tokens):
+   used for polite live-region progress announcements. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Theater motion — every duration and easing comes from the functional
+   motion tokens; transform offsets ride the base-size scale. All of it is
+   gated behind prefers-reduced-motion so reduced-motion users get the same
+   state changes with no movement. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes theater-land {
+    from {
+      opacity: 0;
+      transform: translateY(var(--base-size-4, 0.25rem));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes theater-flip {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes theater-open {
+    from {
+      opacity: 0;
+      transform: translateY(calc(-1 * var(--base-size-8, 0.5rem)));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* One-shot beat as a CI check lands. The class is only applied once a row
+     resolves, so the animation plays a single time and never replays on
+     subsequent re-renders. */
+  .theater-landed {
+    animation: theater-land var(--motion-duration-short)
+      var(--motion-easing-enter) both;
+  }
+
+  /* The Open -> Merged capsule flip. */
+  .theater-flip {
+    animation: theater-flip var(--motion-duration-medium)
+      var(--motion-easing-move) both;
+  }
+
+  /* The merge box opening into its full editable form / the merged
+     confirmation collapsing in. */
+  .theater-open {
+    animation: theater-open var(--motion-duration-medium)
+      var(--motion-easing-enter) both;
+  }
+}
