@@ -88,6 +88,8 @@ Emit these sections in this order. Detail goes into `references/`, not into SKIL
   ```
 
   A reference project that ships zero exemplars omits all five exemplar rows; the routing table carries only the per-component rows.
+
+  **Anti-patterns row (registry, not a load target).** Do NOT add a routing-table row that sends an agent to `references/anti-patterns.md` for shell, body-paint, or asset rules "during generation." The produced `anti-patterns.md` is a slug-resolution / audit registry, not a load target: its shell rows are already mirrored into the always-loaded `## Hard rules`, its asset registry points at the foundation page that holds the prose, and component/token traps live in the per-component files and `tokens.md` the routing table already covers. An agent that has loaded `SKILL.md` plus the routed per-component and foundation files has every operational rule without opening `anti-patterns.md`. Omitting the row is the default; if a maintainer-facing row is wanted, label it so it does not read as generation guidance (e.g. `| (maintenance) slug registry / audit | references/anti-patterns.md | shell + asset slug resolution; rules mirrored into Hard rules + per-component files; not required during generation |`).
 - **Component slate** — the machine-readable declaration of the confirmed extraction slate: one bullet per component the user approved at the Phase 1 gate, names copied verbatim from the phase-1 handoff's `## Components proposed` section. Shape:
 
   ```markdown
@@ -139,6 +141,19 @@ The 8-section checklist — the agent ticks each one during the reflexive-audit 
 8. **Things to never invent** — props, variants, slots, or asset names the agent might hallucinate. Negative imperatives.
 
 Every component file ships all 8 sections. If a section is genuinely empty (e.g. a primitive with no a11y obligations), write "No special rules — use the API as documented." Do not omit the heading.
+
+## Produced `references/anti-patterns.md` contract
+
+The produced `anti-patterns.md` is a thin **slug-resolution / audit registry**, NOT a generation-time reference. Every operational rule it might carry already lives on a surface the agent loads: shell invariants in the always-loaded `## Hard rules`, component traps in the per-component files, token discipline in `references/tokens.md`, asset prose in the foundation page. Keep the file to exactly two things:
+
+1. **The `shell/*` Layer B Bad/Good/Why table** — one row per shell invariant lifted in Phase 2, mirroring the `## Hard rules` bullets. It is the slug-resolution target the Hard rules cite and is cross-checked by `scripts/check-skill-docs.sh` `SHELL_INVARIANTS`. Omit the table entirely when Phase 2 lifted no wiring (see `references/persist.md`, Shell invariant materialization).
+2. **The `asset/*` registry** — one short line per `asset/*` slug, naming the rule and pointing at the foundation page (`references/foundations/<assets-page>.md`) that holds the full Bad/Good/Why prose. This thin registry is required because `check-skill-docs.sh` check #4 resolves `asset/*` slugs only against `anti-patterns.md`; the prose itself stays in the foundation file, never duplicated here.
+
+Do NOT emit:
+
+- A component-trap consolidation table — component traps live in each `references/components/<name>.md`; their `component/*` slugs resolve in the component directory, so a copy here is pure duplication.
+- A token-discipline table — those rows live in `references/tokens.md` (per the per-token contract below); their `token/<slug>` subsections resolve there.
+- Any meta-skill governance — the `wiring/`, `state/`, `craft/`, `cite/`, and Layer-C `component/*` rules from the meta-skill's own `references/anti-patterns.md` govern the *producing* agent, never the produced skill. Copying a "Layer C — meta-skill craft" section into the produced file ships governance a UI-building consumer cannot act on. See `references/anti-patterns.md`, "What lands in the produced skill."
 
 ## Per-token reference file contract
 

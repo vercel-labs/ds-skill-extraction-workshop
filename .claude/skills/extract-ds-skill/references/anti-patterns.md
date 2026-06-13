@@ -4,6 +4,24 @@ Anti-patterns live in three places because three different trap classes fire in 
 
 In scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting. When you encounter a copy/naming/casing rule during extraction (e.g. "Title Case the label", "placeholder is action-oriented"), recognize it, route it - mention it in the discovery summary as a candidate for a sibling copy skill - but do NOT extract it into this DS skill.
 
+## What lands in the produced skill (and what does not)
+
+This file is the meta-skill's authoritative rule registry, and it serves two audiences. Most of it never reaches the produced skill — keep the two straight when scaffolding Phase 3.
+
+**Rules the produced skill carries, and where each materializes:**
+
+- Layer A component-local traps → inside each `references/components/<name>.md` (`## Best Practices` / `## Common mistakes`). NOT a table in the produced `anti-patterns.md`; `component/*` slugs resolve in the component directory.
+- Layer B token-discipline rows → the produced `references/tokens.md` (per the per-token contract and the `### token/<slug>` foundation subsections in `references/skill-template.md`). NOT the produced `anti-patterns.md`; `token/<slug>` subsections resolve in the token files.
+- `shell/*` rows → the produced `SKILL.md ## Hard rules` (the always-loaded fire-site) AND the produced `anti-patterns.md` Layer B Bad/Good/Why table (the slug-resolution target the Hard rules cite, cross-checked by `SHELL_INVARIANTS`).
+- `asset/*` rows → the prose lives in `references/foundations/<assets-page>.md`; a thin registry line per `asset/*` slug ALSO lives in the produced `anti-patterns.md`, because `check-skill-docs.sh` check #4 resolves `asset/*` slugs only against `anti-patterns.md` (it has no foundation-file clause for them). Keep the registry line; never move the prose there.
+
+**Rules only the meta-skill obeys — NEVER emitted into the produced skill:**
+
+- The Layer C `wiring/`, `state/`, `craft/`, and `cite/` rules govern the *producing* agent during a run; their fire-site is this meta-skill's own scripts and session discipline.
+- The Layer C `component/*` extraction-discipline slugs (`component/anti-substitution-dropped`, `component/reexport-tier-invisible`, `component/slate-contract-missing`) are likewise meta-only.
+
+So the produced `references/anti-patterns.md` is a thin **slug-resolution / audit registry**: the `shell/*` Layer B table plus the `asset/*` registry lines, and nothing else. It is NOT a generation-time load target — an agent building UI gets every operational rule from the always-loaded `SKILL.md ## Hard rules`, the routed per-component files, `references/tokens.md`, and the foundation files. A produced `anti-patterns.md` that restates component traps, restates token rows, or copies a "Layer C — meta-skill craft" section into itself is duplicating content that already lives on a routed surface — and the Layer C copy ships meta-skill governance into an artifact whose UI-building consumer cannot act on it. Strip it back to the shell table and the asset registry.
+
 ## Layer A — Component-local inline anti-patterns
 
 The SHAPE lives here. Real instances live inside each component file at `references/components/<name>.md`, inside the file's `## Best Practices` section. This file documents the contract every component-local trap obeys; it does not store the traps themselves.
@@ -37,7 +55,7 @@ Edge case — the threshold rule: a rule like "Buttons taller than 48px lose ico
 
 ## Layer B — Cross-cutting Bad/Good/Why columnar table
 
-Token-discipline violations that span components — hex literals vs token names, arbitrary spacing vs grid, ad-hoc font sizes vs scale, ad-hoc durations vs motion tokens, ad-hoc shadows vs elevation tokens — collapse into one table at the top of this file once the meta-skill is extracting against a real DS.
+Token-discipline violations that span components — hex literals vs token names, arbitrary spacing vs grid, ad-hoc font sizes vs scale, ad-hoc durations vs motion tokens, ad-hoc shadows vs elevation tokens — collapse into one columnar table once the meta-skill is extracting against a real DS. This section documents the rule SHAPE. In the meta-skill's own file the illustrative rows below are token-discipline; in the *produced* skill the token-discipline rows materialize in `references/tokens.md` (not the produced `anti-patterns.md`), and the produced Layer B table instead holds the `shell/*` rows — see "What lands in the produced skill" above.
 
 Column headers verbatim: `Bad | Good | Why`. Code-fence the Bad and Good cells (inline backticks). Prose Why is one clause, no more.
 
@@ -74,6 +92,8 @@ Repeating the same WHY clause across rows in the same axis is correct — the fa
 ## Layer C — Meta-skill extraction discipline
 
 Layer A and Layer B describe rules the *produced* skill ships — guidance for the agent that USES the skill. Layer C describes rules the *meta-skill itself* obeys while producing a skill. They live in this file because the audit surface is the same (slug registry, `check-skill-docs.sh` enforcement), but the failure mode is upstream: a Layer C violation is the meta-skill shipping a broken produced skill, not the produced skill mis-guiding the agent.
+
+Because of that, Layer C rules are NEVER copied into the produced skill's `anti-patterns.md` — they have no fire-site there and a UI-building consumer cannot act on them. The lone exception is the `shell/*` namespace: its authoritative definitions are registered under Layer C for the producing agent to read, but the rules themselves materialize into the produced skill (Hard rules + the produced Layer B table) — see "What lands in the produced skill" above.
 
 Format: a short prose rule with a slug header, a `Why:` line naming the failure mode, and a `How to enforce:` line (or `How to apply:` for warn-only rules) naming the script and the gate. Layer C subsections use five namespaces today: `wiring/`, `state/`, `craft/`, and `cite/` for rules that fire against the meta-skill's own output during a run, and `shell/` for rules whose authoritative definition lives here (the slug registry) but whose runtime fire-site is Layer A + Layer B in the produced skill. More will be added when more meta-skill rules surface.
 
@@ -240,7 +260,7 @@ The meta-skill routes extracted rules into Layer A or Layer B (or both) using th
 
 ## Pre-seeded Layer B template rows
 
-The meta-skill scaffolds these three default rows for ANY DS during Phase 3, then fills in the DS-specific token names discovered during Phase 1:
+The meta-skill scaffolds these three default token-discipline rows for ANY DS during Phase 3, then fills in the DS-specific token names discovered during Phase 1. In the produced skill they materialize in `references/tokens.md` — as per-token `Bad | Good | Why` rows (per the per-token contract in `references/skill-template.md`), or as a `### token/<slug>` subsection when a row carries a cited slug so `check-skill-docs.sh` check #4 resolves it — NOT in the produced `anti-patterns.md` (see "What lands in the produced skill" above):
 
 - `token/hex-literal` (color) — Bad: `color: #<hex>`, Good: `color: var(--<color-token>)`, Why: hex literal bypasses theming; switches break in dark mode.
 - `token/ad-hoc-spacing` (space) — Bad: `padding: <px>`, Good: `padding: var(--<space-token>)`, Why: off-grid spacing breaks vertical rhythm.
