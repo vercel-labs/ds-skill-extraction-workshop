@@ -153,7 +153,7 @@ Both `light.css` AND `dark.css` MUST be imported when `data-color-mode="auto"` i
 | settings: sidebar-nav page | references/examples/settings.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/settings/page.tsx |
 | empty: blankslate visual + heading + action | references/examples/empty.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/empty/page.tsx |
 | dashboard: multi-section stat cards + timeline | references/examples/dashboard.md | composition exemplar lifted from vercel-labs/primer-nextjs-template/app/dashboard/page.tsx |
-| user reads a known anti-pattern (shell, body-paint, mode-attr, fixed height) | references/anti-patterns.md | Bad/Good/Why table, shell/* rows, asset/* registry |
+| (maintenance) slug registry / audit | references/anti-patterns.md | shell + asset slug resolution; rules mirrored into `## Hard rules` + per-component files; not required during generation |
 
 ## Component slate
 
