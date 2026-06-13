@@ -125,5 +125,8 @@
       "Write(lib/**)",
       "Edit(lib/**)"
     ]
+  },
+  "enabledPlugins": {
+  "vercel@claude-plugins-official": false
   }
 }
