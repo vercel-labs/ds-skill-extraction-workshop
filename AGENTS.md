@@ -3,7 +3,7 @@
 
 Before producing snapshot artefacts (`/extract-ds-skill`, a PRD build `/primer-react implement prompts/*.md`, `prompts/issues.md`, `prompts/audit.md`, anything frozen under `dry-runs/`): run `git worktree list`. Outputs go in the matching `.claude/worktrees/dryrun-NN-<label>-iN/` (branch `dryrun/NN-<label>-iN`) — never a durable branch.
 
-Worktree needs root's config to run builds: `ln -s ../../../node_modules node_modules`.
+Each worktree gets its **own** `node_modules` — after creating it, run `pnpm install --frozen-lockfile` inside the worktree once. **Never symlink `node_modules` to root.** A shared `node_modules` isn't isolation: a single `pnpm install` in any one worktree rewrites root's top-level links to point *into* that worktree (we've watched root's `next`/`react`/`react-dom` get redirected into a sibling dryrun), and then `git worktree remove`-ing that worktree dangles the links and breaks the build for root and *every* worktree at once. pnpm hardlinks from the global store (`~/Library/pnpm/store`), so a per-worktree install is fast and costs almost no disk. `package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` are git-tracked, so the install is self-contained — Turbopack infers the worktree as its own root and has no symlink to distrust.
 
 ## Where a change goes
 
