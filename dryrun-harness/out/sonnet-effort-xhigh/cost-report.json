@@ -1,0 +1,14 @@
+{
+  "label": "sonnet-effort-xhigh",
+  "model": "claude-sonnet-4-6",
+  "effort": "xhigh",
+  "total_cost_usd": 1.8853237500000002,
+  "duration_ms": 623583,
+  "duration_api_ms": 576498,
+  "num_turns": 58,
+  "is_error": false,
+  "input_tokens": 39,
+  "output_tokens": 33788,
+  "cache_creation_input_tokens": 115353,
+  "cache_read_input_tokens": 3147390
+}
