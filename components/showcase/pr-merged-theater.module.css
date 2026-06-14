@@ -1,0 +1,57 @@
+/* Motion for the merged-PR theater.
+   All timing and easing come from Primer motion tokens
+   (functional/motion/motion.css, imported in app/globals.css) — no
+   hand-picked durations or easings. Animations touch only compositor
+   properties (transform, opacity) and are gated behind
+   prefers-reduced-motion so reduced-motion readers get instant state. */
+
+.checkRow {
+  /* base row; the resolved-state animation is applied below */
+}
+
+.capsule {
+  display: inline-flex;
+}
+
+.reveal {
+  /* base; entrance animation applied below */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Each check "lands" with a small beat the moment it flips to passed. */
+  .checkRow[data-status="passed"] {
+    animation: theaterBeat var(--motion-duration-short) var(--motion-easing-move);
+  }
+
+  /* The lifecycle capsule beats once when it flips Open -> Merged. */
+  .capsule[data-merged="true"] {
+    animation: theaterBeat var(--motion-duration-medium) var(--motion-easing-move);
+  }
+
+  /* The ready cue and the merge box's editable form ease in on reveal. */
+  .reveal {
+    animation: theaterReveal var(--motion-duration-medium) var(--motion-easing-enter);
+  }
+}
+
+@keyframes theaterBeat {
+  from {
+    transform: scale(0.96);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes theaterReveal {
+  from {
+    transform: scale(0.99);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
