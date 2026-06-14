@@ -61,3 +61,6 @@ next-env.d.ts
 
 # RALPH AFK loop transcripts — operator artifacts, never committed
 ralph-*.log
+
+# Local-only experiment write-ups (not tracked)
+/experiments/
