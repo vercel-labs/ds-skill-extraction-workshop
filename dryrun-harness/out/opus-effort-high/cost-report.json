@@ -1,0 +1,14 @@
+{
+  "label": "opus-effort-high",
+  "model": "claude-opus-4-8",
+  "effort": "high",
+  "total_cost_usd": 8.969024,
+  "duration_ms": 800481,
+  "duration_api_ms": 772229,
+  "num_turns": 68,
+  "is_error": false,
+  "input_tokens": 74,
+  "output_tokens": 57048,
+  "cache_creation_input_tokens": 871668,
+  "cache_read_input_tokens": 4181668
+}
