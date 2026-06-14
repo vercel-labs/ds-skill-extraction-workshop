@@ -1,0 +1,90 @@
+/* Motion is token-driven (durations + easings from @primer/primitives
+   functional/motion) and animates compositor properties only (transform,
+   opacity). Every animation is gated behind prefers-reduced-motion:
+   no-preference, so reduced-motion users land directly on the final state
+   and never see a transition into something a screen reader would misreport. */
+
+.title {
+  text-wrap: balance;
+}
+
+/* tabular figures for the count that ticks up while checks resolve */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Region-reveal + per-check landing + capsule flip default to their
+   resting (final) state; the keyframes only attach under no-preference. */
+.enter,
+.checkLand,
+.capsuleFlip {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .enter {
+    animation: pmt-enter var(--motion-duration-medium) var(--motion-easing-enter)
+      both;
+  }
+  .checkLand {
+    animation: pmt-land var(--motion-duration-short) var(--motion-easing-enter)
+      both;
+  }
+  .capsuleFlip {
+    animation: pmt-capsule var(--motion-duration-medium)
+      var(--motion-easing-enter) both;
+  }
+}
+
+@keyframes pmt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pmt-land {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pmt-capsule {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Visually-hidden live region — carries status announcements to assistive
+   tech without occupying layout. Not a control; an a11y primitive. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The programmatically-focused merged-confirmation region is not tab-reachable
+   (tabIndex -1); suppressing its outline is safe and avoids a stray focus box. */
+.focusRegion:focus {
+  outline: none;
+}
