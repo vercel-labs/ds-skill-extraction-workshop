@@ -1,0 +1,96 @@
+/* Primer Primitives — design tokens (CSS custom properties).
+   Base + functional primitives establish the token baseline that the
+   composition exemplars read (size, border, shadow, typography). Themes
+   live in this file too so all primitives CSS lives in one place. */
+@import "@primer/primitives/dist/css/base/size/size.css";
+@import "@primer/primitives/dist/css/base/typography/typography.css";
+@import "@primer/primitives/dist/css/base/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/size/border.css";
+@import "@primer/primitives/dist/css/functional/size/breakpoints.css";
+@import "@primer/primitives/dist/css/functional/size/radius.css";
+@import "@primer/primitives/dist/css/functional/size/size-coarse.css";
+@import "@primer/primitives/dist/css/functional/size/size-fine.css";
+@import "@primer/primitives/dist/css/functional/size/size.css";
+@import "@primer/primitives/dist/css/functional/size/viewport.css";
+@import "@primer/primitives/dist/css/functional/spacing/space.css";
+@import "@primer/primitives/dist/css/functional/typography/typography.css";
+
+@import "@primer/primitives/dist/css/functional/themes/light.css";
+@import "@primer/primitives/dist/css/functional/themes/dark.css";
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* --- Theater motion ---------------------------------------------------------
+   Every duration/easing below comes from a Primer motion token; none are
+   hand-picked. Reduced-motion users get the same end states with no movement. */
+
+/* A check landing on the rail: a small, visible beat. */
+.theater-beat {
+  animation: theater-beat var(--motion-duration-short) var(--motion-easing-enter);
+}
+
+@keyframes theater-beat {
+  from {
+    opacity: 0.4;
+    transform: translateX(calc(-1 * var(--base-size-4)));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* The ready banner and the merge box opening up. */
+.theater-enter {
+  animation: theater-enter var(--motion-transition-enter);
+}
+
+@keyframes theater-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--base-size-4)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The state capsule flipping Open -> Merged. */
+.theater-capsule {
+  transition: transform var(--motion-transition-stateChange);
+}
+
+.theater-capsule[data-flipping="true"] {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theater-beat,
+  .theater-enter {
+    animation: none;
+  }
+
+  .theater-capsule {
+    transition: none;
+  }
+
+  .theater-capsule[data-flipping="true"] {
+    transform: none;
+  }
+}
