@@ -1,0 +1,85 @@
+/* Motion for the merged-PR theater.
+
+   Every duration and easing here comes from Primer's functional motion tokens
+   (`--motion-*`, imported via app/globals.css) — no hand-picked timings. The
+   transform offsets fall back to base-size tokens.
+
+   All motion is nested under `prefers-reduced-motion: no-preference`, so the
+   base (motion-free) rules are the resting state and reduced-motion users get
+   the final state instantly — nothing animates into a state the DOM/text does
+   not already report. */
+
+/* Base (motion-free) resting states. */
+.reveal {
+  opacity: 1;
+}
+
+.badge {
+  display: inline-flex;
+}
+
+.capsule {
+  display: inline-flex;
+}
+
+.checksProgress {
+  display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The merge box opening into its full editable form, and the merged
+     confirmation replacing it. */
+  .reveal {
+    animation: theater-reveal var(--motion-transition-enter);
+  }
+
+  /* Each check "lands with a beat" as it resolves. */
+  .badgePop {
+    animation: theater-pop var(--motion-duration-short) var(--motion-easing-enter);
+  }
+
+  /* The state capsule's flip from Open to Merged. */
+  .capsulePop {
+    animation: theater-capsule var(--motion-duration-medium) var(--motion-easing-enter);
+  }
+
+  /* The progress meter advances smoothly as the live count ticks up. */
+  .checksProgress [role="progressbar"] {
+    transition: width var(--motion-duration-medium) var(--motion-easing-move);
+  }
+}
+
+@keyframes theater-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--base-size-8, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes theater-pop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes theater-capsule {
+  0% {
+    transform: scale(0.86);
+  }
+  55% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
