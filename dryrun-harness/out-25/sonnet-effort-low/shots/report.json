@@ -1,0 +1,71 @@
+{
+  "label": "sonnet-effort-low",
+  "url": "http://localhost:3201/",
+  "capturedAt": "2026-06-15T14:30:05.146Z",
+  "stages": {
+    "light": {
+      "mergeBtnAttrs": {
+        "tag": "BUTTON",
+        "disabledAttr": true,
+        "ariaDisabled": "true",
+        "dataInactive": "true",
+        "tabindex": null,
+        "ariaLabel": null
+      },
+      "mergeKeyboardBlocked": true,
+      "mergeDisabledWhileRunning": true,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-low/shots/light-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-low/shots/light-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-low/shots/light-3-merged.png"
+    },
+    "dark": {
+      "mergeBtnAttrs": {
+        "tag": "BUTTON",
+        "disabledAttr": true,
+        "ariaDisabled": "true",
+        "dataInactive": "true",
+        "tabindex": null,
+        "ariaLabel": null
+      },
+      "mergeKeyboardBlocked": true,
+      "mergeDisabledWhileRunning": true,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-low/shots/dark-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-low/shots/dark-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-low/shots/dark-3-merged.png"
+    }
+  },
+  "toggle": {
+    "allTestids": [
+      "color-mode-toggle"
+    ],
+    "testid": "color-mode-toggle",
+    "discoverableByAccessibleName": true,
+    "found": true,
+    "accessibleName": "Switch to dark mode",
+    "before": {
+      "dataColorMode": null,
+      "dataLightTheme": null,
+      "dataDarkTheme": null,
+      "colorScheme": "normal",
+      "bodyBg": "rgba(0, 0, 0, 0)"
+    },
+    "after": {
+      "dataColorMode": null,
+      "dataLightTheme": null,
+      "dataDarkTheme": null,
+      "colorScheme": "normal",
+      "bodyBg": "rgba(0, 0, 0, 0)"
+    },
+    "htmlModeChanged": false,
+    "bodyBgChanged": false,
+    "flipped": false,
+    "resolvedModeObservable": false
+  },
+  "errors": []
+}

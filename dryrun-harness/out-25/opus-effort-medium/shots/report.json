@@ -1,0 +1,58 @@
+{
+  "label": "opus-effort-medium",
+  "url": "http://localhost:3203/",
+  "capturedAt": "2026-06-15T15:13:15.243Z",
+  "stages": {
+    "light": {
+      "mergeBtnAttrs": null,
+      "mergeKeyboardBlocked": null,
+      "mergeDisabledWhileRunning": null,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-medium/shots/light-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-medium/shots/light-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-medium/shots/light-3-merged.png"
+    },
+    "dark": {
+      "mergeBtnAttrs": null,
+      "mergeKeyboardBlocked": null,
+      "mergeDisabledWhileRunning": null,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-medium/shots/dark-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-medium/shots/dark-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-medium/shots/dark-3-merged.png"
+    }
+  },
+  "toggle": {
+    "allTestids": [
+      "color-mode-toggle",
+      "pr-state"
+    ],
+    "testid": "color-mode-toggle",
+    "discoverableByAccessibleName": true,
+    "found": true,
+    "accessibleName": "Switch to dark mode",
+    "before": {
+      "dataColorMode": "light",
+      "dataLightTheme": "light",
+      "dataDarkTheme": "dark",
+      "colorScheme": "normal",
+      "bodyBg": "rgb(255, 255, 255)"
+    },
+    "after": {
+      "dataColorMode": "dark",
+      "dataLightTheme": "light",
+      "dataDarkTheme": "dark",
+      "colorScheme": "normal",
+      "bodyBg": "rgb(13, 17, 23)"
+    },
+    "htmlModeChanged": true,
+    "bodyBgChanged": true,
+    "flipped": true,
+    "resolvedModeObservable": true
+  },
+  "errors": []
+}

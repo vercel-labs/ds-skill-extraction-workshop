@@ -1,0 +1,71 @@
+{
+  "label": "opus-effort-xhigh",
+  "url": "http://localhost:3205/",
+  "capturedAt": "2026-06-15T15:25:26.347Z",
+  "stages": {
+    "light": {
+      "mergeBtnAttrs": {
+        "tag": "BUTTON",
+        "disabledAttr": true,
+        "ariaDisabled": null,
+        "dataInactive": null,
+        "tabindex": null,
+        "ariaLabel": null
+      },
+      "mergeKeyboardBlocked": true,
+      "mergeDisabledWhileRunning": true,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-xhigh/shots/light-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-xhigh/shots/light-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-xhigh/shots/light-3-merged.png"
+    },
+    "dark": {
+      "mergeBtnAttrs": {
+        "tag": "BUTTON",
+        "disabledAttr": true,
+        "ariaDisabled": null,
+        "dataInactive": null,
+        "tabindex": null,
+        "ariaLabel": null
+      },
+      "mergeKeyboardBlocked": true,
+      "mergeDisabledWhileRunning": true,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-xhigh/shots/dark-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-xhigh/shots/dark-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/opus-effort-xhigh/shots/dark-3-merged.png"
+    }
+  },
+  "toggle": {
+    "allTestids": [
+      "color-mode-toggle"
+    ],
+    "testid": "color-mode-toggle",
+    "discoverableByAccessibleName": true,
+    "found": true,
+    "accessibleName": "Switch to dark mode",
+    "before": {
+      "dataColorMode": "light",
+      "dataLightTheme": "light",
+      "dataDarkTheme": "dark",
+      "colorScheme": "normal",
+      "bodyBg": "rgb(255, 255, 255)"
+    },
+    "after": {
+      "dataColorMode": "dark",
+      "dataLightTheme": "light",
+      "dataDarkTheme": "dark",
+      "colorScheme": "normal",
+      "bodyBg": "rgb(13, 17, 23)"
+    },
+    "htmlModeChanged": true,
+    "bodyBgChanged": true,
+    "flipped": true,
+    "resolvedModeObservable": true
+  },
+  "errors": []
+}

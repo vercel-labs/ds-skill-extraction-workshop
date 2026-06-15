@@ -1,0 +1,77 @@
+{
+  "label": "sonnet-effort-high",
+  "url": "http://localhost:3208/",
+  "capturedAt": "2026-06-15T15:13:35.740Z",
+  "stages": {
+    "light": {
+      "mergeBtnAttrs": {
+        "tag": "BUTTON",
+        "disabledAttr": true,
+        "ariaDisabled": null,
+        "dataInactive": null,
+        "tabindex": "0",
+        "ariaLabel": "Select merge method"
+      },
+      "mergeKeyboardBlocked": true,
+      "mergeDisabledWhileRunning": true,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-high/shots/light-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-high/shots/light-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-high/shots/light-3-merged.png",
+      "consoleErrors": [
+        "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>\n      <AppDevOverlayErrorBoundary globalError={[...]}>\n        <ReplaySsrOnlyErrors>\n        <DevRootHTTPAccessFallbackBoundary>\n          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>\n            <HTTPAccessFallbackErrorBoundary pathname=\"/\" notFound={<NotAllowedRootHTTPFallbackError>} ...>\n              <RedirectBoundary>\n                <RedirectErrorBoundary router={{...}}>\n                  <Head>\n                  <__next_root_layout_boundary__>\n                    <SegmentViewNode type=\"layout\" pagePath=\"layout.tsx\">\n                      <SegmentTrieNode>\n                      <link>\n                      <script>\n                      <script>\n                      <RootLayout>\n                        <html\n                          lang=\"en\"\n-                         className=\"js-focus-visible\"\n-                         data-js-focus-visible=\"\"\n                        >\n                  ...\n"
+      ]
+    },
+    "dark": {
+      "mergeBtnAttrs": {
+        "tag": "BUTTON",
+        "disabledAttr": true,
+        "ariaDisabled": null,
+        "dataInactive": null,
+        "tabindex": "0",
+        "ariaLabel": "Select merge method"
+      },
+      "mergeKeyboardBlocked": true,
+      "mergeDisabledWhileRunning": true,
+      "initial": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-high/shots/dark-1-initial.png",
+      "mergeActionableWhenGreen": true,
+      "editableFormVisible": true,
+      "checksGreen": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-high/shots/dark-2-checks-green.png",
+      "reachedMerged": true,
+      "merged": "/Users/diegodemiguel/Development/Work/ShipWorkshop/ds-skill-extraction-workshop/dryrun-harness/out-25/sonnet-effort-high/shots/dark-3-merged.png",
+      "consoleErrors": [
+        "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>\n      <AppDevOverlayErrorBoundary globalError={[...]}>\n        <ReplaySsrOnlyErrors>\n        <DevRootHTTPAccessFallbackBoundary>\n          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>\n            <HTTPAccessFallbackErrorBoundary pathname=\"/\" notFound={<NotAllowedRootHTTPFallbackError>} ...>\n              <RedirectBoundary>\n                <RedirectErrorBoundary router={{...}}>\n                  <Head>\n                  <__next_root_layout_boundary__>\n                    <SegmentViewNode type=\"layout\" pagePath=\"layout.tsx\">\n                      <SegmentTrieNode>\n                      <link>\n                      <script>\n                      <script>\n                      <RootLayout>\n                        <html\n                          lang=\"en\"\n-                         className=\"js-focus-visible\"\n-                         data-js-focus-visible=\"\"\n                        >\n                  ...\n"
+      ]
+    }
+  },
+  "toggle": {
+    "allTestids": [
+      "color-mode-toggle"
+    ],
+    "testid": "color-mode-toggle",
+    "discoverableByAccessibleName": true,
+    "found": true,
+    "accessibleName": "Switch to dark mode",
+    "before": {
+      "dataColorMode": "light",
+      "dataLightTheme": "light",
+      "dataDarkTheme": "dark",
+      "colorScheme": "normal",
+      "bodyBg": "rgba(0, 0, 0, 0)"
+    },
+    "after": {
+      "dataColorMode": "dark",
+      "dataLightTheme": "light",
+      "dataDarkTheme": "dark",
+      "colorScheme": "normal",
+      "bodyBg": "rgba(0, 0, 0, 0)"
+    },
+    "htmlModeChanged": true,
+    "bodyBgChanged": false,
+    "flipped": true,
+    "resolvedModeObservable": true
+  },
+  "errors": []
+}

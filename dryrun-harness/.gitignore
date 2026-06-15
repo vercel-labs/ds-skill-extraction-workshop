@@ -11,3 +11,17 @@ out/**/cost.json
 out/*.batch.log
 out/*.nohup
 out/run-all.log
+
+# dryrun-25 (no-skill) noisy logs + raw envelope
+out-25/**/run.log
+out-25/**/dev.log
+out-25/**/build.err
+out-25/**/install.log
+out-25/**/typecheck.log
+out-25/**/setup.log
+out-25/**/shots.log
+out-25/**/cost.json
+out-25/*.batch.log
+out-25/*.nohup
+out-25/run-all.log
+out-25/*.err
