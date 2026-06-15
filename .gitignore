@@ -64,3 +64,11 @@ ralph-*.log
 
 # Local-only experiment write-ups (not tracked)
 /experiments/
+
+# /teach workspace — local lesson/reference output, not deliverables
+/MISSION.md
+/lessons/
+/reference/
+/learning-records/
+/NOTES.md
+/RESOURCES.md
