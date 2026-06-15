@@ -1,0 +1,89 @@
+/* Primer Primitives — design tokens (CSS custom properties).
+   Base + functional primitives establish the token baseline that the
+   composition reads (size, border, shadow, typography, motion). Themes
+   live in this file too so all primitives CSS lives in one place. */
+@import "@primer/primitives/dist/css/base/size/size.css";
+@import "@primer/primitives/dist/css/base/typography/typography.css";
+@import "@primer/primitives/dist/css/base/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/motion/motion.css";
+@import "@primer/primitives/dist/css/functional/size/border.css";
+@import "@primer/primitives/dist/css/functional/size/breakpoints.css";
+@import "@primer/primitives/dist/css/functional/size/radius.css";
+@import "@primer/primitives/dist/css/functional/size/size-coarse.css";
+@import "@primer/primitives/dist/css/functional/size/size-fine.css";
+@import "@primer/primitives/dist/css/functional/size/size.css";
+@import "@primer/primitives/dist/css/functional/size/viewport.css";
+@import "@primer/primitives/dist/css/functional/spacing/space.css";
+@import "@primer/primitives/dist/css/functional/typography/typography.css";
+
+@import "@primer/primitives/dist/css/functional/themes/light.css";
+@import "@primer/primitives/dist/css/functional/themes/dark.css";
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Orchestrated motion for the merged-PR theater.
+   Durations and easings come from Primer's functional motion tokens
+   (imported above); the keyframes animate only compositor properties
+   (transform / opacity). Every animation is gated behind
+   prefers-reduced-motion so reduced-motion users get the same state
+   changes with no movement. */
+@media (prefers-reduced-motion: no-preference) {
+  .ds-beat-in {
+    animation: ds-beat-in var(--motion-duration-short) var(--motion-easing-enter) both;
+  }
+
+  .ds-reveal {
+    animation: ds-reveal var(--motion-duration-medium) var(--motion-easing-enter) both;
+  }
+
+  .ds-flip {
+    animation: ds-flip var(--motion-duration-short) var(--motion-easing-move) both;
+  }
+}
+
+@keyframes ds-beat-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ds-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ds-flip {
+  from {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
