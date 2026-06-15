@@ -1,0 +1,105 @@
+/* Motion for the merged-PR theater.
+
+   Every duration and easing comes from Primer's motion tokens
+   (functional/motion + base/motion, imported in app/globals.css); no
+   hand-picked timings. Only transform/opacity animate (compositor-only),
+   and every offset is a Primer base-size token. prefers-reduced-motion
+   disables all of it — the elements simply appear in their final state. */
+
+.page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--base-size-24, 24px);
+}
+
+/* ~48rem keeps the dense merge box near GitHub's single-column measure. */
+.shell {
+  width: min(100%, 48rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-16, 16px);
+}
+
+/* A resolved check settles into place — the "domino" beat. */
+@keyframes checkLand {
+  from {
+    opacity: 0.5;
+    transform: translateY(calc(-1 * var(--base-size-4, 4px)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.checkRow {
+  transition: opacity var(--motion-transition-stateChange);
+}
+
+.checkLanded {
+  animation: checkLand var(--motion-duration-short) var(--motion-easing-enter);
+}
+
+/* The merge box opening into its full editable form, and the ready cue. */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--base-size-8, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: reveal var(--motion-duration-medium) var(--motion-easing-enter);
+}
+
+/* The state capsule flipping Open -> Merged. */
+@keyframes capsulePop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.capsulePop {
+  display: inline-flex;
+  animation: capsulePop var(--motion-duration-short) var(--motion-easing-move);
+}
+
+/* A running count ticking up. */
+@keyframes countPop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.countPop {
+  display: inline-flex;
+  animation: countPop var(--motion-duration-short) var(--motion-easing-move);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkRow,
+  .checkLanded,
+  .reveal,
+  .capsulePop,
+  .countPop {
+    animation: none !important;
+    transition: none !important;
+  }
+}
