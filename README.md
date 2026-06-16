@@ -1,67 +1,115 @@
 # DS Skill Extraction Workshop — Starter
 
-A hands-on workshop starter for extracting a "design-system literacy" skill
-from a real component library and using it to drive a multi-phase Claude
-Code session.
+Starter repo for the SHIP London 2026 workshop *Transform your design system into agent skills.*
 
-## 60-second brief
+In 40 minutes you'll load a pre-extracted design-system skill, generate a high-fidelity Primer React UI with it, and check what came out. The companion site walks the same path with screenshots and timing: **<https://ds-skills.vercel.app>**.
 
-You will spend three phases inside Claude Code:
+## What you'll do
 
-1. **Phase 1 — Discovery.** Run the `extract-ds-skill` meta-skill against
-   `ds/`. The agent reads the wrappers and `DESIGN.md`, surfaces a
-   discovery summary, and pauses at a gate with `[VERIFY]` markers. You
-   confirm or correct, then the agent writes the extracted skill into
-   `.claude/skills/ds/` (created at runtime by the meta-skill).
-2. **Phase 2 — Generation.** Use the prompt in `prompts/issues.md` to
-   ask Claude Code to build a GitHub-style issues page using the
-   components in `ds/`. The agent writes `app/issues.tsx`.
-3. **Phase 3 — Audit.** Use the prompt in `prompts/audit.md` to audit
-   `app/issues.tsx` against the extracted skill. The agent surfaces a
-   PASS/FAIL per rule with `file:line` citations. Look for the headline
-   `PageHeader` slot-composition violation.
+1. **Setup** — clone, install, launch Claude Code.
+2. **Generate** — load the `primer-react` skill, run `prompts/pr-merged-switch-dark-mode.md`, ~13 minutes hands-off.
+3. **Check your output** — read the agent's self-report, then do the eyes pass on the running app.
 
-You leave with the extracted skill artefact, the generated form, and a
-PASS/FAIL audit — all reproducible on your own design system after the
-workshop.
+The `primer-react` skill ships **pre-extracted** in `.claude/skills/`. You don't build it during the workshop; you use it. The meta-skill that built it (`extract-ds-skill`) also ships — for taking home, not for running on stage. See [Advanced](#advanced--extract-your-own-skill) below.
 
 ## IP disclaimer
 
-> Primer is GitHub's open-source design system used here for educational
-> purposes; this workshop is not affiliated with GitHub.
+> Primer is GitHub's open-source design system used here for educational purposes; this workshop is not affiliated with GitHub.
 
-## Setup
-
-You need:
+## Prerequisites
 
 - **Node.js 20+** — `node --version` should print `v20.x` or higher.
 - **pnpm 10+** — install with `npm install -g pnpm` if you do not have it.
-- **Claude Code** — install from <https://claude.com/claude-code>. Verify
-  with `claude --version`.
-- **An Anthropic API key** — set `ANTHROPIC_API_KEY` in your shell, or
-  follow Claude Code's first-run flow.
+- **Claude Code** — install per the [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/quickstart). Verify with `claude --version`.
+- **Anthropic API key** — export `ANTHROPIC_API_KEY` in your shell, or let `claude` prompt you on first run.
 
-Setup steps (mirror the companion site's Setup page):
+## Setup
+
+Work on `main`. Don't push — your clone is disposable.
 
 ```bash
-# 1. Clone the starter
+# 1. Clone (you can fork first if you prefer)
 git clone https://github.com/vercel-labs/ds-skill-extraction-workshop.git
 cd ds-skill-extraction-workshop
 
-# 2. Install dependencies
+# 2. Install — warms node_modules so generation doesn't stall
 pnpm install
 
-# 3. Verify Claude Code is available inside the project
-claude --version
+# 3. Confirm the skill is on disk
+ls .claude/skills/        # → primer-react/  extract-ds-skill/
 
-# 4. Launch Claude Code
-claude
+# 4. Verify the prompt file is in place
+head -5 prompts/pr-merged-switch-dark-mode.md
+
+# 5. Launch Claude Code, hands-off
+claude --dangerously-skip-permissions
 ```
 
-If `pnpm install` finishes without errors and `claude --version` prints a
-version string, you are ready for Block 5.
+`--dangerously-skip-permissions` sounds scary but it's safe here: your clone is disposable, the prompt forbids commit/stage/push, and the task is a benign UI build. So the agent can run the whole thing without you babysitting it.
 
-## Running
+You're ready to generate when `claude` is running in your terminal and the skill directories are listed under `.claude/skills/`.
+
+## Generate
+
+In the open `claude` session, paste the one prompt:
+
+```
+/primer-react implement prompts/pr-merged-switch-dark-mode.md
+```
+
+Then eyes up — let it churn. About 13 minutes. No interventions, no follow-ups. The agent reads the prompt, loads the skill's references, builds the sequence, and checks it in both color modes before it finishes.
+
+When the run lands, the agent starts the dev server itself. If it didn't, run `pnpm dev` in another terminal and open the printed URL.
+
+## Check your output
+
+The agent prints a self-report at the end of the run:
+
+- **Citations** — every component it used, traced to source. Prop claims cite the installed package's type files (`node_modules/@primer/react/.../<Component>.d.ts:<line>`); composition lifts cite the reference project.
+- **Unverified facts** — anything it could not back up ships as a literal `[VERIFY]` marker. Zero markers is the goal; a short list is honest; a missing list is a red flag.
+- **Shell parity** — the page background paints from the design system's token, the `ThemeProvider` wraps the app correctly, and both color modes were checked.
+
+Then do the eyes pass on the running app:
+
+1. **Lock holds.** Tab to the merge button while checks are still running. It must not be actionable.
+2. **Color-mode flip.** The whole page recolors — page background included, not just the card.
+3. **Motion.** Checks land with a beat, the capsule flips Open → Merged. `prefers-reduced-motion` is honoured.
+4. **Hierarchy reads at a glance** — title, capsule, counts, checks, merge box.
+5. **Both flips happen.** Light↔dark AND Open→Merged. You should see both, not one.
+
+A deeper deterministic check is available via `pnpm audit:craft` (verifies types, exports, and a headless render of the page).
+
+## What ships in this repo
+
+- `prompts/pr-merged-switch-dark-mode.md` — the workshop prompt.
+- `.claude/skills/primer-react/` — pre-extracted design-system skill for Primer React.
+- `.claude/skills/extract-ds-skill/` — the meta-skill that built it. Run this after the workshop on your own DS.
+- `app/`, `components/` — where generation lands.
+- `scripts/audit-craft.mjs` — the deterministic auditor; `pnpm audit:craft` runs it.
+
+## Workshop links
+
+- **Companion site:** <https://ds-skills.vercel.app>
+- **Companion site source:** <https://github.com/vercel-labs/ship-2026-companion-site>
+
+## Advanced — extract your own skill
+
+After the workshop, point the meta-skill at your own design system. Pass the foundation docs URL(s) and the reference-project GitHub URL as free text — no labeled keywords:
+
+```
+/extract-ds-skill <foundation-root-url> <reference-project-github-url>
+```
+
+The skill crawls foundation docs depth-1, auto-detects the reference project's framework, and resolves the DS package from its `package.json`. Pass root URLs only; do not enumerate sub-pages or local `node_modules` paths.
+
+The extraction runs in three labelled phases with a single human gate. Phase 1 and Phase 2 hard-stop at close so the context window stays clean — resume in a fresh `claude` session. The keyword names the *next* phase; the path points at the prior handoff:
+
+```
+/extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/phase-1.md
+/extract-ds-skill persist:  .extract-ds-skill-scratch/handoffs/phase-2.md
+```
+
+`validate:` → Phase 2. `persist:` → Phase 3. No parameter = Phase 1 from scratch.
 
 **Launch flags.** Pin model + effort at shell; both override `settings.json`:
 
@@ -69,48 +117,7 @@ version string, you are ready for Block 5.
 claude --model claude-opus-4-6 --effort medium
 ```
 
-Effort: `low|medium|high|xhigh|max`. Mid-session: `/model <id>`, `/effort <level>`.
-
-**Fast mode.** No launch flag. `/fast` mid-session, or `"fastMode": true` in `.claude/settings.json`. Opus-only (4.6/4.7/4.8) — faster output, no model downgrade.
-
-**Phase 1 from scratch.** Pass foundation root URL(s) plus the reference-project GitHub URL as free text — no labeled keywords:
-
-```
-/extract-ds-skill <foundation-root-url> <reference-project-github-url>
-```
-
-The skill auto-classifies each URL — foundation docs are depth-1 crawled; the reference project's framework is auto-detected and the DS package is resolved from its `package.json`. Pass root URLs only; do not enumerate sub-pages or local `node_modules` paths.
-
-**Resume between phases.** Phase 1 + 2 hard-stop at close. Resume in a fresh session — keyword names the *next* phase, path points at the prior handoff:
-
-```
-/extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/phase-1.md
-/extract-ds-skill persist:  .extract-ds-skill-scratch/handoffs/phase-2.md
-```
-
-`validate:` → Phase 2. `persist:` → Phase 3. No parameter = Phase 1 from scratch (no auto-pickup). Override hard-stop with `continue inline` to stay in one session.
-
-## What ships in this repo
-
-- `ds/` — the design system wrappers and `DESIGN.md` (populated in Slice
-  2 by the workshop author).
-- `app/` — empty until Phase 2 generates `app/issues.tsx`.
-- `.claude/skills/ds/` — created by Phase 1 when the meta-skill persists the extracted skill.
-- `prompts/` — the Phase 2 and Phase 3 prompt fixtures (added in Slices 3
-  and 4).
-- `.claude/skills/extract-ds-skill/` — the pre-installed meta-skill that
-  powers Phase 1.
-
-## Workshop links
-
-- **Companion site:** the workshop companion site with Overview,
-  Hands-On, Reference, Resources, and Cultivate pages —
-  source at <https://github.com/vercel-labs/ship-2026-companion-site>
-  (the deployed URL will be added once the companion ships).
-- **Meta-skill:** the `extract-ds-skill` skill that powers Phase 1 lives
-  at [`.claude/skills/extract-ds-skill/`](./.claude/skills/extract-ds-skill/)
-  inside this repo. After the workshop it will be published standalone
-  for reuse.
+Effort: `low|medium|high|xhigh|max`. Mid-session: `/model <id>`, `/effort <level>`. `/fast` mid-session enables fast mode (Opus only — faster output, no model downgrade).
 
 ## License
 
