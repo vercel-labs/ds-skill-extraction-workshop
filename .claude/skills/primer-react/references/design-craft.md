@@ -30,6 +30,7 @@ token lookups or single-component API questions.
 - MUST: a lead figure is not a headline — pair any hero stat with a worded line that says what the number means.
 - MUST: one primary action per screen — everything else renders as secondary or tertiary.
 - MUST: design all four data states for every data-dependent view — loading, empty, error, populated. Empty states name one clear next action.
+- SHOULD: treat the initial state list as a hypothesis. Some states (working-with-feedback, edge, recovered) only surface once the built UI is exercised — add them as they appear rather than shipping the original spec verbatim.
 - SHOULD: match density to the job — spacious for marketing and landing surfaces, dense for dashboards and tables. One density everywhere is a default, not a decision.
 
 ## Typography
@@ -60,6 +61,8 @@ token lookups or single-component API questions.
 - MUST: animate compositor properties only (`transform`, `opacity`).
 - NEVER: `transition: all`, or animating layout properties (width/height/top/left/margin/padding).
 - MUST: entrances ease-out, exits ease-in, user-initiated motion ≤300ms; reserve linear easing for progress indicators.
+- NEVER: use raw browser easing keywords (`ease`, `ease-in-out`) for UI transitions — pull from the DS motion scale or a named house curve. Browser defaults are the single most recognizable "an LLM wrote this" tell in motion.
+- SHOULD: for height reveals, animate `grid-template-rows: 0fr → 1fr` (with `overflow: hidden` on the row) or a clip-path — pairs with the NEVER on layout-property animation above.
 - NEVER: bounce or elastic easing on interface state changes.
 - NEVER: animate high-frequency interactions (anything used dozens of times per session) or keyboard-initiated actions.
 - MUST: honor `prefers-reduced-motion` for every non-essential animation.
@@ -68,6 +71,7 @@ token lookups or single-component API questions.
 ## Interactive states & accessibility floor
 
 - MUST: handle every state that applies to an interactive element — default, hover, focus-visible, active, disabled — plus loading, error, and success wherever the element can be in them.
+- SHOULD: give every clickable element a felt press response on `:active` (subtle scale or color shift, pulled from DS tokens); silent presses read as untouchable, and instant pop-in tooltips read as default browser UI.
 - MUST: keep a visible focus ring (never removed, never animated), text contrast at 4.5:1 or better, and touch targets ≥44px that never overlap. When a surface flips lightness, recolor its text in the same change and confirm children inherit it; never let button text equal its fill.
 - MUST: render errors adjacent to the field that caused them, not only in a distant summary.
 - NEVER: signal state by color alone — pair every status hue (error/success/warning) with an icon, shape, or text label, so meaning survives color-blindness and grayscale.
