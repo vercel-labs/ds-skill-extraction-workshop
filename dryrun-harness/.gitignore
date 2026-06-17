@@ -1,0 +1,13 @@
+# dryrun-harness: keep scripts + summaries (cost-report.json, shots/report.json, *.png).
+# Ignore noisy per-run logs and the raw claude -p envelope.
+out/**/run.log
+out/**/dev.log
+out/**/build.err
+out/**/install.log
+out/**/typecheck.log
+out/**/setup.log
+out/**/shots.log
+out/**/cost.json
+out/*.batch.log
+out/*.nohup
+out/run-all.log

@@ -1,0 +1,343 @@
+# Phase 1: Discovery
+
+Deep guidance for the discovery phase. Read before producing the discovery summary.
+
+## Source-role classification
+
+Every source the user provides resolves to one of ten roles. Tag each one before inspecting.
+
+- **design-system code** — the package that ships components, tokens, primitives. Authoritative for APIs, prop shapes, default behavior. Joint-read with docs; code wins on conflict. Two common deliveries, both `[code]`: the installed package (`node_modules/<ds-package>/` — types + dist output) and the DS's hosted component repo. When the component repo ships per-component machine-readable doc files (exact prop type unions, defaults, component status, a11y-review metadata) and story files (canonical usage exemplars), treat both as first-class inputs — machine-readable prop metadata makes prop hallucinations mechanically refutable at extract time, and story files are the canonical usage exemplars when a variant catalog is not plain-fetchable. Fetch these raw, file by file, from the host's raw-file endpoint — never clone the repo for this. **Slate-scoped fetching is a hard rule:** fetch only the files for components on the proposing slate, never the full export surface. A tokens repo published separately from the component package is the same role — `[code]`, authoritative for token names and values.
+- **asset package** — icons, logos, fonts shipped as a separate module. Authoritative for asset names, sizes, sprite layout. Often versioned independently from the component package.
+- **product-or-example app** — a real consumer of the design system, named by URL or path at discovery time but inspected only shallowly here. Authoritative for idiomatic composition. Used as a candidate `[example:project]` (see below) when wiring extraction is in scope.
+- **`[example:project]`** — a real consumer app the user supplies as a URL or local path at Phase 1 input time, explicitly tagged for **wiring extraction**. Authoritative for provider mount, globals CSS, font setup, and root-element HTML attributes. Phase 2 walks the framework auto-detection order (Vite `src/main.{jsx,tsx}` → Next.js App Router `app/layout.{tsx,jsx}` → Next.js Pages Router `pages/_app.{tsx,jsx}` → CRA `src/index.{jsx,tsx}`) and lifts the topmost provider + direct CSS imports + root-element attributes verbatim into the scratch file. See `references/reference-project.md` for the recipe, output contract, framework-adaptation note, and fallback rules. The skill carries no default reference project — the user chooses one because the choice signals which framework, which version, and which idioms the produced wiring should reflect.
+- **internal AGENTS/CLAUDE files** — instructions the DS team already wrote for agents. Treat as prior art. May contain rules to inherit, may contain rules that contradict current source — flag and verify.
+- **docs site** — narrative explanations, prose around examples. Authoritative for intent and headline rules. Pairs with code via joint-read. Cited, not extracted. **Hard rule — live site over archived backing repo:** when a live docs site exists, crawl the live site; never extract from the site's archived backing repo, however convenient the repo's file tree looks. An archived repo is a frozen snapshot that has already diverged from the system it documents; the live site is the source of record for prose. (Applies equally to `[docs:foundation]` roots below.)
+- **docs:foundation** — prose foundations pages on the DS docs site that get EXTRACTED into `token/*` rules, not just cited. Distinct from generic `docs` in that the prose contracts (token-pairing, mode-aware behavior, contrast minimums, semantic-role rules, fallback-element styling) land as per-rule subsections inside `references/foundations/<page>.md` — one file per accepted+crawled URL. **N URLs per call** (opt-in; omit entirely if the user did not point at any foundations page). Each accepted root URL is **crawled depth-1 within its path prefix** so the user names roots, not every sub-page. Tagged `[docs:foundation]` in the sources block, with one accepted-or-rejected line per input URL. See `references/foundation-extraction.md` for the five rule shapes, the per-rule subsection skeleton, and the per-URL iteration contract. Wiring (HTML attributes, CSS imports, provider wrappers) is NOT extracted from foundation prose — it is lifted from a real consumer app via `references/reference-project.md` when one is in scope, or from the verbatim docs setup snippet as a fallback per `references/skill-template.md`.
+- **Storybook** — variant catalog with live examples. Authoritative for which combinations are sanctioned. Useful to spot props that exist in code but never appear in any story (likely deprecated). **Hard rule — no JS-rendered inputs:** a catalog page a plain fetch cannot read (client-side rendering; the fetch returns an empty shell) is NOT an input. Do not guess at its contents and do not pretend it was read. Everything such a catalog renders lives as story source files in the component repo — fetch those via the `[code]` role instead, and record the catalog itself as rejected with the reason.
+- **Figma** — design intent, naming, visual specs. Authoritative for token names and component taxonomy when the codebase trails the design.
+- **private / inaccessible** — soft blocker. Log, proceed, may become available later.
+
+### Default input model (public sources)
+
+The roles above are described generically on purpose: concrete repos, package names, and URLs live only in the user's invocation, never in this skill. For a public DS, the default input set is four roles working together:
+
+1. **The DS component repo** (`[code]`) — per-component machine-readable docs + story files, raw-fetched and slate-scoped per the hard rule above.
+2. **The tokens repo** (`[code]`) — when the DS publishes tokens separately.
+3. **The live docs site** (`[docs]` / `[docs:foundation]`) — crawled for prose guidelines and foundations, subject to the two hard rules above (live site over archived backing repo; no JS-rendered inputs).
+4. **An optional reference project** (`[example:project]`) — real consumer wiring.
+
+A local wrapper surface (a consumer-side `ds/`-style directory of thin wrappers over the upstream package) remains a supported `[code]` input for design systems that ship one — it is no longer assumed primary. When present it keeps its all-of-surface proposing default (see Auto-discover + prune flow below); when absent, nothing is missing — the public source set is the complete input model.
+
+## Shallow inspection rules
+
+Shallow means: enough to summarize, not enough to extract. Deep enumeration is Phase 3.
+
+- **code packages** — read `package.json` (exports field, peer deps, version), read top-level `src/` or `packages/*/src/` folder listing. Do not open every component file.
+- **asset packages** — read manifest (`icons.json`, sprite index, font weights list). Count, do not enumerate.
+- **docs sites** — read the index/sidebar to learn the component taxonomy. Skim one or two component pages to confirm the doc shape. Do not read every page.
+- **example apps** — locate the provider mount, the globals import, the font setup. Note them. Do not audit every screen.
+- **Storybook** — read the story tree (component → variants). Count variants per component. Do not open every story.
+- **Figma** — list pages and frames at the top level. Do not crawl every component variant.
+
+### Auto-discover + prune flow
+
+Workshop credibility depends on this. If the attendee types four component names off a slide, the demo is rehearsed theatre. Instead:
+
+1. Scan package exports (`package.json` `exports` field, `index.ts` re-exports, or equivalent). When the extraction target includes a **local DS wrapper surface** — a consumer-side directory of thin wrappers over an upstream package (typical shape: `ds/components/*.tsx`) — enumerate the wrapper files as their own surface, separate from the upstream package's export count.
+2. Surface the totals in the discovery summary as `Components found (N), proposing (M)` with the proposed set bulleted. For the local wrapper surface, **M = N by default — propose every wrapper found.** The local surface is curated and small by construction; every wrapper exists because a consumer needs it, so the extraction boundary defaults to the whole surface.
+3. For **upstream-package components NOT wrapped locally**, the default is unchanged: propose only those demanded by wiring or composition exemplars (e.g. a layout primitive the reference project's pages compose with). These appear as additional bullets in the proposing set, tagged with the source that demanded them.
+4. Let the user prune or extend by name in their confirm reply. "go" accepts the full default.
+
+Default proposal when there is NO local wrapper surface (extracting directly from an upstream package): pick the four most-imported components from any sibling example app, or fall back to the four with the most prop surface area. Show the count regardless so the gap is visible.
+
+## Private / inaccessible handling
+
+Soft blocker. Log the source with `[private-blocker]` in the sources line. Proceed with Phase 2 using whatever is accessible. Do not stop discovery to negotiate access — the user can grant it later and re-run, or accept the gap. The discovery summary mentions a blocker only if it would actually stop Phase 2 (e.g. the only accessible source is the private one).
+
+## Discovery summary budget
+
+Verbatim from the v0 onboarding instructions:
+
+> "One line per source is the budget. No tables, no per-source field breakdowns."
+> "Only mention blockers or open questions if they would actually stop Phase 2."
+> "If the user just says 'go' without answering anything, pick defensible defaults and proceed."
+> "End with a single short sentence asking the user to confirm or adjust. Then stop and wait."
+
+Hard ceiling: 30 lines. Target: 20-28 lines. The user should read it in 60 seconds.
+
+## Required fields in the discovery summary
+
+Render inline, not as a file. Every summary contains:
+
+- Skill name + slug, proposed as `.claude/skills/<slug>/` in the attendee's repo
+- DS identity in one line — `<name> - <one-sentence description>`
+- Components found (N), proposing (M) — bulleted, one line each (auto-discover output)
+- Tokens detected — one line summary (count + families, e.g. color/space/type/motion)
+- Assets detected — one line summary (omit entirely if none). When the rendered-site asset inventory ran (see **Rendered-site asset inventory** below), the SAME line carries the probe segment, tagged `[probe-derived]`; on probe skip/failure it instead carries a one-phrase parenthetical skip note. One line either way — the probe never adds a line.
+- Foundation docs — one block tagged `[docs:foundation]`. Every URL the user passed gets its own line, accepted or rejected. Never silently drop a URL; either it lands in the accepted block with its crawl tree, or it lands in the rejected block with a one-phrase reason. Omit the block entirely if the user did not provide any foundation URL. Format:
+
+  ```
+  Foundation docs:
+  - accepted: <url-1> — crawled, found <N> sub-pages: <slug-a>, <slug-b>, ...
+  - accepted: <url-2> — crawled, found <M> sub-pages: <slug-c>, <slug-d>, ...
+  - rejected: <url-3> — <reason: unreachable | non-HTML | off-domain | depth-cap hit>
+  ```
+
+  Each accepted root is crawled depth-1 within its path prefix per the **Crawl rules** subsection below. The discovered tree surfaces here so the user can prune before Phase 2 proceeds.
+- Reference project — one line, tagged `[example:project]`, with the URL or local path, the auto-detected framework (`vite` / `next-app` / `next-pages` / `cra`), and the resolved root entry file (e.g. `<reference-project-url-or-path>` @ `<root-entry-file>` (`<framework>`)). Omit this line entirely if the user did not provide a reference project. See `references/reference-project.md` for the recipe Phase 2 will run against it.
+- Design-craft ship-note — one fixed line: `Ships with the produced skill: references/design-craft.md [craft, DS-agnostic] (say "skip design craft" to exclude).` Informational, not a question — "go" (or silence on the point) accepts it. On explicit opt-out, the phase-1 handoff Decisions block records the exclusion (see the handoff Include list below) and Phase 3 passes `--no-design-craft` to `scripts/scaffold.sh` and omits the design-craft routing row per `references/persist.md` (Design-craft materialization).
+- Headline rule candidates (1-3) with `file:line` cites
+- Sources used — one line per input, tagged `[code]` / `[docs]` / `[docs:foundation]` / `[example:project]` / `[storybook]` / `[private-blocker]`
+- Open questions or blockers — only if they would stop Phase 2
+- Soft nudge — when `[example:project]` is missing AND a `[docs:foundation]` URL is in scope, surface a one-line informational nudge inside the discovery summary (not a blocker): *"No reference project provided; Phase 2 will fall back to the foundation-docs setup snippet. Strongly recommend a reference project for cleaner wiring extraction — see `references/reference-project.md`."* Omit when no foundation URL is in scope OR when a reference project IS provided.
+- Closing sentence asking the user to confirm or adjust
+
+Budget note: the foundation block adds one accepted-or-rejected line per input URL plus one short crawl-tree segment per accepted root. Cap the per-root sub-page enumeration in the summary at 6 visible slugs followed by `+N more` so the 30-line ceiling holds even with 3 accepted roots × 12 crawled children each. The worst case (3 roots, each at the depth-1 cap, plus reference project, soft nudge, out-of-scope routing) still lands inside the 30-line target — the user reads the abbreviated tree here and the full enumeration lands in the Phase 2 proof-point line.
+
+### Rendered-site asset inventory (opt-in probe)
+
+When the user's inputs include a public docs URL that Phase 1 accepts AND the user has not opted out (opt-out phrase: **"skip rendered probe"** — shared with the Phase 2 diff probe; default for CI and unattended runs is skip), run the inventory mode of the shared probe script before rendering the discovery summary:
+
+```
+bash scripts/probe-rendered.sh --inventory --url <accepted-docs-url> \
+    --out-json .extract-ds-skill-scratch/probe-inventory.json
+```
+
+The probe renders the docs page headless and writes a compact JSON manifest of the **fonts actually loaded** (FontFaceSet entries with status `loaded`) and the **icons actually referenced** (sprite fragments, labeled/classed inline SVGs, `.svg` file basenames, content-hash fallbacks). This is ground truth for the gap between a DS's theoretical export surface and its in-the-wild surface — "package exports 800 icons but the docs render 40" — which sizes Phase 2 work and informs the foundation-docs crawl tree. It never changes the proposing slate by itself.
+
+Render the result as ONE line — the existing `Assets detected:` line with the probe segment appended, never an enumeration (the 30-line ceiling holds because no new line is added):
+
+```
+Assets detected: <source-derived counts> · docs render <I> icons, <F> font families [probe-derived]
+```
+
+The `[probe-derived]` tag is mandatory: it distinguishes rendered ground truth from source-derived counts and flags that the numbers come from ONE page load (heavily lazy-loaded catalogs undercount — treat the probe numbers as a floor, never as the export surface). Degradation is additive-context, never a gate: on any `PROBE_SKIPPED=` / `PROBE_FAILED=` line (no docs URL, browser binaries absent, navigation failure or timeout), render the source-derived counts only and append a one-phrase parenthetical, e.g.:
+
+```
+Assets detected: 800 icons (package exports) (rendered inventory skipped: browsers-unavailable)
+```
+
+Phase 1 then proceeds unchanged on its source-only path. Browser binaries install on the HOST, never inside a sandbox — the script header documents the command. Full mode contract (flags, JSON manifest shape, greppable output lines): the `scripts/probe-rendered.sh` header.
+
+### Crawl rules (depth-1, per accepted root)
+
+The agent runs this loop against every URL in the accepted block — never against the rejected block. This is agent work via `WebFetch`, not a separate script.
+
+1. **Fetch the root.** Run `WebFetch <accepted-root>` once. Parse `<a href>` tags from the returned markdown. Treat unreachable / non-HTML / off-domain responses as a hard reject at parse-time — surface the URL in the rejected block with the reason, do not crawl.
+2. **Filter by path prefix.** Keep only links whose URL begins with the same path prefix as the root. For root `<scheme>://<host>/foundations`, keep `<scheme>://<host>/foundations/<anything>`; drop `<scheme>://<host>/components/...`, drop external hostnames, drop `mailto:` / `#anchor-only` / `javascript:` schemes.
+3. **Deduplicate.** Drop the root URL itself and any URL already in the accepted set (from another root's crawl, or a sibling root the user passed explicitly).
+4. **Cap at 12 sub-pages per root.** If more than 12 survive the dedup, keep the first 12 in document order and emit a single `log()` line: `crawl truncated for <root>: kept 12 of <N>, dropped <list-of-dropped-slugs>`. Never silently truncate — the log line is the contract.
+5. **No recursion.** Depth-1 only. If a sub-page surfaces a useful grandchild, the user adds that grandchild's parent as another root in a follow-up invocation.
+6. **No cross-hostname follow.** If a sub-page link points at a different host than the root, drop it silently — cross-domain crawl is out of scope.
+7. **Classify scope per sub-page, BEFORE the handoff is written.** For each surviving sub-page whose slug suggests a non-scope topic (e.g. `content`, `voice`, `tone`, `writing`, `localization`), `WebFetch` the page and classify it against the meta-skill's charter (tokens / assets / component descriptions / component APIs vs everything else — see **Scope routing during discovery**). Tag every sub-page `[in-scope]` or `[out-of-scope: sibling-<topic>-skill]`. This is a Phase 1 decision: the handoff carries the verdict, never a hedged "route to a sibling skill in Phase 2 if confirmed". Sub-pages whose slug clearly names an in-scope topic need no extra fetch — tag them `[in-scope]` from the crawl.
+
+The agent assembles the per-root sub-page list (with each sub-page's `[in-scope]` / `[out-of-scope: …]` tag) into the accepted line of the Foundation docs block (abbreviated to 6 + `+N more` per the budget note), then proceeds to the rest of the discovery summary. Phase 2 will iterate the full `accepted_roots ∪ crawled_sub_pages` set without re-fetching the roots, extracting only the `[in-scope]` sub-pages — see `references/foundation-extraction.md`.
+
+### Scope routing during discovery
+
+In scope: tokens, assets, component descriptions, component APIs. Out of scope: tone of voice, marketing copy, product copywriting. When you encounter a copy/naming/casing rule during extraction (e.g. "Title Case the label", "placeholder is action-oriented"), recognize it, route it - mention it in the discovery summary as a candidate for a sibling copy skill - but do NOT extract it into this DS skill.
+
+The same boundary classifies foundation sub-pages during the depth-1 crawl (Crawl rules step 7). A foundation sub-page is `[in-scope]` when its prose contracts tokens / assets / component descriptions / component APIs; it is `[out-of-scope: sibling-<topic>-skill]` when its subject is the out-of-scope set above (a `content`/`voice`/`tone`/`writing`/`localization` page routes to `sibling-copy-skill`, etc.). Classify in Phase 1 when the page is first fetched — do not defer the decision to Phase 2 with "if confirmed" language. Sub-classification into a specific sibling-skill type is best-effort; `[out-of-scope: sibling-<topic>-skill]` lets the consumer interpret the routing.
+
+### DS-taste channel (two-channel rule)
+
+Taste enters the produced skill through exactly two channels; never merge them by hand.
+
+1. **DS-specific taste — extracted.** Prose on the live docs site that contracts visual or structural judgment for THIS design system — density expectations for its canonical surfaces, empty-state patterns, which emphasis level a given context warrants — is IN scope. Extract it into the produced skill with citations, exactly like any other foundation prose (see `references/foundation-extraction.md`). Taste prose contracts visible choices (density, spacing rhythm, emphasis, empty states); it is NOT the out-of-scope copy/voice set, which contracts words. Taste in, copy out.
+2. **Generic craft — copied verbatim.** DS-independent craft guidance ships with every produced skill from the extractor's canonical craft asset, copied byte-for-byte. It is NEVER edited, trimmed, paraphrased, or customized per-DS — there is no DS source to verify a paraphrase against, so byte-identity is the only mechanically checkable contract for it.
+
+Precedence pair: **the DS always wins; craft fills silence.** When the extracted DS taste prose and the generic craft asset speak to the same choice, the DS rule applies; the craft asset covers only what the DS leaves unsaid. The two channels never need merging by construction — DS taste enters through extraction, generic craft enters through the verbatim copy.
+
+## Worked example — extraction against a public-DS-shaped target (illustrative)
+
+The block below uses a public Mantine setup to ground the shape. The skill makes no assumption that the user's DS is Mantine; the same summary contract applies to whichever DS the user passes (shadcn, Material, Geist, Chakra, Radix, an internal DS, etc.). Substitute real cites for the DS you are extracting.
+
+<!-- example reference — verify against live extraction in dry-run -->
+
+```
+Proposed skill: `mantine` -> .claude/skills/mantine/
+
+DS: Mantine - React component library with 100+ customizable components and accessible defaults.
+
+Components found (147), proposing (4):
+- TextInput - single-line text entry with label, description, and error slots
+- Button - filled/outline/subtle action trigger with loading state and left/right section slots
+- Checkbox - controlled boolean input, accepts label and description inline
+- InputWrapper - wraps an input + label + description + error; pairs with custom inputs that need a11y labeling
+
+Tokens detected: ~150 across color (theme colors 0-9 + functional), space (xs/sm/md/lg/xl), type (h1-h6 + functional). Skipping motion - Mantine uses transition tokens but no motion scale.
+Assets detected: 0 icons in this package (@tabler/icons-react is the recommended pair, out of scope for v1).
+
+Headline rule candidates:
+- "Use `loading` prop on Button for loading states, not a custom spinner inside `children` - the loading prop handles disabled coordination and ARIA announcements" (Button.tsx:88, docs page)
+- "Wrap custom inputs in `<InputWrapper>`; bare inputs without a wrapper lose label association and fail axe" (InputWrapper.tsx:31)
+- "Do not pass `aria-label` to a Button that already renders visible text" (Button.tsx:204 prop comment)
+
+Sources used:
+- mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- CHANGELOG.md [code]
+
+Ships with the produced skill: references/design-craft.md [craft, DS-agnostic] (say "skip design craft" to exclude).
+No blockers. Storybook is public but not cloned - will fall back to docs site for variant examples.
+
+Confirm or adjust? (Reply "go" to accept defaults and begin extraction.)
+```
+
+### Worked example — same extraction with multiple foundation URLs + crawl (illustrative)
+
+Same illustrative target, with the user passing two foundation root URLs + one URL the agent must reject. Only the diff from the baseline example is shown. The Foundation docs block reports one line per input URL, with the depth-1 crawl tree abbreviated per the budget note.
+
+```
+Foundation docs:
+- accepted: https://mantine.dev/styles/colors/ [docs:foundation] — crawled, found 4 sub-pages: dark-mode, functional, primary, theme-object
+- accepted: https://ui.shadcn.com/docs/theming [docs:foundation] — crawled, found 3 sub-pages: dark-mode, css-variables, conventions
+- rejected: https://figma.com/file/abc/Mantine-Tokens [docs:foundation] — off-domain / non-HTML (Figma file, not a docs page)
+
+Sources used:
+- mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- mantine.dev/styles/colors/ [docs:foundation] (+4 crawled)
+- ui.shadcn.com/docs/theming [docs:foundation] (+3 crawled)
+- CHANGELOG.md [code]
+```
+
+Each accepted URL becomes its own file in the produced skill at `references/foundations/<slug>.md` (slug via the persist map — e.g. `colors`, `dark-mode`, `theming`, `css-variables`). The rejected URL is named and reasoned, never silently dropped. Phase 2 iterates the full accepted+crawled set per `references/foundation-extraction.md`. If no foundation URL is provided, the Foundation docs block is omitted entirely and Phase 2 behaves exactly as the baseline example above.
+
+### Worked example — same extraction with a reference project added (illustrative)
+
+Same illustrative target, with the user passing a reference project URL as an additional source. Only the diff from the baseline example is shown.
+
+```
+Reference project: <git-host>/mantinedev/next-app-template [example:project] (next-app — app/layout.tsx)
+
+Sources used:
+- mantinedev/mantine @ v7.x [code, joint-read]
+- mantine.dev/core/button [docs]
+- mantinedev/next-app-template [example:project]
+- CHANGELOG.md [code]
+```
+
+The reference-project line is its own bullet in the proposed summary AND its own line in the sources block. Phase 2 will read the auto-detected root entry file and lift the wiring per `references/reference-project.md`; if no project is provided, both lines are omitted and Phase 2 falls back to the foundation-docs setup snippet (or empties the Setup section entirely if no foundation URL is in scope either). When a reference project is supplied AND a foundation URL is in scope, the soft-nudge line is omitted because the reference project IS the cleaner source.
+
+### Worked example — same summary against a local wrapper surface (illustrative)
+
+When the target is a consumer repo with a local wrapper directory, the components block splits into two lines and the local line defaults to all-of-surface:
+
+```
+Components found — local DS wrappers (13), proposing (13):
+- Button - primary/secondary/danger action trigger (annotated: Button.docs.tsx)
+- TextInput - single-line text entry with label and error slots
+- … (one line per wrapper; annotated wrappers note their .docs file)
+
+Upstream package exports (140+) not wrapped locally: proposing 1 (demanded by reference project):
+- PageShell - app frame composition used by the reference project's pages
+```
+
+The local-surface line proposes M = N. The upstream line proposes only demand-driven additions and never defaults to the full upstream export set. The user can still prune either line by name; "go" accepts both defaults.
+
+## Handoff document — phase-1.md template
+
+Phase 1 closes by writing `.extract-ds-skill-scratch/handoffs/phase-1.md`. The doc is the irrecoverable-state snapshot for a future session that resumes after a context-window blow-out or `/exit`. Apply the `/handoff` skill discipline: capture only what is NOT recoverable from the codebase, the meta-skill, or `AGENTS.md`. Reference everything else by path.
+
+**Include (decisions surfaced in the discovery summary, as the user accepted them):**
+
+- Slug and target path
+- Reference project URL + entry file + framework
+- Proposing set, final (the M from `Components found (N), proposing (M)` after the user pruned/extended)
+- Per-component one-liners for the proposing set — the SAME one-line description shown to the user in the discovery summary, re-emitted verbatim. No new content is generated here; the summary text is persisted so a resuming session carries component shape without re-reading each component from `node_modules`. Lands in the `## Components proposed` section of the template.
+- Known exclusions, when the proposing set is a strict subset (N − M > 0) — one line per excluded category with a one-line rationale. When Phase 1 proposed M < N or the user pruned the slate, ask "what's the rationale for the cut?" and record the answer as a category note. Omitted entirely when the slate is accepted as-proposed (N = M). Lands in the `## Known exclusions` section of the template.
+- DS package names, versions, and `node_modules/` paths (resolved during inspection)
+- Foundation URLs accepted, with the depth-1 crawl tree per accepted root, each sub-page tagged `[in-scope]` or `[out-of-scope: sibling-<topic>-skill]` per the scope classification done during the crawl (see **Scope routing during discovery**). The handoff carries the classification as a decision — never hedged "if confirmed" prose deferred to Phase 2.
+- The 1-3 headline rule candidates VERBATIM with their `file:line` cites
+- Design-craft opt-out, ONLY when the user excluded the craft file ("skip design craft") — one Decisions line: `- **Design-craft reference**: excluded (user opt-out)`. Omitted entirely on the default ship path (shipping is the default and needs no record). Phase 2 passes the exclusion through its own handoff; Phase 3 reads it and runs `scripts/scaffold.sh --no-design-craft` per `references/persist.md` (Design-craft materialization).
+- Re-exports outside the proposing set (one line per wrapper file under `ds/components/*.tsx` that was NOT included in the proposing set) — filename + the upstream symbol it re-exports, derived from the wrapper's `import { Foo as DSFoo } from '<package>'` statement. Omitted entirely when the proposing set covers every wrapper.
+- cwd convention reminder ("if this resumed session is not in `.claude/worktrees/dryrun-NN/`, the dry-run worktree where the handoff was written, ask the user where to land outputs")
+- Pickup prompt skeleton (one line: `/extract-ds-skill — resume from .extract-ds-skill-scratch/handoffs/phase-1.md`)
+
+**Do NOT include:**
+
+- The full discovery exploration (npm view, curl, grep outputs, file listings)
+- Per-component deliberation about why a component was or was not proposed
+- Raw inspection notes for sources the user has not yet seen
+- The meta-skill's Phase 2 procedure (it lives in `references/validate.md` + `references/reference-project.md` + `references/foundation-extraction.md` and is loaded fresh by the resuming session)
+- Anti-pattern rules, scope guardrails, or other meta-skill content (in `SKILL.md`, `references/anti-patterns.md`)
+- The dry-run worktree convention prose (in `AGENTS.md`)
+
+**Template shape:**
+
+```markdown
+# Phase 1 handoff — <slug>
+
+_Written by /extract-ds-skill at <ISO date>. Read by the next session to skip discovery and enter Phase 2 directly._
+
+## Decisions (irrecoverable from codebase)
+
+- **Slug**: `<slug>` → `.claude/skills/<slug>/`
+- **Reference project**: `<repo-url>` (`<framework>`, entry `<entry-file-path>`)
+- **Proposing set** (<M> components, as approved):
+  - <Component1>, <Component2>, …
+- **DS packages**:
+  - `<pkg-1>@<version>` (path: `<resolved-node_modules-path>`)
+  - `<pkg-2>@<version>` (path: `<resolved-node_modules-path>`)
+- **Foundation docs** (<K> accepted):
+  - `<root-url-1>` [docs:foundation] — crawled, sub-pages: <slug> [in-scope], <slug> [in-scope], <slug> [out-of-scope: sibling-<topic>-skill]
+  - `<root-url-2>` [docs:foundation] — crawled, sub-pages: <slug> [in-scope], <slug> [out-of-scope: sibling-<topic>-skill]
+- **Headline rules** (verbatim):
+  1. "<rule-1>" (`<file>:<line>`)
+  2. "<rule-2>" (`<file>:<line>`)
+  3. "<rule-3>" (`<file>:<line>`)
+
+## Components proposed
+
+- **<Component1>** — <one-line description from discovery summary>
+- **<Component2>** — <one-line description from discovery summary>
+- …
+
+(One bullet per component in the proposing set, carrying the same one-liner shown to the user in the discovery summary. Required whenever the proposing set is non-empty — a resuming session reads component shape from here instead of re-reading `node_modules`.)
+
+## Known exclusions
+
+The proposing set is <M> of <N> components found. Excluded categories:
+- **<category-1>** (<count> components, e.g. <Component>, <Component>): <one-line rationale>
+- **<category-2>** (<count> components): <one-line rationale>
+
+Consumer of the produced skill should expect coverage gaps in these areas. If a reproduction prompt requires excluded components, run a second extraction with an expanded slate.
+
+(Omit this entire section — heading and all — when the slate is accepted as-proposed with N = M. Emit only when N − M > 0. Same empty-section discipline as `## Re-exports outside proposing set` below: no empty heading. Under the all-of-`ds/` default, N = M for the local wrapper surface is the expected state — this section appears only when the user pruned by name or when demand-driven upstream candidates were rejected.)
+
+## Re-exports outside proposing set
+
+<N> thin re-exports (`ds/components/*.tsx` minus the proposing set above). Phase 3 materializes these as the `## Other re-exports` section per `references/persist.md`:
+
+- `<wrapper-file-1>.tsx` — re-exports `<UpstreamSymbol1>` from `<package-1>`
+- `<wrapper-file-2>.tsx` — re-exports `<UpstreamSymbol2>` from `<package-2>`
+- …
+
+(Omit this entire section — heading and all — when every wrapper is in the proposing set. An empty `## Re-exports outside proposing set` heading is forbidden. Under the all-of-`ds/` default this section is empty by construction — every local wrapper is in the proposing set — so it is omitted in the common case. It reappears only when the user prunes the slate at the gate.)
+
+## Resume context
+
+- cwd convention: resume in the same worktree where this handoff was written (`<absolute-worktree-path>`). If a new session opens in a different worktree, ask the user where to land outputs before proceeding.
+- Phase 2 entry: load `references/validate.md` + `references/reference-project.md` + (if foundation URLs accepted) `references/foundation-extraction.md`. Write to `.extract-ds-skill-scratch/` only. Run `scripts/check-token-coverage.sh` as the hard gate. Wait for approval before Phase 3.
+
+## Pickup prompt (paste into the new session)
+
+```
+/extract-ds-skill validate: .extract-ds-skill-scratch/handoffs/<resolved-filename>
+```
+```
+
+The template's role is to bound the doc's shape, not its DS-specific contents. Fill the angle-bracketed placeholders from the discovery summary the user just confirmed; leave nothing as `<…>` in the written file. The `<resolved-filename>` in the pickup prompt is the labeled handoff filename per `SKILL.md` "Handoff filename labeling" (e.g. `dryrun-06-phase-1.md` under a `.claude/worktrees/dryrun-06/` cwd, or bare `phase-1.md` otherwise) — write the exact filename the handoff was saved as, not the placeholder.
+
+### Resume entry — phase-1 → Phase 2
+
+When `/extract-ds-skill validate: <path>` is invoked, the skill performs the resume-entry procedure documented in `SKILL.md` "Resume from a prior phase" (read handoff, validate shape, cross-worktree label check, render summary, enter Phase 2). The one-line resume summary uses this exact format for phase-1 → Phase 2 resumes:
+
+```
+Resuming from phase-1 handoff — slug=<X>, scratch=<absolute-scratch-path>, <M> components proposing, <K> foundation URLs accepted
+```
+
+Substitute the values from the handoff's "Decisions" section verbatim. The `<M>` count comes from the proposing-set bullet list length; `<K>` comes from the foundation-docs bullet count (0 if no foundation URLs were accepted). After rendering the summary, enter Phase 2 directly — do NOT re-render the Phase 1 discovery summary, do NOT re-ask the user for the proposing set or the headline rules. Those are settled by the handoff.
+
+Carry the component shapes from the handoff's `## Components proposed` section into Phase 2 directly — the per-component one-liners ARE the recovered shape. Do NOT re-read each component from `node_modules` to re-derive what the handoff already records. If the handoff carries a `## Known exclusions` section, treat those categories as deliberately out of scope for this run: do not extract them, and surface them to the consumer as known coverage gaps rather than re-proposing them.

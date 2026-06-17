@@ -1,0 +1,81 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.pnpm-store/
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# claude code — keep skills, ignore local-only state
+.claude/settings.local.json
+.claude/logs/
+.claude/cache/
+.claude/projects/
+.claude/worktrees/
+
+# meta-skill phase-2 scratch (gitignored by design, see SKILL.md)
+.extract-ds-skill-scratch/
+
+# ralph AFK loop run logs — local-only run artefacts
+.ralph-logs/
+
+# planning/PRD scratch — these are session artefacts, not deliverables
+/PRDs
+
+.pnpm-store
+
+# RALPH AFK loop transcripts — operator artifacts, never committed
+ralph-*.log
+
+# Local-only experiment write-ups (not tracked)
+/experiments/
+
+# /teach workspace — local lesson/reference output, not deliverables
+/MISSION.md
+/lessons/
+/reference/
+/learning-records/
+/NOTES.md
+/RESOURCES.md
+
+# Facilitator-only dryrun A/B artifacts (screenshots, cost/report JSON with local paths) — not for attendees
+/dryrun-harness/out/
+# Internal AFK automation harness — attendees never run this
+/ralph/
+# Author-only rationale for the meta-skill (not loaded at runtime)
+/.claude/skills/extract-ds-skill/RATIONALE.md

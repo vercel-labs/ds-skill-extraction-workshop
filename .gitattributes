@@ -1,0 +1,3 @@
+# Keep shell scripts LF on every platform so they run under Git Bash / WSL on
+# Windows (CRLF breaks the `#!/usr/bin/env bash` shebang: "bad interpreter ^M").
+*.sh text eol=lf
